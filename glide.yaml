@@ -1,0 +1,4 @@
+package: github.com/jacexh/ultron
+import:
+- package: go.uber.org/zap
+  version: ^1.0.0-rc.1
