@@ -3,6 +3,7 @@ package ultron
 import (
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -14,17 +15,17 @@ type (
 
 	// StatsEntry represents a single stats entry
 	StatsEntry struct {
-		name              string                     // 事务名称
-		numRequests       int                        // 成功请求次数
-		numFailures       int                        // 失败次数
-		totalResponseTime time.Duration              // 成功请求的response time总和，基于原始的响应时间
-		minResponseTime   time.Duration              // 最快的响应时间
-		maxResponseTime   time.Duration              // 最慢的响应时间
-		trend             map[int64]int              // 按时间轴（秒级）记录成功请求次数
-		responseTimes     map[RoundedMillisecond]int // 按优化后的响应时间记录成功请求次数
-		startTime         time.Time                  // 第一次收到请求的时间
-		lastRequestTime   time.Time                  // 最后一次收到请求的时间
-		interval          time.Duration              // 统计时间间隔，影响 CurrentQPS()
+		name              string                       // 统计对象名称
+		numRequests       int64                        // 成功请求次数
+		numFailures       int64                        // 失败次数
+		totalResponseTime time.Duration                // 成功请求的response time总和，基于原始的响应时间
+		minResponseTime   time.Duration                // 最快的响应时间
+		maxResponseTime   time.Duration                // 最慢的响应时间
+		trend             map[int64]int64              // 按时间轴（秒级）记录成功请求次数
+		responseTimes     map[RoundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
+		startTime         time.Time                    // 第一次收到请求的时间
+		lastRequestTime   time.Time                    // 最后一次收到请求的时间
+		interval          time.Duration                // 统计时间间隔，影响 CurrentQPS()
 		lock              *sync.RWMutex
 	}
 
@@ -36,8 +37,8 @@ type (
 func NewStatsEntry(n string) *StatsEntry {
 	return &StatsEntry{
 		name:          n,
-		trend:         map[int64]int{},
-		responseTimes: map[RoundedMillisecond]int{},
+		trend:         map[int64]int64{},
+		responseTimes: map[RoundedMillisecond]int64{},
 		interval:      time.Second * 5,
 		lock:          &sync.RWMutex{},
 	}
@@ -80,7 +81,8 @@ func (s *StatsEntry) logSuccess(t time.Duration) {
 }
 
 func (s *StatsEntry) logFailure(t time.Duration, e error) {
-
+	atomic.AddInt64(&s.numFailures, 1)
+	// todo: handle error
 }
 
 // TotalQPS 获取总的QPS
@@ -101,7 +103,7 @@ func (s *StatsEntry) CurrentQPS() float64 {
 	}
 	end := s.lastRequestTime.Unix()
 	start := s.lastRequestTime.Add(-s.interval).Unix()
-	total := 0
+	var total int64
 
 	for k, v := range s.trend {
 		if k >= start && k <= end {
@@ -124,7 +126,7 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 		return s.maxResponseTime
 	}
 
-	hint := int(float64(s.numRequests)*f + .5)
+	hint := int64(float64(s.numRequests)*f + .5)
 	if hint == s.numRequests {
 		return s.maxResponseTime
 	}
@@ -142,7 +144,7 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 			return roundedMillisecondToDuration(val)
 		}
 	}
-	Logger.Warn("occer error", zap.Int("hint", hint))
+	Logger.Warn("occer error", zap.Int64("hint", hint))
 	return time.Nanosecond // occur error
 }
 
@@ -164,4 +166,12 @@ func (s *StatsEntry) Average() time.Duration {
 // Median 响应时间中位数
 func (s *StatsEntry) Median() time.Duration {
 	return s.Percentile(.5)
+}
+
+// FailRation 错误率
+func (s *StatsEntry) FailRation() float64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return float64(s.numFailures) / float64(s.numRequests+s.numFailures)
 }

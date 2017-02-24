@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -86,4 +87,14 @@ func TestAverage(t *testing.T) {
 	s.logSuccess(time.Millisecond * 80)
 
 	assert.Equal(t, time.Millisecond*35, s.Average())
+}
+
+func TestFailRation(t *testing.T) {
+	s := NewStatsEntry("test")
+	s.logSuccess(time.Millisecond * 10)
+	s.logSuccess(time.Millisecond * 20)
+	s.logSuccess(time.Millisecond * 30)
+	s.logSuccess(time.Millisecond * 80)
+	s.logFailure(time.Millisecond*5, errors.New("any"))
+	assert.Equal(t, 0.2, s.FailRation())
 }
