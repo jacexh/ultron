@@ -55,7 +55,7 @@ func NewStatsEntry(n string) *StatsEntry {
 		Name:          n,
 		Trend:         map[int64]int{},
 		ResponseTimes: map[RoundedMillisecond]int{},
-		interval:      time.Second * 2,
+		interval:      time.Second * 5,
 		lock:          &sync.RWMutex{},
 	}
 }
@@ -108,6 +108,26 @@ func (s *StatsEntry) TotalQPS() float64 {
 	return float64(s.NumRequests) / s.LastRequestTime.Sub(s.StartTime).Seconds()
 }
 
+// CurrentQPS 最近5秒的QPS
+func (s *StatsEntry) CurrentQPS() float64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	if s.LastRequestTime.IsZero() {
+		return 0
+	}
+	end := s.LastRequestTime.Unix()
+	start := s.LastRequestTime.Add(-s.interval).Unix()
+	total := 0
+
+	for k, v := range s.Trend {
+		if k >= start && k <= end {
+			total += v
+		}
+	}
+	return float64(total) / float64(s.interval/time.Second)
+}
+
 // Percentile 获取x%的响应时间
 func (s *StatsEntry) Percentile(f float64) time.Duration {
 	s.lock.RLock()
@@ -141,4 +161,9 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 	}
 	Logger.Warn("occer error", zap.Int("hint", hint))
 	return time.Nanosecond // occur error
+}
+
+// Average 平均响应时间
+func (s *StatsEntry) Average() time.Duration {
+	return time.Duration(int64(s.TotalResponseTime) / int64(s.NumRequests))
 }

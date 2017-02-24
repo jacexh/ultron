@@ -34,7 +34,7 @@ func TestRoudedMilliSecond(t *testing.T) {
 	assert.True(t, (rd == 1300), "equal 1300")
 }
 
-func TestLogSuccess(t *testing.T) {
+func TestTotalQPS(t *testing.T) {
 	s := NewStatsEntry("test")
 	for i := 0; i < 10000; i++ {
 		s.logSuccess(time.Millisecond * 64)
@@ -58,4 +58,32 @@ func TestPercentile(t *testing.T) {
 	assert.Equal(t, time.Millisecond*50, s.Percentile(1))
 	assert.Equal(t, time.Millisecond*30, s.Percentile(.8))
 	assert.Equal(t, time.Millisecond*50, s.Percentile(.99))
+}
+
+func TestCurrentQPS(t *testing.T) {
+	s := NewStatsEntry("test")
+
+	for i := 0; i < 10; i++ {
+		s.logSuccess(time.Millisecond * 10)
+	}
+	time.Sleep(time.Second * 2)
+
+	for i := 0; i < 15; i++ {
+		s.logSuccess(time.Millisecond * 10)
+	}
+
+	time.Sleep(time.Second * 4)
+	s.logSuccess(time.Millisecond * 20) // refresh the last response time
+
+	assert.True(t, (s.CurrentQPS() > 3.0), "greater than 3")
+}
+
+func TestAverage(t *testing.T) {
+	s := NewStatsEntry("test")
+	s.logSuccess(time.Millisecond * 10)
+	s.logSuccess(time.Millisecond * 20)
+	s.logSuccess(time.Millisecond * 30)
+	s.logSuccess(time.Millisecond * 80)
+
+	assert.Equal(t, time.Millisecond*35, s.Average())
 }
