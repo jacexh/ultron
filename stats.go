@@ -1,9 +1,11 @@
 package ultron
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
+	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -22,7 +24,9 @@ type (
 		minResponseTime   time.Duration                // 最快的响应时间
 		maxResponseTime   time.Duration                // 最慢的响应时间
 		trend             map[int64]int64              // 按时间轴（秒级）记录成功请求次数
+		failuresTrend     map[int64]int64              // 按时间轴（妙计）记录错误的请求次数
 		responseTimes     map[RoundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
+		failuresTimes     map[string]int64             // 记录不同错误的次数
 		startTime         time.Time                    // 第一次收到请求的时间
 		lastRequestTime   time.Time                    // 最后一次收到请求的时间
 		interval          time.Duration                // 统计时间间隔，影响 CurrentQPS()
@@ -31,6 +35,21 @@ type (
 
 	// StatsCollector 统计集合
 	StatsCollector map[string]*StatsEntry
+
+	// StatsReport 输出报告
+	StatsReport struct {
+		Name          string           `json:"name"`
+		Requests      int64            `json:"requests"`
+		Min           int64            `json:"min"`
+		Max           int64            `json:"max"`
+		Median        int64            `json:"median"`
+		Average       int64            `json:"average"`
+		QPS           float64          `json:"qps"`
+		Distributions map[string]int64 `json:"distributions"`
+		Failures      map[string]int64 `json:"failure"`
+		FullHistory   bool             `json:"full_history"`
+		FailRation    float64          `json:"fail_ration"`
+	}
 )
 
 // NewStatsEntry create a new StatsEntry instance
@@ -38,7 +57,9 @@ func NewStatsEntry(n string) *StatsEntry {
 	return &StatsEntry{
 		name:          n,
 		trend:         map[int64]int64{},
+		failuresTrend: map[int64]int64{},
 		responseTimes: map[RoundedMillisecond]int64{},
+		failuresTimes: map[string]int64{},
 		interval:      time.Second * 5,
 		lock:          &sync.RWMutex{},
 	}
@@ -80,9 +101,25 @@ func (s *StatsEntry) logSuccess(t time.Duration) {
 	}
 }
 
-func (s *StatsEntry) logFailure(t time.Duration, e error) {
-	atomic.AddInt64(&s.numFailures, 1)
-	// todo: handle error
+func (s *StatsEntry) logFailure(e error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	sec := time.Now().Unix()
+	s.numFailures++
+	info := e.Error()
+
+	if _, ok := s.failuresTimes[info]; ok {
+		s.failuresTimes[info]++
+	} else {
+		s.failuresTimes[info] = 1
+	}
+
+	if _, ok := s.failuresTrend[sec]; ok {
+		s.failuresTrend[sec]++
+	} else {
+		s.failuresTrend[sec] = 1
+	}
 }
 
 // TotalQPS 获取总的QPS
@@ -174,4 +211,38 @@ func (s *StatsEntry) FailRation() float64 {
 	defer s.lock.RUnlock()
 
 	return float64(s.numFailures) / float64(s.numRequests+s.numFailures)
+}
+
+// Report 打印统计结果
+func (s *StatsEntry) Report(full bool) string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	r := &StatsReport{
+		Name:          s.name,
+		Requests:      s.numRequests,
+		Min:           timeDurationToMillsecond(s.Min()),
+		Max:           timeDurationToMillsecond(s.Max()),
+		Median:        timeDurationToMillsecond(s.Median()),
+		Average:       timeDurationToMillsecond(s.Average()),
+		Distributions: map[string]int64{},
+		Failures:      s.failuresTimes,
+		FullHistory:   full,
+		FailRation:    s.FailRation(),
+	}
+
+	if full {
+		r.QPS = s.TotalQPS()
+	} else {
+		r.QPS = s.CurrentQPS()
+	}
+
+	for _, percent := range []float64{0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.0} {
+		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.Percentile(percent))
+	}
+
+	b, _ := json.Marshal(r)
+	ret := string(b)
+	Logger.Info(fmt.Sprintf("StatsEntry - %s - %s", s.name, ret))
+	return ret
 }
