@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -15,8 +16,7 @@ type (
 	// RoundedMillisecond 将time.Duration四舍五入到ms后的对象
 	RoundedMillisecond int64
 
-	// StatsEntry represents a single stats entry
-	StatsEntry struct {
+	statsEntry struct {
 		name              string                       // 统计对象名称
 		numRequests       int64                        // 成功请求次数
 		numFailures       int64                        // 失败次数
@@ -34,7 +34,11 @@ type (
 	}
 
 	// StatsCollector 统计集合
-	StatsCollector map[string]*StatsEntry
+	StatsCollector struct {
+		entries  map[string]*statsEntry
+		receiver chan *TransactionResult
+		ctx      context.Context
+	}
 
 	// StatsReport 输出报告
 	StatsReport struct {
@@ -50,11 +54,17 @@ type (
 		FullHistory   bool             `json:"full_history"`
 		FailRation    float64          `json:"fail_ration"`
 	}
+
+	// TransactionResult 事务执行结果
+	TransactionResult struct {
+		Name     string
+		Duration time.Duration
+		Err      error
+	}
 )
 
-// NewStatsEntry create a new StatsEntry instance
-func NewStatsEntry(n string) *StatsEntry {
-	return &StatsEntry{
+func newStatsEntry(n string) *statsEntry {
+	return &statsEntry{
 		name:          n,
 		trend:         map[int64]int64{},
 		failuresTrend: map[int64]int64{},
@@ -65,7 +75,7 @@ func NewStatsEntry(n string) *StatsEntry {
 	}
 }
 
-func (s *StatsEntry) logSuccess(t time.Duration) {
+func (s *statsEntry) logSuccess(t time.Duration) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -101,7 +111,7 @@ func (s *StatsEntry) logSuccess(t time.Duration) {
 	}
 }
 
-func (s *StatsEntry) logFailure(e error) {
+func (s *statsEntry) logFailure(e error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -123,7 +133,7 @@ func (s *StatsEntry) logFailure(e error) {
 }
 
 // TotalQPS 获取总的QPS
-func (s *StatsEntry) TotalQPS() float64 {
+func (s *statsEntry) TotalQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -131,7 +141,7 @@ func (s *StatsEntry) TotalQPS() float64 {
 }
 
 // CurrentQPS 最近5秒的QPS
-func (s *StatsEntry) CurrentQPS() float64 {
+func (s *statsEntry) CurrentQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -151,7 +161,7 @@ func (s *StatsEntry) CurrentQPS() float64 {
 }
 
 // Percentile 获取x%的响应时间
-func (s *StatsEntry) Percentile(f float64) time.Duration {
+func (s *statsEntry) Percentile(f float64) time.Duration {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -186,27 +196,27 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 }
 
 // Min 最快响应时间
-func (s *StatsEntry) Min() time.Duration {
+func (s *statsEntry) Min() time.Duration {
 	return s.minResponseTime
 }
 
 // Max 最慢响应时间
-func (s *StatsEntry) Max() time.Duration {
+func (s *statsEntry) Max() time.Duration {
 	return s.maxResponseTime
 }
 
 // Average 平均响应时间
-func (s *StatsEntry) Average() time.Duration {
+func (s *statsEntry) Average() time.Duration {
 	return time.Duration(int64(s.totalResponseTime) / int64(s.numRequests))
 }
 
 // Median 响应时间中位数
-func (s *StatsEntry) Median() time.Duration {
+func (s *statsEntry) Median() time.Duration {
 	return s.Percentile(.5)
 }
 
 // FailRation 错误率
-func (s *StatsEntry) FailRation() float64 {
+func (s *statsEntry) FailRation() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -214,7 +224,7 @@ func (s *StatsEntry) FailRation() float64 {
 }
 
 // Report 打印统计结果
-func (s *StatsEntry) Report(full bool) string {
+func (s *statsEntry) Report(full bool) string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -245,4 +255,44 @@ func (s *StatsEntry) Report(full bool) string {
 	ret := string(b)
 	Logger.Info(fmt.Sprintf("StatsEntry - %s - %s", s.name, ret))
 	return ret
+}
+
+// NewStatsCollector 实例化StatsCollector
+func NewStatsCollector(ctx context.Context) *StatsCollector {
+	return &StatsCollector{
+		entries:  map[string]*statsEntry{},
+		receiver: make(chan *TransactionResult),
+		ctx:      ctx,
+	}
+}
+
+func (c *StatsCollector) logSuccess(name string, t time.Duration) {
+	if _, ok := c.entries[name]; !ok {
+		c.entries[name] = newStatsEntry(name)
+	}
+	c.entries[name].logSuccess(t)
+}
+
+func (c *StatsCollector) logFailure(name string, err error) {
+	if _, ok := c.entries[name]; !ok {
+		c.entries[name] = newStatsEntry(name)
+	}
+	c.entries[name].logFailure(err)
+}
+
+// Receiving 主函数，监听channel进行统计
+func (c *StatsCollector) Receiving() {
+	for r := range c.receiver {
+		// Todo: ctx
+		if r.Err == nil {
+			c.logSuccess(r.Name, r.Duration)
+		} else {
+			c.logFailure(r.Name, r.Err)
+		}
+	}
+}
+
+// Receiver 返回接收事务结果通道
+func (c *StatsCollector) Receiver() chan<- *TransactionResult {
+	return c.receiver
 }

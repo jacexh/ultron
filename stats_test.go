@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewStatsEntry(t *testing.T) {
-	e := NewStatsEntry("test")
+	e := newStatsEntry("test")
 	assert.Equal(t, int(e.minResponseTime), 0, "should be 0s")
 }
 
@@ -36,7 +36,7 @@ func TestRoudedMilliSecond(t *testing.T) {
 }
 
 func TestTotalQPS(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 	for i := 0; i < 10000; i++ {
 		s.logSuccess(time.Millisecond * 64)
 	}
@@ -46,7 +46,7 @@ func TestTotalQPS(t *testing.T) {
 }
 
 func TestPercentile(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 
 	s.logSuccess(time.Millisecond * 10)
 	s.logSuccess(time.Millisecond * 20)
@@ -62,7 +62,7 @@ func TestPercentile(t *testing.T) {
 }
 
 func TestCurrentQPS(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 
 	for i := 0; i < 10; i++ {
 		s.logSuccess(time.Millisecond * 10)
@@ -80,7 +80,7 @@ func TestCurrentQPS(t *testing.T) {
 }
 
 func TestAverage(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 	s.logSuccess(time.Millisecond * 10)
 	s.logSuccess(time.Millisecond * 20)
 	s.logSuccess(time.Millisecond * 30)
@@ -90,7 +90,7 @@ func TestAverage(t *testing.T) {
 }
 
 func TestFailRation(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 	s.logSuccess(time.Millisecond * 10)
 	s.logSuccess(time.Millisecond * 20)
 	s.logSuccess(time.Millisecond * 30)
@@ -100,7 +100,7 @@ func TestFailRation(t *testing.T) {
 }
 
 func TestReport(t *testing.T) {
-	s := NewStatsEntry("test")
+	s := newStatsEntry("test")
 	s.logSuccess(time.Millisecond * 10)
 	s.logSuccess(time.Millisecond * 20)
 	s.logSuccess(time.Millisecond * 30)
