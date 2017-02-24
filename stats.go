@@ -14,16 +14,16 @@ type (
 
 	// StatsEntry represents a single stats entry
 	StatsEntry struct {
-		Name              string                     // 事务名称
-		NumRequests       int                        // 成功请求次数
-		NumFailures       int                        // 失败次数
-		TotalResponseTime time.Duration              // 成功请求的response time总和，基于原始的响应时间
-		MinResponseTime   time.Duration              // 最快的响应时间
-		MaxResponseTime   time.Duration              // 最慢的响应时间
-		Trend             map[int64]int              // 按时间轴（秒级）记录成功请求次数
-		ResponseTimes     map[RoundedMillisecond]int // 按优化后的响应时间记录成功请求次数
-		StartTime         time.Time                  // 第一次收到请求的时间
-		LastRequestTime   time.Time                  // 最后一次收到请求的时间
+		name              string                     // 事务名称
+		numRequests       int                        // 成功请求次数
+		numFailures       int                        // 失败次数
+		totalResponseTime time.Duration              // 成功请求的response time总和，基于原始的响应时间
+		minResponseTime   time.Duration              // 最快的响应时间
+		maxResponseTime   time.Duration              // 最慢的响应时间
+		trend             map[int64]int              // 按时间轴（秒级）记录成功请求次数
+		responseTimes     map[RoundedMillisecond]int // 按优化后的响应时间记录成功请求次数
+		startTime         time.Time                  // 第一次收到请求的时间
+		lastRequestTime   time.Time                  // 最后一次收到请求的时间
 		interval          time.Duration              // 统计时间间隔，影响 CurrentQPS()
 		lock              *sync.RWMutex
 	}
@@ -32,29 +32,12 @@ type (
 	StatsCollector map[string]*StatsEntry
 )
 
-func timeDurationToRoudedMillisecond(t time.Duration) RoundedMillisecond {
-	ms := int64(t.Seconds()*1000 + 0.5)
-	var rm RoundedMillisecond
-	if ms < 100 {
-		rm = RoundedMillisecond(ms)
-	} else if ms < 1000 {
-		rm = RoundedMillisecond(((ms + 5) / 10) * 10)
-	} else {
-		rm = RoundedMillisecond(((ms + 50) / 100) * 100)
-	}
-	return rm
-}
-
-func roundedMillisecondToDuration(r RoundedMillisecond) time.Duration {
-	return time.Duration(r * 1000 * 1000)
-}
-
 // NewStatsEntry create a new StatsEntry instance
 func NewStatsEntry(n string) *StatsEntry {
 	return &StatsEntry{
-		Name:          n,
-		Trend:         map[int64]int{},
-		ResponseTimes: map[RoundedMillisecond]int{},
+		name:          n,
+		trend:         map[int64]int{},
+		responseTimes: map[RoundedMillisecond]int{},
 		interval:      time.Second * 5,
 		lock:          &sync.RWMutex{},
 	}
@@ -64,35 +47,35 @@ func (s *StatsEntry) logSuccess(t time.Duration) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.NumRequests++
+	s.numRequests++
 
 	now := time.Now()
-	if s.LastRequestTime.IsZero() {
-		s.MinResponseTime = t
-		s.StartTime = now
+	if s.lastRequestTime.IsZero() {
+		s.minResponseTime = t
+		s.startTime = now
 	}
-	s.LastRequestTime = now
+	s.lastRequestTime = now
 
-	if t < s.MinResponseTime {
-		s.MinResponseTime = t
+	if t < s.minResponseTime {
+		s.minResponseTime = t
 	}
-	if t > s.MaxResponseTime {
-		s.MaxResponseTime = t
+	if t > s.maxResponseTime {
+		s.maxResponseTime = t
 	}
-	s.TotalResponseTime += t
+	s.totalResponseTime += t
 
 	sec := now.Unix()
-	if _, ok := s.Trend[sec]; ok {
-		s.Trend[sec]++
+	if _, ok := s.trend[sec]; ok {
+		s.trend[sec]++
 	} else {
-		s.Trend[sec] = 1
+		s.trend[sec] = 1
 	}
 
 	rm := timeDurationToRoudedMillisecond(t)
-	if _, ok := s.ResponseTimes[rm]; ok {
-		s.ResponseTimes[rm]++
+	if _, ok := s.responseTimes[rm]; ok {
+		s.responseTimes[rm]++
 	} else {
-		s.ResponseTimes[rm] = 1
+		s.responseTimes[rm] = 1
 	}
 }
 
@@ -105,7 +88,7 @@ func (s *StatsEntry) TotalQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	return float64(s.NumRequests) / s.LastRequestTime.Sub(s.StartTime).Seconds()
+	return float64(s.numRequests) / s.lastRequestTime.Sub(s.startTime).Seconds()
 }
 
 // CurrentQPS 最近5秒的QPS
@@ -113,14 +96,14 @@ func (s *StatsEntry) CurrentQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.LastRequestTime.IsZero() {
+	if s.lastRequestTime.IsZero() {
 		return 0
 	}
-	end := s.LastRequestTime.Unix()
-	start := s.LastRequestTime.Add(-s.interval).Unix()
+	end := s.lastRequestTime.Unix()
+	start := s.lastRequestTime.Add(-s.interval).Unix()
 	total := 0
 
-	for k, v := range s.Trend {
+	for k, v := range s.trend {
 		if k >= start && k <= end {
 			total += v
 		}
@@ -134,26 +117,26 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 	defer s.lock.RUnlock()
 
 	if f <= 0.0 {
-		return s.MinResponseTime
+		return s.minResponseTime
 	}
 
 	if f >= 1.0 {
-		return s.MaxResponseTime
+		return s.maxResponseTime
 	}
 
-	hint := int(float64(s.NumRequests)*f + .5)
-	if hint == s.NumRequests {
-		return s.MaxResponseTime
+	hint := int(float64(s.numRequests)*f + .5)
+	if hint == s.numRequests {
+		return s.maxResponseTime
 	}
 
 	var times []RoundedMillisecond
-	for k := range s.ResponseTimes {
+	for k := range s.responseTimes {
 		times = append(times, k)
 	}
 
 	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
 	for _, val := range times {
-		counts := s.ResponseTimes[val]
+		counts := s.responseTimes[val]
 		hint -= counts
 		if hint <= 0 {
 			return roundedMillisecondToDuration(val)
@@ -163,7 +146,22 @@ func (s *StatsEntry) Percentile(f float64) time.Duration {
 	return time.Nanosecond // occur error
 }
 
+// Min 最快响应时间
+func (s *StatsEntry) Min() time.Duration {
+	return s.minResponseTime
+}
+
+// Max 最慢响应时间
+func (s *StatsEntry) Max() time.Duration {
+	return s.maxResponseTime
+}
+
 // Average 平均响应时间
 func (s *StatsEntry) Average() time.Duration {
-	return time.Duration(int64(s.TotalResponseTime) / int64(s.NumRequests))
+	return time.Duration(int64(s.totalResponseTime) / int64(s.numRequests))
+}
+
+// Median 响应时间中位数
+func (s *StatsEntry) Median() time.Duration {
+	return s.Percentile(.5)
 }

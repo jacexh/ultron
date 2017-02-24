@@ -9,7 +9,7 @@ import (
 
 func TestNewStatsEntry(t *testing.T) {
 	e := NewStatsEntry("test")
-	assert.Equal(t, int(e.MinResponseTime), 0, "should be 0s")
+	assert.Equal(t, int(e.minResponseTime), 0, "should be 0s")
 }
 
 func TestRoudedMilliSecond(t *testing.T) {
