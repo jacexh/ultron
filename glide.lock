@@ -1,14 +1,18 @@
-hash: e31fd6ee58e6f84fc9314ae96b2d7cc6505a92fae42f1dfc3dc9721e83cee28d
-updated: 2017-02-23T22:23:39.781564831+08:00
+hash: eb81492877d625acdd153f33b9cde8f6f300455e00056c6ac3e9ac2ba0c03804
+updated: 2017-02-24T10:21:43.529352969+08:00
 imports:
 - name: go.uber.org/atomic
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: go.uber.org/zap
-  version: 72313cde80537dd4dc9b7b80eda6d7ed796c4232
+  version: a03b90bc236f3def382f17743518889a31f8187c
   subpackages:
   - buffer
   - internal/bufferpool
   - internal/exit
   - internal/multierror
   - zapcore
-testImports: []
+testImports:
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
