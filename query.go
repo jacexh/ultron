@@ -14,6 +14,8 @@ const (
 	DefaultMinWait time.Duration = time.Second * 1
 	// DefaultMaxWait 默认最大等待时间
 	DefaultMaxWait time.Duration = time.Second * 5
+	// DefaultConcurrency 默认并发数
+	DefaultConcurrency = 100
 )
 
 type (
@@ -23,20 +25,14 @@ type (
 		Fire() (time.Duration, error)
 	}
 
-	// // QuerySet 查询事件集合
-	// QuerySet interface {
-	// 	OnStart()
-	// 	Queries() map[Query]int
-	// 	MinWait() time.Duration
-	// 	MaxWait() time.Duration
-	// }
-
 	// TaskSet 任务集
 	TaskSet struct {
 		queries     map[Query]int
+		totalWeight int
 		MinWait     time.Duration
 		MaxWait     time.Duration
-		totalWeight int
+		Duration    time.Duration
+		Concurrency int
 		lock        *sync.RWMutex
 	}
 )
@@ -47,7 +43,7 @@ func NewTaskSet() *TaskSet {
 		queries:     map[Query]int{},
 		MinWait:     DefaultMinWait,
 		MaxWait:     DefaultMaxWait,
-		totalWeight: 0,
+		Concurrency: DefaultConcurrency,
 		lock:        &sync.RWMutex{},
 	}
 }
@@ -92,4 +88,8 @@ func (t *TaskSet) Wait() time.Duration {
 		delta = time.Duration(rand.Int63n(int64(t.MaxWait-t.MinWait)) + 1)
 	}
 	return t.MinWait + delta
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
