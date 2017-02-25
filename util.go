@@ -8,9 +8,9 @@ func timeDurationToRoudedMillisecond(t time.Duration) RoundedMillisecond {
 	if ms < 100 {
 		rm = RoundedMillisecond(ms)
 	} else if ms < 1000 {
-		rm = RoundedMillisecond(((ms + 5) / 10) * 10)
+		rm = RoundedMillisecond(ms + 5 - (ms+5)%10)
 	} else {
-		rm = RoundedMillisecond(((ms + 50) / 100) * 100)
+		rm = RoundedMillisecond((ms + 50 - (ms+50)%100))
 	}
 	return rm
 }

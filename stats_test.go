@@ -16,23 +16,23 @@ func TestNewStatsEntry(t *testing.T) {
 func TestRoudedMilliSecond(t *testing.T) {
 	d := time.Millisecond * 54
 	rd := timeDurationToRoudedMillisecond(d)
-	assert.True(t, (rd == 54), "not rounded")
+	assert.Equal(t, int(rd), 54)
 
 	d = time.Millisecond * 124
 	rd = timeDurationToRoudedMillisecond(d)
-	assert.True(t, (rd == 120), "equal 120")
+	assert.Equal(t, int(rd), 120)
 
 	d = time.Millisecond * 125
 	rd = timeDurationToRoudedMillisecond(d)
-	assert.True(t, (rd == 130), "equal 130")
+	assert.Equal(t, int(rd), 130)
 
 	d = time.Millisecond * 1230
 	rd = timeDurationToRoudedMillisecond(d)
-	assert.True(t, (rd == 1200), "equal 1200")
+	assert.Equal(t, int(rd), 1200)
 
 	d = time.Millisecond * 1250
 	rd = timeDurationToRoudedMillisecond(d)
-	assert.True(t, (rd == 1300), "equal 1300")
+	assert.Equal(t, int(rd), 1300)
 }
 
 func TestTotalQPS(t *testing.T) {
