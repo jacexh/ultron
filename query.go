@@ -66,6 +66,9 @@ func (t *TaskSet) Add(q Query, w int) *TaskSet {
 
 // Choice 根据权重获取一个Query对象
 func (t *TaskSet) Choice() Query {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
 	hint := rand.Intn(t.totalWeight) + 1
 	for q, w := range t.queries {
 		if w > 0 {
@@ -80,6 +83,9 @@ func (t *TaskSet) Choice() Query {
 
 // Wait return wait time
 func (t *TaskSet) Wait() time.Duration {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
 	delta := NoDuration
 	if t.MaxWait == t.MinWait || t.MinWait < t.MaxWait {
 	} else {
