@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var timeDistributions = [10]float64{0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.0}
+
 type (
 	// RoundedMillisecond 将time.Duration四舍五入到ms后的对象
 	RoundedMillisecond int64
@@ -247,7 +249,7 @@ func (s *statsEntry) Report(full bool) string {
 		r.QPS = s.CurrentQPS()
 	}
 
-	for _, percent := range []float64{0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.0} {
+	for _, percent := range timeDistributions {
 		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.Percentile(percent))
 	}
 
