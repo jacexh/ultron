@@ -38,8 +38,15 @@ type (
 	// StatsCollector 统计集合
 	StatsCollector struct {
 		entries  map[string]*statsEntry
-		receiver chan *TransactionResult
+		receiver chan *QueryResult
 		ctx      context.Context
+	}
+
+	// QueryResult 查询事件结果
+	QueryResult struct {
+		Name     string
+		Duration time.Duration
+		Error    error
 	}
 
 	// StatsReport 输出报告
@@ -55,13 +62,6 @@ type (
 		Failures      map[string]int64 `json:"failure"`
 		FullHistory   bool             `json:"full_history"`
 		FailRation    float64          `json:"fail_ration"`
-	}
-
-	// TransactionResult 事务执行结果
-	TransactionResult struct {
-		Name     string
-		Duration time.Duration
-		Err      error
 	}
 )
 
@@ -263,7 +263,7 @@ func (s *statsEntry) Report(full bool) string {
 func NewStatsCollector(ctx context.Context) *StatsCollector {
 	return &StatsCollector{
 		entries:  map[string]*statsEntry{},
-		receiver: make(chan *TransactionResult),
+		receiver: make(chan *QueryResult),
 		ctx:      ctx,
 	}
 }
@@ -286,15 +286,15 @@ func (c *StatsCollector) logFailure(name string, err error) {
 func (c *StatsCollector) Receiving() {
 	for r := range c.receiver {
 		// Todo: ctx
-		if r.Err == nil {
+		if r.Error == nil {
 			c.logSuccess(r.Name, r.Duration)
 		} else {
-			c.logFailure(r.Name, r.Err)
+			c.logFailure(r.Name, r.Error)
 		}
 	}
 }
 
 // Receiver 返回接收事务结果通道
-func (c *StatsCollector) Receiver() chan<- *TransactionResult {
+func (c *StatsCollector) Receiver() chan<- *QueryResult {
 	return c.receiver
 }
