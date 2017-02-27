@@ -30,14 +30,13 @@ type (
 		startTime         time.Time                    // 第一次收到请求的时间
 		lastRequestTime   time.Time                    // 最后一次收到请求的时间
 		interval          time.Duration                // 统计时间间隔，影响 CurrentQPS()
-		lock              *sync.RWMutex
+		lock              sync.Mutex
 	}
 
 	// StatsCollector 统计集合
 	StatsCollector struct {
 		entries  map[string]*statsEntry
 		receiver chan *QueryResult
-		lock     *sync.RWMutex
 	}
 
 	// QueryResult 查询事件结果
@@ -71,7 +70,6 @@ func newStatsEntry(n string) *statsEntry {
 		responseTimes: map[RoundedMillisecond]int64{},
 		failuresTimes: map[string]int64{},
 		interval:      time.Second * 12,
-		lock:          &sync.RWMutex{},
 	}
 }
 
@@ -134,17 +132,11 @@ func (s *statsEntry) logFailure(e error) {
 
 // TotalQPS 获取总的QPS
 func (s *statsEntry) TotalQPS() float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	return float64(s.numRequests) / s.lastRequestTime.Sub(s.startTime).Seconds()
 }
 
 // CurrentQPS 最近12秒的QPS
 func (s *statsEntry) CurrentQPS() float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	if s.lastRequestTime.IsZero() {
 		return 0
 	}
@@ -162,9 +154,6 @@ func (s *statsEntry) CurrentQPS() float64 {
 
 // Percentile 获取x%的响应时间
 func (s *statsEntry) Percentile(f float64) time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	if f <= 0.0 {
 		return s.minResponseTime
 	}
@@ -207,33 +196,21 @@ func (s *statsEntry) Max() time.Duration {
 
 // Average 平均响应时间
 func (s *statsEntry) Average() time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	return time.Duration(int64(s.totalResponseTime) / int64(s.numRequests))
 }
 
 // Median 响应时间中位数
 func (s *statsEntry) Median() time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	return s.Percentile(.5)
 }
 
 // FailRation 错误率
 func (s *statsEntry) FailRation() float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	return float64(s.numFailures) / float64(s.numRequests+s.numFailures)
 }
 
 // Report 打印统计结果
 func (s *statsEntry) Report(full bool) string {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	r := &StatsReport{
 		Name:          s.name,
 		Requests:      s.numRequests,
@@ -274,14 +251,10 @@ func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{
 		entries:  map[string]*statsEntry{},
 		receiver: make(chan *QueryResult),
-		lock:     &sync.RWMutex{},
 	}
 }
 
 func (c *StatsCollector) logSuccess(name string, t time.Duration) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
@@ -289,9 +262,6 @@ func (c *StatsCollector) logSuccess(name string, t time.Duration) {
 }
 
 func (c *StatsCollector) logFailure(name string, err error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
