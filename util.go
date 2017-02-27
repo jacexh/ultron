@@ -16,7 +16,8 @@ func timeDurationToRoudedMillisecond(t time.Duration) RoundedMillisecond {
 }
 
 func roundedMillisecondToDuration(r RoundedMillisecond) time.Duration {
-	return time.Duration(r * 1000 * 1000)
+	ret := time.Duration(r * 1000 * 1000)
+	return ret
 }
 
 func timeDurationToMillsecond(t time.Duration) int64 {

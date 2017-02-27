@@ -22,8 +22,9 @@ var CoreRunner *runner
 func newRunner(c *StatsCollector) *runner {
 	return &runner{
 		statsCollector: NewStatsCollector(),
-		ctx:            context.Background(),
-		lock:           &sync.RWMutex{},
+		// ctx:            context.Background(),
+		wg:   &sync.WaitGroup{},
+		lock: &sync.RWMutex{},
 	}
 }
 
@@ -40,9 +41,11 @@ func (r *runner) Run() {
 	}
 
 	go func() {
-		time.Sleep(time.Second * 5)
-		for _, v := range r.statsCollector.entries {
-			fmt.Println(v.Report(false))
+		for {
+			time.Sleep(time.Second * 5)
+			for _, v := range r.statsCollector.entries {
+				fmt.Println(v.Report(false))
+			}
 		}
 	}()
 
@@ -54,7 +57,7 @@ func (r *runner) Run() {
 	r.wg.Wait()
 
 	for _, v := range r.statsCollector.entries {
-		fmt.Println(v.Report(true))
+		v.Report(true)
 	}
 
 	os.Exit(0)
@@ -64,7 +67,6 @@ func (r *runner) attack() {
 	defer r.wg.Add(-1)
 	defer func() {
 		if rec := recover(); rec != nil {
-			fmt.Println(rec)
 			Logger.Error("recoverd")
 		}
 	}()
@@ -77,11 +79,15 @@ func (r *runner) attack() {
 		if duration == ZeroDuration { // 用户并未自定义请求时间
 			duration = taskDuraton
 		}
-		r.statsCollector.Receiver() <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
+		r.statsCollector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
 
 		wait := r.task.Wait()
 		if wait != ZeroDuration {
 			time.Sleep(wait)
 		}
 	}
+}
+
+func init() {
+	CoreRunner = newRunner(NewStatsCollector())
 }

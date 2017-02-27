@@ -1,5 +1,5 @@
 hash: eb81492877d625acdd153f33b9cde8f6f300455e00056c6ac3e9ac2ba0c03804
-updated: 2017-02-24T10:21:43.529352969+08:00
+updated: 2017-02-27T15:26:43.824393557+08:00
 imports:
 - name: go.uber.org/atomic
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
@@ -12,6 +12,14 @@ imports:
   - internal/multierror
   - zapcore
 testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:

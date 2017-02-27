@@ -2,7 +2,6 @@ package ultron
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 	"sync"
@@ -38,6 +37,7 @@ type (
 	StatsCollector struct {
 		entries  map[string]*statsEntry
 		receiver chan *QueryResult
+		lock     *sync.RWMutex
 	}
 
 	// QueryResult 查询事件结果
@@ -55,7 +55,7 @@ type (
 		Max           int64            `json:"max"`
 		Median        int64            `json:"median"`
 		Average       int64            `json:"average"`
-		QPS           float64          `json:"qps"`
+		QPS           int64            `json:"qps"`
 		Distributions map[string]int64 `json:"distributions"`
 		Failures      map[string]int64 `json:"failure"`
 		FullHistory   bool             `json:"full_history"`
@@ -70,7 +70,7 @@ func newStatsEntry(n string) *statsEntry {
 		failuresTrend: map[int64]int64{},
 		responseTimes: map[RoundedMillisecond]int64{},
 		failuresTimes: map[string]int64{},
-		interval:      time.Second * 5,
+		interval:      time.Second * 12,
 		lock:          &sync.RWMutex{},
 	}
 }
@@ -140,7 +140,7 @@ func (s *statsEntry) TotalQPS() float64 {
 	return float64(s.numRequests) / s.lastRequestTime.Sub(s.startTime).Seconds()
 }
 
-// CurrentQPS 最近5秒的QPS
+// CurrentQPS 最近12秒的QPS
 func (s *statsEntry) CurrentQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -178,12 +178,13 @@ func (s *statsEntry) Percentile(f float64) time.Duration {
 		return s.maxResponseTime
 	}
 
-	var times []RoundedMillisecond
+	times := []RoundedMillisecond{}
 	for k := range s.responseTimes {
 		times = append(times, k)
 	}
 
 	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
+
 	for _, val := range times {
 		counts := s.responseTimes[val]
 		hint -= counts
@@ -191,8 +192,7 @@ func (s *statsEntry) Percentile(f float64) time.Duration {
 			return roundedMillisecondToDuration(val)
 		}
 	}
-	Logger.Warn("occer error", zap.Int64("hint", hint))
-	return time.Nanosecond // occur error
+	return ZeroDuration // occur error
 }
 
 // Min 最快响应时间
@@ -207,11 +207,17 @@ func (s *statsEntry) Max() time.Duration {
 
 // Average 平均响应时间
 func (s *statsEntry) Average() time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	return time.Duration(int64(s.totalResponseTime) / int64(s.numRequests))
 }
 
 // Median 响应时间中位数
 func (s *statsEntry) Median() time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	return s.Percentile(.5)
 }
 
@@ -242,19 +248,25 @@ func (s *statsEntry) Report(full bool) string {
 	}
 
 	if full {
-		r.QPS = s.TotalQPS()
+		r.QPS = int64(s.TotalQPS())
 	} else {
-		r.QPS = s.CurrentQPS()
+		r.QPS = int64(s.CurrentQPS())
 	}
 
 	for _, percent := range timeDistributions {
 		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.Percentile(percent))
 	}
 
-	b, _ := json.Marshal(r)
-	ret := string(b)
-	Logger.Info(fmt.Sprintf("StatsEntry - %s - %s", s.name, ret))
-	return ret
+	b, err := json.Marshal(r)
+	if err != nil {
+		// Logger.Error("error", zap.String("error", err.Error()))
+		// fmt.Println()
+		return err.Error()
+	}
+	// ret := string(b)
+	// Logger.Info(fmt.Sprintf("Transaction - %s - %s", s.name, ret))
+	return string(b)
+
 }
 
 // NewStatsCollector 实例化StatsCollector
@@ -262,10 +274,14 @@ func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{
 		entries:  map[string]*statsEntry{},
 		receiver: make(chan *QueryResult),
+		lock:     &sync.RWMutex{},
 	}
 }
 
 func (c *StatsCollector) logSuccess(name string, t time.Duration) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
@@ -273,20 +289,34 @@ func (c *StatsCollector) logSuccess(name string, t time.Duration) {
 }
 
 func (c *StatsCollector) logFailure(name string, err error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
+	Logger.Warn("occure error", zap.String("error", err.Error()))
 	c.entries[name].logFailure(err)
 }
 
 // Receiving 主函数，监听channel进行统计
 func (c *StatsCollector) Receiving() {
-	for r := range c.receiver {
-		// Todo: ctx
-		if r.Error == nil {
-			c.logSuccess(r.Name, r.Duration)
-		} else {
-			c.logFailure(r.Name, r.Error)
+	// for r := range c.receiver {
+	// 	// Todo: ctx
+	// 	if r.Error == nil {
+	// 		go c.logSuccess(r.Name, r.Duration)
+	// 	} else {
+	// 		go c.logFailure(r.Name, r.Error)
+	// 	}
+	// }
+	for {
+		select {
+		case r := <-c.receiver:
+			if r.Error == nil {
+				go c.logSuccess(r.Name, r.Duration)
+			} else {
+				go c.logFailure(r.Name, r.Error)
+			}
 		}
 	}
 }
