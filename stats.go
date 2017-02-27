@@ -1,7 +1,6 @@
 package ultron
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -39,7 +38,6 @@ type (
 	StatsCollector struct {
 		entries  map[string]*statsEntry
 		receiver chan *QueryResult
-		ctx      context.Context
 	}
 
 	// QueryResult 查询事件结果
@@ -260,11 +258,10 @@ func (s *statsEntry) Report(full bool) string {
 }
 
 // NewStatsCollector 实例化StatsCollector
-func NewStatsCollector(ctx context.Context) *StatsCollector {
+func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{
 		entries:  map[string]*statsEntry{},
 		receiver: make(chan *QueryResult),
-		ctx:      ctx,
 	}
 }
 

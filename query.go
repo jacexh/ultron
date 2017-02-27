@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	// NoDuration 无等待
-	NoDuration time.Duration = time.Duration(0)
+	// ZeroDuration 无等待,用于一些特殊判断
+	ZeroDuration time.Duration = time.Duration(0)
 	// DefaultMinWait 默认最小等待时间
 	DefaultMinWait time.Duration = time.Second * 1
 	// DefaultMaxWait 默认最大等待时间
@@ -48,6 +48,9 @@ func NewTaskSet() *TaskSet {
 	}
 }
 
+// OnStart hook
+func (t *TaskSet) OnStart() error { return nil }
+
 // Add 添加Query以及权重
 func (t *TaskSet) Add(q Query, w int) *TaskSet {
 	t.lock.Lock()
@@ -82,7 +85,7 @@ func (t *TaskSet) Wait() time.Duration {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 
-	delta := NoDuration
+	delta := ZeroDuration
 	if t.MaxWait == t.MinWait || t.MinWait < t.MaxWait {
 	} else {
 		delta = time.Duration(rand.Int63n(int64(t.MaxWait-t.MinWait)) + 1)
