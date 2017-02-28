@@ -9,22 +9,22 @@ import (
 )
 
 type runner struct {
+	currentWorkers int
 	task           *TaskSet
-	statsCollector *StatsCollector
+	statsCollector *statsCollector
 	ctx            context.Context
 	wg             *sync.WaitGroup
-	lock           *sync.RWMutex
+	lock           sync.RWMutex
 }
 
 // CoreRunner 核心执行器
 var CoreRunner *runner
 
-func newRunner(c *StatsCollector) *runner {
+func newRunner(c *statsCollector) *runner {
 	return &runner{
-		statsCollector: NewStatsCollector(),
+		statsCollector: newStatsCollector(),
 		// ctx:            context.Background(),
-		wg:   &sync.WaitGroup{},
-		lock: &sync.RWMutex{},
+		wg: &sync.WaitGroup{},
 	}
 }
 
@@ -36,8 +36,10 @@ func (r *runner) WithTaskSet(t *TaskSet) *runner {
 func (r *runner) Run() {
 	go r.statsCollector.Receiving()
 
-	if err := r.task.OnStart(); err != nil {
-		panic(err)
+	if r.task.OnStart != nil {
+		if err := r.task.OnStart(); err != nil {
+			panic(err)
+		}
 	}
 
 	go func() {
@@ -51,34 +53,34 @@ func (r *runner) Run() {
 
 	for i := 0; i < r.task.Concurrency; i++ {
 		r.wg.Add(1)
+		r.currentWorkers++
 		go r.attack()
 	}
 
 	r.wg.Wait()
 
 	for _, v := range r.statsCollector.entries {
-		v.Report(true)
+		fmt.Println(v.Report(true))
 	}
 
 	os.Exit(0)
 }
 
 func (r *runner) attack() {
-	defer r.wg.Add(-1)
+	defer func() { r.currentWorkers-- }()
+	defer r.wg.Done()
 	defer func() {
 		if rec := recover(); rec != nil {
+			// Todo:
 			Logger.Error("recoverd")
 		}
 	}()
 
 	for {
-		q := r.task.Choice()
+		q := r.task.PickUp()
 		start := time.Now()
-		duration, err := q.Fire()
-		taskDuraton := time.Since(start)
-		if duration == ZeroDuration { // 用户并未自定义请求时间
-			duration = taskDuraton
-		}
+		err := q.Fire()
+		duration := time.Since(start)
 		r.statsCollector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
 
 		wait := r.task.Wait()
@@ -88,6 +90,11 @@ func (r *runner) attack() {
 	}
 }
 
+// Worker return current worker counts
+func (r *runner) Worker() int {
+	return r.currentWorkers
+}
+
 func init() {
-	CoreRunner = newRunner(NewStatsCollector())
+	CoreRunner = newRunner(newStatsCollector())
 }

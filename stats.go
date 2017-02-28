@@ -13,8 +13,7 @@ import (
 var timeDistributions = [10]float64{0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.0}
 
 type (
-	// RoundedMillisecond 将time.Duration四舍五入到ms后的对象
-	RoundedMillisecond int64
+	roundedMillisecond int64
 
 	statsEntry struct {
 		name              string                       // 统计对象名称
@@ -25,16 +24,15 @@ type (
 		maxResponseTime   time.Duration                // 最慢的响应时间
 		trend             map[int64]int64              // 按时间轴（秒级）记录成功请求次数
 		failuresTrend     map[int64]int64              // 按时间轴（妙计）记录错误的请求次数
-		responseTimes     map[RoundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
+		responseTimes     map[roundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
 		failuresTimes     map[string]int64             // 记录不同错误的次数
 		startTime         time.Time                    // 第一次收到请求的时间
 		lastRequestTime   time.Time                    // 最后一次收到请求的时间
 		interval          time.Duration                // 统计时间间隔，影响 CurrentQPS()
-		lock              sync.Mutex
+		lock              sync.RWMutex
 	}
 
-	// StatsCollector 统计集合
-	StatsCollector struct {
+	statsCollector struct {
 		entries  map[string]*statsEntry
 		receiver chan *QueryResult
 	}
@@ -67,7 +65,7 @@ func newStatsEntry(n string) *statsEntry {
 		name:          n,
 		trend:         map[int64]int64{},
 		failuresTrend: map[int64]int64{},
-		responseTimes: map[RoundedMillisecond]int64{},
+		responseTimes: map[roundedMillisecond]int64{},
 		failuresTimes: map[string]int64{},
 		interval:      time.Second * 12,
 	}
@@ -137,6 +135,9 @@ func (s *statsEntry) TotalQPS() float64 {
 
 // CurrentQPS 最近12秒的QPS
 func (s *statsEntry) CurrentQPS() float64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	if s.lastRequestTime.IsZero() {
 		return 0
 	}
@@ -154,6 +155,9 @@ func (s *statsEntry) CurrentQPS() float64 {
 
 // Percentile 获取x%的响应时间
 func (s *statsEntry) Percentile(f float64) time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	if f <= 0.0 {
 		return s.minResponseTime
 	}
@@ -167,7 +171,7 @@ func (s *statsEntry) Percentile(f float64) time.Duration {
 		return s.maxResponseTime
 	}
 
-	times := []RoundedMillisecond{}
+	times := []roundedMillisecond{}
 	for k := range s.responseTimes {
 		times = append(times, k)
 	}
@@ -196,6 +200,9 @@ func (s *statsEntry) Max() time.Duration {
 
 // Average 平均响应时间
 func (s *statsEntry) Average() time.Duration {
+	if s.numRequests == 0 {
+		return ZeroDuration
+	}
 	return time.Duration(int64(s.totalResponseTime) / int64(s.numRequests))
 }
 
@@ -236,8 +243,7 @@ func (s *statsEntry) Report(full bool) string {
 
 	b, err := json.Marshal(r)
 	if err != nil {
-		// Logger.Error("error", zap.String("error", err.Error()))
-		// fmt.Println()
+		Logger.Error("error", zap.String("error", err.Error()))
 		return err.Error()
 	}
 	// ret := string(b)
@@ -246,22 +252,21 @@ func (s *statsEntry) Report(full bool) string {
 
 }
 
-// NewStatsCollector 实例化StatsCollector
-func NewStatsCollector() *StatsCollector {
-	return &StatsCollector{
+func newStatsCollector() *statsCollector {
+	return &statsCollector{
 		entries:  map[string]*statsEntry{},
 		receiver: make(chan *QueryResult),
 	}
 }
 
-func (c *StatsCollector) logSuccess(name string, t time.Duration) {
+func (c *statsCollector) logSuccess(name string, t time.Duration) {
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
 	c.entries[name].logSuccess(t)
 }
 
-func (c *StatsCollector) logFailure(name string, err error) {
+func (c *statsCollector) logFailure(name string, err error) {
 	if _, ok := c.entries[name]; !ok {
 		c.entries[name] = newStatsEntry(name)
 	}
@@ -270,7 +275,7 @@ func (c *StatsCollector) logFailure(name string, err error) {
 }
 
 // Receiving 主函数，监听channel进行统计
-func (c *StatsCollector) Receiving() {
+func (c *statsCollector) Receiving() {
 	// for r := range c.receiver {
 	// 	// Todo: ctx
 	// 	if r.Error == nil {
@@ -292,6 +297,6 @@ func (c *StatsCollector) Receiving() {
 }
 
 // Receiver 返回接收事务结果通道
-func (c *StatsCollector) Receiver() chan<- *QueryResult {
+func (c *statsCollector) Receiver() chan<- *QueryResult {
 	return c.receiver
 }

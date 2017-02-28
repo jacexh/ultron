@@ -21,8 +21,9 @@ const (
 type (
 	// Query .
 	Query interface {
+		SetTaskSet(*TaskSet)
 		Name() string
-		Fire() (time.Duration, error)
+		Fire() error
 	}
 
 	// TaskSet 任务集
@@ -33,7 +34,9 @@ type (
 		MaxWait     time.Duration
 		Duration    time.Duration
 		Concurrency int
-		lock        *sync.RWMutex
+		OnStart     func() error
+		lock        sync.RWMutex
+		ctx         map[string]interface{}
 	}
 )
 
@@ -44,17 +47,16 @@ func NewTaskSet() *TaskSet {
 		MinWait:     DefaultMinWait,
 		MaxWait:     DefaultMaxWait,
 		Concurrency: DefaultConcurrency,
-		lock:        &sync.RWMutex{},
+		ctx:         map[string]interface{}{},
 	}
 }
-
-// OnStart hook
-func (t *TaskSet) OnStart() error { return nil }
 
 // Add 添加Query以及权重
 func (t *TaskSet) Add(q Query, w int) *TaskSet {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+
+	q.SetTaskSet(t)
 
 	if w > 0 {
 		t.totalWeight += w
@@ -63,8 +65,8 @@ func (t *TaskSet) Add(q Query, w int) *TaskSet {
 	return t
 }
 
-// Choice 根据权重获取一个Query对象
-func (t *TaskSet) Choice() Query {
+// PickUp 根据权重获取一个Query对象
+func (t *TaskSet) PickUp() Query {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 
@@ -91,6 +93,26 @@ func (t *TaskSet) Wait() time.Duration {
 		delta = time.Duration(rand.Int63n(int64(t.MaxWait-t.MinWait)) + 1)
 	}
 	return t.MinWait + delta
+}
+
+// Set 在TaskSet中写入一条可供上下文读取的记录
+func (t *TaskSet) Set(key string, value interface{}) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	t.ctx[key] = value
+}
+
+// Get 在TaskSet中读取一条记录
+func (t *TaskSet) Get(key string) interface{} {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
+	if val, ok := t.ctx[key]; ok {
+		return val
+	}
+	return nil
+
 }
 
 func init() {

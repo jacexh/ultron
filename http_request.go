@@ -7,58 +7,72 @@ import (
 	"time"
 )
 
-var DefaultHTTPAttacker = &http.Client{
-	Timeout: time.Second * 60,
-	Transport: &http.Transport{
-		DisableKeepAlives:   false,
-		MaxIdleConns:        2000,
-		MaxIdleConnsPerHost: 1000,
-	},
-}
-
-type (
-	HTTPRequest struct {
-		client  *http.Client
-		name    string
-		Prepare func() *http.Request
-		Checker []func(*http.Response, []byte) error
+var (
+	// DefaultHTTPAttacker default net/http client
+	DefaultHTTPAttacker = &http.Client{
+		Timeout: time.Second * 60,
+		Transport: &http.Transport{
+			DisableKeepAlives:   false,
+			MaxIdleConns:        2000,
+			MaxIdleConnsPerHost: 1000,
+		},
 	}
 )
 
+type (
+	// HTTPRequest net/http request
+	HTTPRequest struct {
+		client     *http.Client
+		name       string
+		parent     *TaskSet
+		Prepare    func() *http.Request
+		CheckChain []func(*http.Response, []byte) error
+	}
+)
+
+// NewHTTPRequest create new HTTPRequest instance
 func NewHTTPRequest(n string) *HTTPRequest {
 	return &HTTPRequest{
-		client:  DefaultHTTPAttacker,
-		name:    n,
-		Checker: []func(*http.Response, []byte) error{CheckStatusCode},
+		client:     DefaultHTTPAttacker,
+		name:       n,
+		CheckChain: []func(*http.Response, []byte) error{CheckStatusCode},
 	}
 }
 
+// Name return the name of HTTPRequest
 func (h *HTTPRequest) Name() string {
 	return h.name
 }
 
-func (h *HTTPRequest) Fire() (time.Duration, error) {
+// Fire send to request and read response
+func (h *HTTPRequest) Fire() error {
 	if h.Prepare == nil {
-		panic("please impl Prepare()")
+		panic(errors.New("please impl Prepare()"))
 	}
 	resp, err := h.client.Do(h.Prepare())
 	if err != nil {
-		return ZeroDuration, err
+		return err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return ZeroDuration, err
+		return err
 	}
-	for _, c := range h.Checker {
-		err := c(resp, body)
+	for _, check := range h.CheckChain {
+		err := check(resp, body)
 		if err != nil {
-			return ZeroDuration, err
+			return err
 		}
 	}
-	return ZeroDuration, err
+	return nil
 }
 
+// SetTaskSet set taskset
+func (h *HTTPRequest) SetTaskSet(t *TaskSet) {
+	h.parent = t
+}
+
+// CheckStatusCode checker status code
 func CheckStatusCode(r *http.Response, body []byte) error {
 	if r.StatusCode >= http.StatusBadRequest {
 		return errors.New("bad status code")

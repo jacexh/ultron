@@ -9,8 +9,10 @@ import (
 var Logger *zap.Logger
 
 func init() {
-	cfg := zap.NewDevelopmentConfig()
-	cfg.DisableCaller = true
+	cfg := zap.NewProductionConfig()
+	cfg.Encoding = "console"
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	// cfg.DisableCaller = true
 	cfg.Level.SetLevel(zapcore.InfoLevel)
 	Logger, _ = cfg.Build()
 }
