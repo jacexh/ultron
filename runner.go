@@ -42,7 +42,7 @@ func (r *runner) WithTaskSet(t *TaskSet) *runner {
 
 func (r *runner) Run() {
 	Logger.Info("start")
-	go r.checkStatus()
+	go r.checkExitConditions()
 	go r.collector.Receiving()
 
 	if r.task.OnStart != nil {
@@ -134,7 +134,7 @@ func (r *runner) SetTotalRequests(n uint64) *runner {
 	return r
 }
 
-func (r *runner) checkStatus() {
+func (r *runner) checkExitConditions() {
 	for {
 		if r.duration > ZeroDuration && time.Now().After(r.deadLine) {
 			r.shouldStop = true
