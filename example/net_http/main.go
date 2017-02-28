@@ -9,7 +9,7 @@ import (
 func main() {
 	baidu := ultron.NewHTTPRequest("GET: baidu")
 	baidu.Prepare = func() *http.Request {
-		req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.33/benchmark", nil)
 		return req
 	}
 

@@ -35,6 +35,7 @@ type (
 	statsCollector struct {
 		entries  map[string]*statsEntry
 		receiver chan *QueryResult
+		lock     sync.RWMutex
 	}
 
 	// QueryResult 查询事件结果
@@ -261,6 +262,8 @@ func newStatsCollector() *statsCollector {
 
 func (c *statsCollector) logSuccess(name string, t time.Duration) {
 	if _, ok := c.entries[name]; !ok {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 		c.entries[name] = newStatsEntry(name)
 	}
 	c.entries[name].logSuccess(t)
@@ -268,6 +271,8 @@ func (c *statsCollector) logSuccess(name string, t time.Duration) {
 
 func (c *statsCollector) logFailure(name string, err error) {
 	if _, ok := c.entries[name]; !ok {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 		c.entries[name] = newStatsEntry(name)
 	}
 	Logger.Warn("occure error", zap.String("error", err.Error()))
