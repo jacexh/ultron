@@ -76,7 +76,7 @@ func TestCurrentQPS(t *testing.T) {
 	time.Sleep(time.Second * 4)
 	s.logSuccess(time.Millisecond * 20) // refresh the last response time
 
-	assert.True(t, (s.CurrentQPS() > 3.0), "greater than 3")
+	assert.True(t, (s.CurrentQPS() > 2.0), "greater than 2")
 }
 
 func TestAverage(t *testing.T) {
