@@ -9,12 +9,13 @@ import (
 )
 
 type runner struct {
-	currentWorkers int
-	task           *TaskSet
-	statsCollector *statsCollector
-	ctx            context.Context
-	wg             *sync.WaitGroup
-	lock           sync.RWMutex
+	duration  time.Duration
+	workers   int
+	task      *TaskSet
+	collector *statsCollector
+	ctx       context.Context
+	wg        *sync.WaitGroup
+	lock      sync.RWMutex
 }
 
 // CoreRunner 核心执行器
@@ -22,9 +23,10 @@ var CoreRunner *runner
 
 func newRunner(c *statsCollector) *runner {
 	return &runner{
-		statsCollector: newStatsCollector(),
-		// ctx:            context.Background(),
-		wg: &sync.WaitGroup{},
+		collector: newStatsCollector(),
+		duration:  ZeroDuration,
+		ctx:       context.Background(),
+		wg:        &sync.WaitGroup{},
 	}
 }
 
@@ -34,18 +36,28 @@ func (r *runner) WithTaskSet(t *TaskSet) *runner {
 }
 
 func (r *runner) Run() {
-	go r.statsCollector.Receiving()
+	Logger.Info("start")
+	go r.collector.Receiving()
 
 	if r.task.OnStart != nil {
+		Logger.Info("call OnStart()")
 		if err := r.task.OnStart(); err != nil {
 			panic(err)
 		}
 	}
 
+	ctx := r.ctx
+	cancel := func() {}
+
+	if r.duration > ZeroDuration {
+		end := time.Now().Add(r.duration)
+		ctx, cancel = context.WithDeadline(r.ctx, end)
+	}
+
 	go func() {
 		for {
 			time.Sleep(time.Second * 5)
-			for _, v := range r.statsCollector.entries {
+			for _, v := range r.collector.entries {
 				fmt.Println(v.Report(false))
 			}
 		}
@@ -53,21 +65,24 @@ func (r *runner) Run() {
 
 	for i := 0; i < r.task.Concurrency; i++ {
 		r.wg.Add(1)
-		r.currentWorkers++
-		go r.attack()
+		r.workers++
+		go r.attack(ctx, cancel)
 	}
+	Logger.Info("all workers are ready")
 
 	r.wg.Wait()
 
-	for _, v := range r.statsCollector.entries {
+	Logger.Info("all workers finished the task")
+	for _, v := range r.collector.entries {
 		fmt.Println(v.Report(true))
 	}
 
 	os.Exit(0)
 }
 
-func (r *runner) attack() {
-	defer func() { r.currentWorkers-- }()
+func (r *runner) attack(ctx context.Context, cancel context.CancelFunc) {
+	defer cancel()
+	defer func() { r.workers-- }()
 	defer r.wg.Done()
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -77,11 +92,30 @@ func (r *runner) attack() {
 	}()
 
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		q := r.task.PickUp()
 		start := time.Now()
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		err := q.Fire()
 		duration := time.Since(start)
-		r.statsCollector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
+		r.collector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
 		wait := r.task.Wait()
 		if wait != ZeroDuration {
@@ -92,7 +126,13 @@ func (r *runner) attack() {
 
 // Worker return current worker counts
 func (r *runner) Worker() int {
-	return r.currentWorkers
+	return r.workers
+}
+
+// SetDuration .
+func (r *runner) SetDuration(d time.Duration) *runner {
+	r.duration = d
+	return r
 }
 
 func init() {
