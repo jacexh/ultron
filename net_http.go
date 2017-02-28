@@ -33,9 +33,11 @@ type (
 // NewHTTPRequest create new HTTPRequest instance
 func NewHTTPRequest(n string) *HTTPRequest {
 	return &HTTPRequest{
-		client:     DefaultHTTPAttacker,
-		name:       n,
-		CheckChain: []func(*http.Response, []byte) error{CheckStatusCode},
+		client: DefaultHTTPAttacker,
+		name:   n,
+		CheckChain: []func(*http.Response, []byte) error{
+			func(r *http.Response, b []byte) error { return checkStatusCode(r.StatusCode) },
+		},
 	}
 }
 
@@ -70,12 +72,4 @@ func (h *HTTPRequest) Fire() error {
 // SetTaskSet set taskset
 func (h *HTTPRequest) SetTaskSet(t *TaskSet) {
 	h.parent = t
-}
-
-// CheckStatusCode checker status code
-func CheckStatusCode(r *http.Response, body []byte) error {
-	if r.StatusCode >= http.StatusBadRequest {
-		return errors.New("bad status code")
-	}
-	return nil
 }

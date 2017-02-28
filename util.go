@@ -1,6 +1,10 @@
 package ultron
 
-import "time"
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
 
 func timeDurationToRoudedMillisecond(t time.Duration) roundedMillisecond {
 	ms := int64(t.Seconds()*1000 + 0.5)
@@ -22,4 +26,11 @@ func roundedMillisecondToDuration(r roundedMillisecond) time.Duration {
 
 func timeDurationToMillsecond(t time.Duration) int64 {
 	return int64(t) / int64(time.Millisecond)
+}
+
+func checkStatusCode(code int) error {
+	if code >= http.StatusBadRequest {
+		return fmt.Errorf("bad status code: %d", code)
+	}
+	return nil
 }

@@ -2,7 +2,6 @@ package ultron
 
 import (
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -32,9 +31,11 @@ type (
 // NewFastHTTPRequest 创建fasthttp实例
 func NewFastHTTPRequest(n string) *FastHTTPRequest {
 	return &FastHTTPRequest{
-		client:     DefaultFastHTTTPClient,
-		name:       n,
-		CheckChain: []func(*fasthttp.Response) error{FastHTTPCheckStatusCode},
+		client: DefaultFastHTTTPClient,
+		name:   n,
+		CheckChain: []func(*fasthttp.Response) error{
+			func(r *fasthttp.Response) error { return checkStatusCode(r.StatusCode()) },
+		},
 	}
 }
 
@@ -66,14 +67,6 @@ func (f *FastHTTPRequest) Fire() error {
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-// FastHTTPCheckStatusCode 检查状态码
-func FastHTTPCheckStatusCode(r *fasthttp.Response) error {
-	if r.StatusCode() >= http.StatusBadRequest {
-		return errors.New("bad status code")
 	}
 	return nil
 }
