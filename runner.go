@@ -5,17 +5,23 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type runner struct {
-	duration  time.Duration
-	workers   int
-	task      *TaskSet
-	collector *statsCollector
-	ctx       context.Context
-	wg        *sync.WaitGroup
-	lock      sync.RWMutex
+	duration      time.Duration
+	deadLine      time.Time
+	requests      uint64
+	totalRequests uint64
+	workers       int
+	task          *TaskSet
+	collector     *statsCollector
+	ctx           context.Context
+	cancel        context.CancelFunc
+	wg            *sync.WaitGroup
+	shouldStop    bool
+	lock          sync.RWMutex
 }
 
 // CoreRunner 核心执行器
@@ -25,7 +31,6 @@ func newRunner(c *statsCollector) *runner {
 	return &runner{
 		collector: newStatsCollector(),
 		duration:  ZeroDuration,
-		ctx:       context.Background(),
 		wg:        &sync.WaitGroup{},
 	}
 }
@@ -37,6 +42,7 @@ func (r *runner) WithTaskSet(t *TaskSet) *runner {
 
 func (r *runner) Run() {
 	Logger.Info("start")
+	go r.checkStatus()
 	go r.collector.Receiving()
 
 	if r.task.OnStart != nil {
@@ -46,12 +52,8 @@ func (r *runner) Run() {
 		}
 	}
 
-	ctx := r.ctx
-	cancel := func() {}
-
 	if r.duration > ZeroDuration {
-		end := time.Now().Add(r.duration)
-		ctx, cancel = context.WithDeadline(r.ctx, end)
+		r.deadLine = time.Now().Add(r.duration)
 	}
 
 	go func() {
@@ -66,12 +68,13 @@ func (r *runner) Run() {
 	for i := 0; i < r.task.Concurrency; i++ {
 		r.wg.Add(1)
 		r.workers++
-		go r.attack(ctx, cancel)
+		go r.attack()
 	}
 	Logger.Info("all workers are ready")
 
 	r.wg.Wait()
 
+	close(r.collector.Receiver())
 	Logger.Info("all workers finished the task")
 	for _, v := range r.collector.entries {
 		fmt.Println(v.Report(true))
@@ -80,8 +83,7 @@ func (r *runner) Run() {
 	os.Exit(0)
 }
 
-func (r *runner) attack(ctx context.Context, cancel context.CancelFunc) {
-	defer cancel()
+func (r *runner) attack() {
 	defer func() { r.workers-- }()
 	defer r.wg.Done()
 	defer func() {
@@ -92,35 +94,27 @@ func (r *runner) attack(ctx context.Context, cancel context.CancelFunc) {
 	}()
 
 	for {
-		select {
-		case <-ctx.Done():
+		if r.shouldStop {
 			return
-		default:
 		}
-
 		q := r.task.PickUp()
 		start := time.Now()
 
-		select {
-		case <-ctx.Done():
+		if r.shouldStop {
 			return
-		default:
 		}
-
 		err := q.Fire()
 		duration := time.Since(start)
 		r.collector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
 
-		select {
-		case <-ctx.Done():
+		if r.shouldStop {
 			return
-		default:
 		}
-
 		wait := r.task.Wait()
 		if wait != ZeroDuration {
 			time.Sleep(wait)
 		}
+		atomic.AddUint64(&r.requests, 1)
 	}
 }
 
@@ -133,6 +127,25 @@ func (r *runner) Worker() int {
 func (r *runner) SetDuration(d time.Duration) *runner {
 	r.duration = d
 	return r
+}
+
+func (r *runner) SetTotalRequests(n uint64) *runner {
+	r.totalRequests = n
+	return r
+}
+
+func (r *runner) checkStatus() {
+	for {
+		if r.duration > ZeroDuration && time.Now().After(r.deadLine) {
+			r.shouldStop = true
+			break
+		}
+		if r.totalRequests > 0 && atomic.LoadUint64(&r.requests) >= r.totalRequests {
+			r.shouldStop = true
+			break
+		}
+		time.Sleep(time.Millisecond * 200)
+	}
 }
 
 func init() {

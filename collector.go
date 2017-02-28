@@ -41,22 +41,12 @@ func (c *statsCollector) logFailure(name string, err error) {
 
 // Receiving 主函数，监听channel进行统计
 func (c *statsCollector) Receiving() {
-	// for r := range c.receiver {
-	// 	// Todo: ctx
-	// 	if r.Error == nil {
-	// 		go c.logSuccess(r.Name, r.Duration)
-	// 	} else {
-	// 		go c.logFailure(r.Name, r.Error)
-	// 	}
-	// }
-	for {
-		select {
-		case r := <-c.receiver:
-			if r.Error == nil {
-				go c.logSuccess(r.Name, r.Duration)
-			} else {
-				go c.logFailure(r.Name, r.Error)
-			}
+	for r := range c.receiver {
+		// Todo: ctx
+		if r.Error == nil {
+			go c.logSuccess(r.Name, r.Duration)
+		} else {
+			go c.logFailure(r.Name, r.Error)
 		}
 	}
 }
