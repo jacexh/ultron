@@ -71,11 +71,8 @@ func (r *runner) Run() {
 		r.workers++
 		go r.attack()
 	}
-	Logger.Info("all workers are ready")
 
 	r.wg.Wait()
-
-	Logger.Info("all workers finished the task")
 
 	feedTimer.Stop()
 	r.feedReportHandleChain(true)

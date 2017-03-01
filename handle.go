@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 type (
@@ -91,11 +89,9 @@ func (re *reportHandleChain) safeClose() {
 }
 
 func printReportToConsole(report map[string]*StatsReport) {
-	start := time.Now()
 	data, err := json.Marshal(report)
 	if err == nil {
 		fmt.Println(string(data))
-		Logger.Info("print", zap.Duration("elasped", time.Since(start)))
 		return
 	}
 }
