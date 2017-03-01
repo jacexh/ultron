@@ -15,7 +15,6 @@ func main() {
 	}
 
 	taskSet := ultron.NewTaskSet()
-	taskSet.Concurrency = 100
 	taskSet.MinWait = ultron.ZeroDuration
 	taskSet.MaxWait = ultron.ZeroDuration
 	taskSet.Add(baidu, 1)

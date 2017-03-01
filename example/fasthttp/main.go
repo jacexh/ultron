@@ -18,5 +18,5 @@ func main() {
 	task.MaxWait = ultron.ZeroDuration
 	task.Add(benchmark, 1)
 
-	ultron.CoreRunner.WithTaskSet(task).Run()
+	ultron.CoreRunner.WithTaskSet(task).SetConcurrence(200).SetHatchRate(30).Run()
 }

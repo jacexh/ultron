@@ -13,8 +13,6 @@ type TaskSet struct {
 	totalWeight int
 	MinWait     time.Duration
 	MaxWait     time.Duration
-	Duration    time.Duration
-	Concurrency int
 	OnStart     func() error
 	lock        sync.RWMutex
 	ctx         map[string]interface{}
@@ -23,11 +21,10 @@ type TaskSet struct {
 // NewTaskSet 新建任务集
 func NewTaskSet() *TaskSet {
 	return &TaskSet{
-		queries:     map[Query]int{},
-		MinWait:     DefaultMinWait,
-		MaxWait:     DefaultMaxWait,
-		Concurrency: DefaultConcurrency,
-		ctx:         map[string]interface{}{},
+		queries: map[Query]int{},
+		MinWait: DefaultMinWait,
+		MaxWait: DefaultMaxWait,
+		ctx:     map[string]interface{}{},
 	}
 }
 

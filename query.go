@@ -11,8 +11,8 @@ const (
 	DefaultMinWait time.Duration = time.Second * 1
 	// DefaultMaxWait 默认最大等待时间
 	DefaultMaxWait time.Duration = time.Second * 5
-	// DefaultConcurrency 默认并发数
-	DefaultConcurrency = 100
+	// DefaultConcurrence 默认并发数
+	DefaultConcurrence = 100
 )
 
 type (
