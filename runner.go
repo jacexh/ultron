@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"context"
+	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -78,9 +79,11 @@ func (r *runner) Run() {
 
 	feedTimer.Stop()
 	r.feedReportHandleChain(true)
-	if !ReportHandleChain.busy() {
-		time.Sleep(time.Second * 2)
-	}
+
+	ResultHandleChain.safeClose()
+	ReportHandleChain.safeClose()
+	time.Sleep(time.Second * 1) // wait for print total stats
+	os.Exit(0)
 }
 
 func (r *runner) attack() {

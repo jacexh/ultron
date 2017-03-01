@@ -3,8 +3,10 @@ package ultron
 import (
 	"encoding/json"
 	"fmt"
-	"sync/atomic"
+	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type (
@@ -16,12 +18,13 @@ type (
 	resultHandleChain struct {
 		handles []HandleResult
 		ch      chan *QueryResult
+		wg      *sync.WaitGroup
 	}
 
 	reportHandleChain struct {
-		handles  []HandleReport
-		ch       chan map[string]*StatsReport
-		children int64
+		handles []HandleReport
+		ch      chan map[string]*StatsReport
+		wg      *sync.WaitGroup
 	}
 )
 
@@ -47,12 +50,19 @@ func (rc *resultHandleChain) channel() chan *QueryResult {
 
 func (rc *resultHandleChain) listening() {
 	for msg := range rc.ch {
+		rc.wg.Add(1)
 		go func(ret *QueryResult) {
+			defer rc.wg.Done()
 			for _, f := range rc.handles {
 				f(ret)
 			}
 		}(msg)
 	}
+}
+
+func (rc *resultHandleChain) safeClose() {
+	rc.wg.Wait()
+	close(rc.ch)
 }
 
 func (re *reportHandleChain) AddHandle(fn HandleReport) {
@@ -65,9 +75,9 @@ func (re *reportHandleChain) channel() chan map[string]*StatsReport {
 
 func (re *reportHandleChain) listening() {
 	for msg := range re.ch {
-		atomic.AddInt64(&re.children, 1)
+		re.wg.Add(1)
 		go func(s map[string]*StatsReport) {
-			defer func() { atomic.AddInt64(&re.children, -1) }()
+			defer re.wg.Done()
 			for _, h := range re.handles {
 				h(s)
 			}
@@ -75,21 +85,30 @@ func (re *reportHandleChain) listening() {
 	}
 }
 
-func (re *reportHandleChain) busy() bool {
-	if atomic.LoadInt64(&re.children) <= 0 {
-		return false
-	}
-	return true
+func (re *reportHandleChain) safeClose() {
+	re.wg.Wait()
+	close(re.ch)
 }
 
 func printReportToConsole(report map[string]*StatsReport) {
+	start := time.Now()
 	data, err := json.Marshal(report)
 	if err == nil {
 		fmt.Println(string(data))
+		Logger.Info("print", zap.Duration("elasped", time.Since(start)))
+		return
 	}
 }
 
 func init() {
-	ResultHandleChain = &resultHandleChain{handles: []HandleResult{defaultStatsCollector.log}, ch: make(chan *QueryResult)}
-	ReportHandleChain = &reportHandleChain{handles: []HandleReport{printReportToConsole}, ch: make(chan map[string]*StatsReport)}
+	ResultHandleChain = &resultHandleChain{
+		handles: []HandleResult{defaultStatsCollector.log},
+		ch:      make(chan *QueryResult),
+		wg:      &sync.WaitGroup{},
+	}
+	ReportHandleChain = &reportHandleChain{
+		handles: []HandleReport{printReportToConsole},
+		ch:      make(chan map[string]*StatsReport),
+		wg:      &sync.WaitGroup{},
+	}
 }
