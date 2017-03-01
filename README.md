@@ -9,7 +9,7 @@ a http load testing tool in go
 
 file path: `example/fasthttp/main.go`
 
-```python
+```go
 benchmark := ultron.NewFastHTTPRequest("fasthttp-benchmark")
 benchmark.Prepare = func() *fasthttp.Request {
 		req := fasthttp.AcquireRequest()
