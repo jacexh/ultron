@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -67,7 +68,7 @@ func (s *statsEntry) logSuccess(t time.Duration) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.numRequests++
+	atomic.AddInt64(&s.numRequests, 1)
 
 	now := time.Now()
 	if s.lastRequestTime.IsZero() {
@@ -104,7 +105,7 @@ func (s *statsEntry) logFailure(e error) {
 	defer s.lock.Unlock()
 
 	sec := time.Now().Unix()
-	s.numFailures++
+	atomic.AddInt64(&s.numFailures, 1)
 	info := e.Error()
 
 	if _, ok := s.failuresTimes[info]; ok {
@@ -121,12 +122,12 @@ func (s *statsEntry) logFailure(e error) {
 }
 
 // TotalQPS 获取总的QPS
-func (s *statsEntry) TotalQPS() float64 {
+func (s *statsEntry) totalQPS() float64 {
 	return float64(s.numRequests) / s.lastRequestTime.Sub(s.startTime).Seconds()
 }
 
 // CurrentQPS 最近12秒的QPS
-func (s *statsEntry) CurrentQPS() float64 {
+func (s *statsEntry) currentQPS() float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -146,7 +147,7 @@ func (s *statsEntry) CurrentQPS() float64 {
 }
 
 // Percentile 获取x%的响应时间
-func (s *statsEntry) Percentile(f float64) time.Duration {
+func (s *statsEntry) percentile(f float64) time.Duration {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -163,35 +164,42 @@ func (s *statsEntry) Percentile(f float64) time.Duration {
 		return s.maxResponseTime
 	}
 
-	times := []roundedMillisecond{}
+	times := []int{}
 	for k := range s.responseTimes {
-		times = append(times, k)
+		times = append(times, int(k))
 	}
 
-	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
+	// sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
+	sort.Ints(times)
 
 	for _, val := range times {
-		counts := s.responseTimes[val]
+		counts := s.responseTimes[roundedMillisecond(val)]
 		hint -= counts
 		if hint <= 0 {
-			return roundedMillisecondToDuration(val)
+			return roundedMillisecondToDuration(roundedMillisecond(val))
 		}
 	}
 	return ZeroDuration // occur error
 }
 
 // Min 最快响应时间
-func (s *statsEntry) Min() time.Duration {
+func (s *statsEntry) min() time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return s.minResponseTime
 }
 
 // Max 最慢响应时间
-func (s *statsEntry) Max() time.Duration {
+func (s *statsEntry) max() time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return s.maxResponseTime
 }
 
 // Average 平均响应时间
-func (s *statsEntry) Average() time.Duration {
+func (s *statsEntry) average() time.Duration {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	if s.numRequests == 0 {
 		return ZeroDuration
 	}
@@ -199,38 +207,40 @@ func (s *statsEntry) Average() time.Duration {
 }
 
 // Median 响应时间中位数
-func (s *statsEntry) Median() time.Duration {
-	return s.Percentile(.5)
+func (s *statsEntry) median() time.Duration {
+	return s.percentile(.5)
 }
 
 // FailRation 错误率
-func (s *statsEntry) FailRation() float64 {
+func (s *statsEntry) failRation() float64 {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return float64(s.numFailures) / float64(s.numRequests+s.numFailures)
 }
 
 // Report 打印统计结果
-func (s *statsEntry) Report(full bool) *StatsReport {
+func (s *statsEntry) report(full bool) *StatsReport {
 	r := &StatsReport{
 		Name:           s.name,
-		Requests:       s.numRequests,
-		Failures:       s.numFailures,
-		Min:            timeDurationToMillsecond(s.Min()),
-		Max:            timeDurationToMillsecond(s.Max()),
-		Median:         timeDurationToMillsecond(s.Median()),
-		Average:        timeDurationToMillsecond(s.Average()),
+		Requests:       atomic.LoadInt64(&s.numRequests),
+		Failures:       atomic.LoadInt64(&s.numFailures),
+		Min:            timeDurationToMillsecond(s.min()),
+		Max:            timeDurationToMillsecond(s.max()),
+		Median:         timeDurationToMillsecond(s.median()),
+		Average:        timeDurationToMillsecond(s.average()),
 		Distributions:  map[string]int64{},
 		FailureDetails: s.failuresTimes,
 		FullHistory:    full,
 	}
 
 	if full {
-		r.QPS = int64(s.TotalQPS())
+		r.QPS = int64(s.totalQPS())
 	} else {
-		r.QPS = int64(s.CurrentQPS())
+		r.QPS = int64(s.currentQPS())
 	}
 
 	for _, percent := range timeDistributions {
-		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.Percentile(percent))
+		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.percentile(percent))
 	}
 	return r
 }

@@ -69,6 +69,12 @@ func (r *runner) Run() {
 		}
 	}
 
+	entries := []string{}
+	for e := range r.task.queries {
+		entries = append(entries, e.Name())
+	}
+	r.collector.createEntries(entries...)
+
 	for _, counts := range r.hatchWorkerCounts() {
 		Logger.Info(fmt.Sprintf("start %d workers", counts))
 		for i := 0; i < counts; i++ {

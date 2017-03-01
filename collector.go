@@ -20,21 +20,30 @@ func newStatsCollector() *statsCollector {
 	}
 }
 
-func (c *statsCollector) logSuccess(name string, t time.Duration) {
-	if _, ok := c.entries[name]; !ok {
-		c.lock.Lock()
-		c.entries[name] = newStatsEntry(name)
-		c.lock.Unlock()
+func (c *statsCollector) createEntries(n ...string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	for _, i := range n {
+		c.entries[i] = newStatsEntry(i)
 	}
+}
+
+func (c *statsCollector) logSuccess(name string, t time.Duration) {
+	// if _, ok := c.entries[name]; !ok {
+	// 	c.lock.Lock()
+	// 	c.entries[name] = newStatsEntry(name)
+	// 	c.lock.Unlock()
+	// }
 	c.entries[name].logSuccess(t)
 }
 
 func (c *statsCollector) logFailure(name string, err error) {
-	if _, ok := c.entries[name]; !ok {
-		c.lock.Lock()
-		c.entries[name] = newStatsEntry(name)
-		c.lock.Unlock()
-	}
+	// if _, ok := c.entries[name]; !ok {
+	// 	c.lock.Lock()
+	// 	c.entries[name] = newStatsEntry(name)
+	// 	c.lock.Unlock()
+	// }
 	Logger.Warn("occure error", zap.String("error", err.Error()))
 	c.entries[name].logFailure(err)
 }
@@ -54,7 +63,7 @@ func (c *statsCollector) report(full bool) map[string]*StatsReport {
 
 	r := map[string]*StatsReport{}
 	for k, v := range c.entries {
-		r[k] = v.Report(full)
+		r[k] = v.report(full)
 	}
 	return r
 }
