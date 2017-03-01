@@ -19,5 +19,5 @@ func main() {
 	taskSet.MinWait = ultron.ZeroDuration
 	taskSet.MaxWait = ultron.ZeroDuration
 	taskSet.Add(baidu, 1)
-	ultron.CoreRunner.WithTaskSet(taskSet).SetDuration(time.Second * 20).SetTotalRequests(100000).Run()
+	ultron.CoreRunner.WithTaskSet(taskSet).SetDuration(time.Second * 20).Run()
 }

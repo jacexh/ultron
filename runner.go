@@ -2,8 +2,7 @@ package ultron
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,7 +28,7 @@ var CoreRunner *runner
 
 func newRunner(c *statsCollector) *runner {
 	return &runner{
-		collector: newStatsCollector(),
+		collector: c,
 		duration:  ZeroDuration,
 		wg:        &sync.WaitGroup{},
 	}
@@ -42,8 +41,18 @@ func (r *runner) WithTaskSet(t *TaskSet) *runner {
 
 func (r *runner) Run() {
 	Logger.Info("start")
+
+	go ResultHandleChain.listening()
+	go ReportHandleChain.listening()
 	go r.checkExitConditions()
-	go r.collector.Receiving()
+	feedTimer := time.NewTimer(StatsReportInterval)
+	go func() {
+		for {
+			<-feedTimer.C
+			r.feedReportHandleChain(false)
+			feedTimer.Reset(StatsReportInterval)
+		}
+	}()
 
 	if r.task.OnStart != nil {
 		Logger.Info("call OnStart()")
@@ -56,15 +65,6 @@ func (r *runner) Run() {
 		r.deadLine = time.Now().Add(r.duration)
 	}
 
-	go func() {
-		for {
-			time.Sleep(time.Second * 5)
-			for _, v := range r.collector.entries {
-				fmt.Println(v.Report(false))
-			}
-		}
-	}()
-
 	for i := 0; i < r.task.Concurrency; i++ {
 		r.wg.Add(1)
 		r.workers++
@@ -74,13 +74,13 @@ func (r *runner) Run() {
 
 	r.wg.Wait()
 
-	close(r.collector.Receiver())
 	Logger.Info("all workers finished the task")
-	for _, v := range r.collector.entries {
-		fmt.Println(v.Report(true))
-	}
 
-	os.Exit(0)
+	feedTimer.Stop()
+	r.feedReportHandleChain(true)
+	if !ReportHandleChain.busy() {
+		time.Sleep(time.Second * 2)
+	}
 }
 
 func (r *runner) attack() {
@@ -89,6 +89,7 @@ func (r *runner) attack() {
 	defer func() {
 		if rec := recover(); rec != nil {
 			// Todo:
+			debug.PrintStack()
 			Logger.Error("recoverd")
 		}
 	}()
@@ -97,19 +98,22 @@ func (r *runner) attack() {
 		if r.shouldStop {
 			return
 		}
+
 		q := r.task.PickUp()
 		start := time.Now()
 
 		if r.shouldStop {
 			return
 		}
+
 		err := q.Fire()
 		duration := time.Since(start)
-		r.collector.receiver <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
+		ResultHandleChain.channel() <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
 
 		if r.shouldStop {
 			return
 		}
+
 		wait := r.task.Wait()
 		if wait != ZeroDuration {
 			time.Sleep(wait)
@@ -148,6 +152,11 @@ func (r *runner) checkExitConditions() {
 	}
 }
 
+func (r *runner) feedReportHandleChain(fullHistory bool) {
+	ret := r.collector.report(fullHistory)
+	ReportHandleChain.channel() <- ret
+}
+
 func init() {
-	CoreRunner = newRunner(newStatsCollector())
+	CoreRunner = newRunner(defaultStatsCollector)
 }

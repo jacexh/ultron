@@ -1,13 +1,10 @@
 package ultron
 
 import (
-	"encoding/json"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 var timeDistributions = [10]float64{0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1.0}
@@ -41,17 +38,17 @@ type (
 
 	// StatsReport 输出报告
 	StatsReport struct {
-		Name          string           `json:"name"`
-		Requests      int64            `json:"requests"`
-		Min           int64            `json:"min"`
-		Max           int64            `json:"max"`
-		Median        int64            `json:"median"`
-		Average       int64            `json:"average"`
-		QPS           int64            `json:"qps"`
-		Distributions map[string]int64 `json:"distributions"`
-		Failures      map[string]int64 `json:"failure"`
-		FullHistory   bool             `json:"full_history"`
-		FailRation    float64          `json:"fail_ration"`
+		Name           string           `json:"name"`
+		Requests       int64            `json:"requests"`
+		Failures       int64            `json:"failures"`
+		Min            int64            `json:"min"`
+		Max            int64            `json:"max"`
+		Median         int64            `json:"median"`
+		Average        int64            `json:"average"`
+		QPS            int64            `json:"qps"`
+		Distributions  map[string]int64 `json:"distributions"`
+		FailureDetails map[string]int64 `json:"failure_details"`
+		FullHistory    bool             `json:"full_history"`
 	}
 )
 
@@ -212,18 +209,18 @@ func (s *statsEntry) FailRation() float64 {
 }
 
 // Report 打印统计结果
-func (s *statsEntry) Report(full bool) string {
+func (s *statsEntry) Report(full bool) *StatsReport {
 	r := &StatsReport{
-		Name:          s.name,
-		Requests:      s.numRequests,
-		Min:           timeDurationToMillsecond(s.Min()),
-		Max:           timeDurationToMillsecond(s.Max()),
-		Median:        timeDurationToMillsecond(s.Median()),
-		Average:       timeDurationToMillsecond(s.Average()),
-		Distributions: map[string]int64{},
-		Failures:      s.failuresTimes,
-		FullHistory:   full,
-		FailRation:    s.FailRation(),
+		Name:           s.name,
+		Requests:       s.numRequests,
+		Failures:       s.numFailures,
+		Min:            timeDurationToMillsecond(s.Min()),
+		Max:            timeDurationToMillsecond(s.Max()),
+		Median:         timeDurationToMillsecond(s.Median()),
+		Average:        timeDurationToMillsecond(s.Average()),
+		Distributions:  map[string]int64{},
+		FailureDetails: s.failuresTimes,
+		FullHistory:    full,
 	}
 
 	if full {
@@ -235,15 +232,5 @@ func (s *statsEntry) Report(full bool) string {
 	for _, percent := range timeDistributions {
 		r.Distributions[strconv.FormatFloat(percent, 'f', 2, 64)] = timeDurationToMillsecond(s.Percentile(percent))
 	}
-
-	b, err := json.Marshal(r)
-	if err != nil {
-		Logger.Error("error", zap.String("error", err.Error()))
-		return err.Error()
-	}
-	// ret := string(b)
-	// Logger.Info(fmt.Sprintf("Transaction - %s - %s", s.name, ret))
-	return string(b)
-
+	return r
 }
-
