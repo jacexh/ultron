@@ -1,9 +1,9 @@
 package ultron
 
 import (
-	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -12,22 +12,26 @@ import (
 	"go.uber.org/zap"
 )
 
-type runner struct {
-	concurrence   int
-	duration      time.Duration
-	deadLine      time.Time
-	requests      uint64
-	totalRequests uint64
-	workers       int
-	hatchRate     int
-	task          *TaskSet
-	collector     *statsCollector
-	ctx           context.Context
-	cancel        context.CancelFunc
-	wg            *sync.WaitGroup
-	shouldStop    bool
-	lock          sync.RWMutex
-}
+type (
+	runner struct {
+		concurrence   int
+		duration      time.Duration
+		deadLine      time.Time
+		requests      uint64
+		totalRequests uint64
+		workers       int
+		hatchRate     int
+		task          *TaskSet
+		collector     *statsCollector
+		// ctx           context.Context
+		// cancel        context.CancelFunc
+		wg         *sync.WaitGroup
+		shouldStop bool
+		lock       sync.RWMutex
+	}
+
+	cleanupFunc func(v map[string]*StatsReport)
+)
 
 // CoreRunner 核心执行器
 var CoreRunner *runner
@@ -52,6 +56,7 @@ func (r *runner) Run() {
 	go ResultHandleChain.listening()
 	go ReportHandleChain.listening()
 	go r.checkExitConditions()
+	go r.handleInterrupt(printReportToConsole)
 
 	feedTimer := time.NewTimer(StatsReportInterval)
 	go func() {
@@ -182,6 +187,16 @@ func (r *runner) SetDuration(d time.Duration) *runner {
 func (r *runner) SetTotalRequests(n uint64) *runner {
 	r.totalRequests = n
 	return r
+}
+
+func (r *runner) handleInterrupt(c cleanupFunc) {
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt)
+	go func() {
+		<-signalCh
+		c(r.collector.report(true))
+		os.Exit(1)
+	}()
 }
 
 func (r *runner) checkExitConditions() {
