@@ -86,18 +86,10 @@ func (s *statsEntry) logSuccess(t time.Duration) {
 	s.totalResponseTime += t
 
 	sec := now.Unix()
-	if _, ok := s.trend[sec]; ok {
-		s.trend[sec]++
-	} else {
-		s.trend[sec] = 1
-	}
+	s.trend[sec]++
 
 	rm := timeDurationToRoudedMillisecond(t)
-	if _, ok := s.responseTimes[rm]; ok {
-		s.responseTimes[rm]++
-	} else {
-		s.responseTimes[rm] = 1
-	}
+	s.responseTimes[rm]++
 }
 
 func (s *statsEntry) logFailure(e error) {
@@ -108,17 +100,8 @@ func (s *statsEntry) logFailure(e error) {
 	atomic.AddInt64(&s.numFailures, 1)
 	info := e.Error()
 
-	if _, ok := s.failuresTimes[info]; ok {
-		s.failuresTimes[info]++
-	} else {
-		s.failuresTimes[info] = 1
-	}
-
-	if _, ok := s.failuresTrend[sec]; ok {
-		s.failuresTrend[sec]++
-	} else {
-		s.failuresTrend[sec] = 1
-	}
+	s.failuresTimes[info]++
+	s.failuresTrend[sec]++
 }
 
 // TotalQPS 获取总的QPS
@@ -128,9 +111,6 @@ func (s *statsEntry) totalQPS() float64 {
 
 // CurrentQPS 最近12秒的QPS
 func (s *statsEntry) currentQPS() float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	if s.lastRequestTime.IsZero() {
 		return 0
 	}
@@ -148,9 +128,6 @@ func (s *statsEntry) currentQPS() float64 {
 
 // Percentile 获取x%的响应时间
 func (s *statsEntry) percentile(f float64) time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	if f <= 0.0 {
 		return s.minResponseTime
 	}
@@ -184,22 +161,16 @@ func (s *statsEntry) percentile(f float64) time.Duration {
 
 // Min 最快响应时间
 func (s *statsEntry) min() time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return s.minResponseTime
 }
 
 // Max 最慢响应时间
 func (s *statsEntry) max() time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return s.maxResponseTime
 }
 
 // Average 平均响应时间
 func (s *statsEntry) average() time.Duration {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	if s.numRequests == 0 {
 		return ZeroDuration
 	}
@@ -213,13 +184,14 @@ func (s *statsEntry) median() time.Duration {
 
 // FailRation 错误率
 func (s *statsEntry) failRation() float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
 	return float64(s.numFailures) / float64(s.numRequests+s.numFailures)
 }
 
 // Report 打印统计结果
 func (s *statsEntry) report(full bool) *StatsReport {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	r := &StatsReport{
 		Name:           s.name,
 		Requests:       atomic.LoadInt64(&s.numRequests),
