@@ -9,7 +9,7 @@ import (
 
 type statsCollector struct {
 	entries map[string]*statsEntry
-	lock    sync.RWMutex
+	lock    sync.Mutex
 }
 
 var defaultStatsCollector *statsCollector
@@ -30,20 +30,10 @@ func (c *statsCollector) createEntries(n ...string) {
 }
 
 func (c *statsCollector) logSuccess(name string, t time.Duration) {
-	// if _, ok := c.entries[name]; !ok {
-	// 	c.lock.Lock()
-	// 	c.entries[name] = newStatsEntry(name)
-	// 	c.lock.Unlock()
-	// }
 	c.entries[name].logSuccess(t)
 }
 
 func (c *statsCollector) logFailure(name string, err error) {
-	// if _, ok := c.entries[name]; !ok {
-	// 	c.lock.Lock()
-	// 	c.entries[name] = newStatsEntry(name)
-	// 	c.lock.Unlock()
-	// }
 	Logger.Warn("occure error", zap.String("error", err.Error()))
 	c.entries[name].logFailure(err)
 }
@@ -58,9 +48,6 @@ func (c *statsCollector) log(ret *QueryResult) {
 }
 
 func (c *statsCollector) report(full bool) map[string]*StatsReport {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	r := map[string]*StatsReport{}
 	for k, v := range c.entries {
 		r[k] = v.report(full)
