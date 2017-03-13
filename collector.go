@@ -9,7 +9,7 @@ import (
 
 type statsCollector struct {
 	entries map[string]*statsEntry
-	lock    sync.Mutex
+	lock    sync.RWMutex
 }
 
 var defaultStatsCollector *statsCollector
@@ -39,7 +39,7 @@ func (c *statsCollector) logFailure(name string, err error) {
 }
 
 // Receiving 主函数，监听channel进行统计
-func (c *statsCollector) log(ret *QueryResult) {
+func (c *statsCollector) log(ret *RequestResult) {
 	if ret.Error == nil {
 		c.logSuccess(ret.Name, ret.Duration)
 	} else {
@@ -49,6 +49,8 @@ func (c *statsCollector) log(ret *QueryResult) {
 
 func (c *statsCollector) report(full bool) map[string]*StatsReport {
 	r := map[string]*StatsReport{}
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	for k, v := range c.entries {
 		r[k] = v.report(full)
 	}

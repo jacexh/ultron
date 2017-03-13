@@ -30,8 +30,8 @@ type (
 		lock              sync.RWMutex
 	}
 
-	// QueryResult 查询事件结果
-	QueryResult struct {
+	// RequestResult 查询事件结果
+	RequestResult struct {
 		Name     string
 		Duration time.Duration
 		Error    error
@@ -65,12 +65,13 @@ func newStatsEntry(n string) *statsEntry {
 }
 
 func (s *statsEntry) logSuccess(t time.Duration) {
+	now := time.Now()
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	atomic.AddInt64(&s.numRequests, 1)
 
-	now := time.Now()
 	if s.lastRequestTime.IsZero() {
 		s.minResponseTime = t
 		s.startTime = now
@@ -93,13 +94,13 @@ func (s *statsEntry) logSuccess(t time.Duration) {
 }
 
 func (s *statsEntry) logFailure(e error) {
+	sec := time.Now().Unix()
+	info := e.Error()
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	sec := time.Now().Unix()
 	atomic.AddInt64(&s.numFailures, 1)
-	info := e.Error()
-
 	s.failuresTimes[info]++
 	s.failuresTrend[sec]++
 }

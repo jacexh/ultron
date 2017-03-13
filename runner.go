@@ -19,15 +19,13 @@ type (
 		deadLine      time.Time
 		requests      uint64
 		totalRequests uint64
-		workers       int
+		workers       int64
 		hatchRate     int
 		task          *TaskSet
 		collector     *statsCollector
-		// ctx           context.Context
-		// cancel        context.CancelFunc
-		wg         *sync.WaitGroup
-		shouldStop bool
-		lock       sync.RWMutex
+		wg            sync.WaitGroup
+		stop          bool
+		lock          sync.RWMutex
 	}
 
 	cleanupFunc func(v map[string]*StatsReport)
@@ -41,7 +39,6 @@ func newRunner(c *statsCollector) *runner {
 		concurrence: DefaultConcurrence,
 		collector:   c,
 		duration:    ZeroDuration,
-		wg:          &sync.WaitGroup{},
 	}
 }
 
@@ -75,7 +72,7 @@ func (r *runner) Run() {
 	}
 
 	entries := []string{}
-	for e := range r.task.queries {
+	for e := range r.task.requests {
 		entries = append(entries, e.Name())
 	}
 	r.collector.createEntries(entries...)
@@ -84,7 +81,7 @@ func (r *runner) Run() {
 		Logger.Info(fmt.Sprintf("start %d workers", counts))
 		for i := 0; i < counts; i++ {
 			r.wg.Add(1)
-			r.workers++
+			atomic.AddInt64(&r.workers, 1)
 			go r.attack()
 		}
 		time.Sleep(time.Second * 1)
@@ -128,7 +125,7 @@ func (r *runner) hatchWorkerCounts() []int {
 }
 
 func (r *runner) attack() {
-	defer func() { r.workers-- }()
+	defer func() { atomic.AddInt64(&r.workers, -1) }()
 	defer r.wg.Done()
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -139,22 +136,18 @@ func (r *runner) attack() {
 	}()
 
 	for {
-		if r.shouldStop {
-			return
-		}
-
 		q := r.task.PickUp()
 		start := time.Now()
 
-		if r.shouldStop {
+		if r.shouldStop() {
 			return
 		}
 
 		err := q.Fire()
 		duration := time.Since(start)
-		ResultHandleChain.channel() <- &QueryResult{Name: q.Name(), Duration: duration, Error: err}
+		ResultHandleChain.channel() <- &RequestResult{Name: q.Name(), Duration: duration, Error: err}
 
-		if r.shouldStop {
+		if r.shouldStop() {
 			return
 		}
 
@@ -167,13 +160,15 @@ func (r *runner) attack() {
 }
 
 // Worker return current worker counts
-func (r *runner) Worker() int {
+func (r *runner) Worker() int64 {
 	return r.workers
 }
 
 func (r *runner) setDeadline() {
 	if r.duration > ZeroDuration {
+		r.lock.Lock()
 		r.deadLine = time.Now().Add(r.duration)
+		r.lock.Unlock()
 		Logger.Info("set deadline", zap.Time("deadline", r.deadLine))
 	}
 }
@@ -199,15 +194,31 @@ func (r *runner) handleInterrupt(c cleanupFunc) {
 	}()
 }
 
+func (r *runner) shouldStop() bool {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.stop
+}
+
 func (r *runner) checkExitConditions() {
 	for {
-		if r.duration > ZeroDuration && !r.deadLine.IsZero() && time.Now().After(r.deadLine) {
-			r.shouldStop = true
-			break
+		if r.duration > ZeroDuration {
+			r.lock.Lock()
+			if !r.deadLine.IsZero() && time.Now().After(r.deadLine) {
+				r.stop = true
+				r.lock.Unlock()
+				break
+			}
+			r.lock.Unlock()
 		}
-		if r.totalRequests > 0 && atomic.LoadUint64(&r.requests) >= r.totalRequests {
-			r.shouldStop = true
-			break
+		if r.totalRequests > 0 {
+			r.lock.Lock()
+			if atomic.LoadUint64(&r.requests) >= r.totalRequests {
+				r.stop = true
+				r.lock.Unlock()
+				break
+			}
+			r.lock.Unlock()
 		}
 		time.Sleep(time.Millisecond * 200)
 	}
