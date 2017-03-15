@@ -55,12 +55,10 @@ func (r *runner) Run() {
 	go r.checkExitConditions()
 	go r.handleInterrupt(printReportToConsole)
 
-	feedTimer := time.NewTimer(StatsReportInterval)
+	feedTimer := time.NewTicker(StatsReportInterval)
 	go func() {
-		for {
-			<-feedTimer.C
+		for range feedTimer.C {
 			r.feedReportHandleChain(false)
-			feedTimer.Reset(StatsReportInterval)
 		}
 	}()
 
