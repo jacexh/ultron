@@ -28,7 +28,7 @@ type (
 		lock          sync.RWMutex
 	}
 
-	cleanupFunc func(v map[string]*StatsReport)
+	cleanupFunc func(map[string]*StatsReport)
 )
 
 // CoreRunner 核心执行器

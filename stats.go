@@ -20,8 +20,8 @@ type (
 		totalResponseTime time.Duration                // 成功请求的response time总和，基于原始的响应时间
 		minResponseTime   time.Duration                // 最快的响应时间
 		maxResponseTime   time.Duration                // 最慢的响应时间
-		trend             map[int64]int64              // 按时间轴（秒级）记录成功请求次数
-		failuresTrend     map[int64]int64              // 按时间轴（妙计）记录错误的请求次数
+		trendSuccess      map[int64]int64              // 按时间轴（秒级）记录成功请求次数
+		trendFailures     map[int64]int64              // 按时间轴（秒级）记录错误的请求次数
 		responseTimes     map[roundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
 		failuresTimes     map[string]int64             // 记录不同错误的次数
 		startTime         time.Time                    // 第一次收到请求的时间
@@ -56,8 +56,8 @@ type (
 func newStatsEntry(n string) *statsEntry {
 	return &statsEntry{
 		name:          n,
-		trend:         map[int64]int64{},
-		failuresTrend: map[int64]int64{},
+		trendSuccess:  map[int64]int64{},
+		trendFailures: map[int64]int64{},
 		responseTimes: map[roundedMillisecond]int64{},
 		failuresTimes: map[string]int64{},
 		interval:      time.Second * 12,
@@ -87,7 +87,7 @@ func (s *statsEntry) logSuccess(t time.Duration) {
 	s.totalResponseTime += t
 
 	sec := now.Unix()
-	s.trend[sec]++
+	s.trendSuccess[sec]++
 
 	rm := timeDurationToRoudedMillisecond(t)
 	s.responseTimes[rm]++
@@ -102,7 +102,7 @@ func (s *statsEntry) logFailure(e error) {
 
 	atomic.AddInt64(&s.numFailures, 1)
 	s.failuresTimes[info]++
-	s.failuresTrend[sec]++
+	s.trendFailures[sec]++
 }
 
 // TotalQPS 获取总的QPS
@@ -119,7 +119,7 @@ func (s *statsEntry) currentQPS() float64 {
 	start := s.lastRequestTime.Add(-s.interval).Unix()
 	var total int64
 
-	for k, v := range s.trend {
+	for k, v := range s.trendSuccess {
 		if k >= start && k <= end {
 			total += v
 		}
