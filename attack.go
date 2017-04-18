@@ -105,7 +105,7 @@ func (f *FastHTTPAttacker) Fire() (int, error) {
 	if err := f.client.Do(request, response); err != nil {
 		return 0, err
 	}
-	response.Body()
+	body := response.Body()
 
 	for _, f := range f.CheckChain {
 		err := f(response)
@@ -113,7 +113,7 @@ func (f *FastHTTPAttacker) Fire() (int, error) {
 			return 0, err
 		}
 	}
-	return len(response.Body()), nil
+	return len(body), nil
 }
 
 // NewHTTPAttacker create new HTTPRequest instance
@@ -141,17 +141,21 @@ func (h *HTTPAttacker) Fire() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+
+	// defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return 0, err
 	}
+	resp.Body.Close()
+
 	for _, check := range h.CheckChain {
 		err := check(resp, body)
 		if err != nil {
-			return 0, err
+			return len(body), err
 		}
 	}
+
 	return len(body), nil
 }
 

@@ -30,11 +30,12 @@ type (
 		lock              sync.RWMutex
 	}
 
-	// RequestResult 查询事件结果
-	RequestResult struct {
+	// AttackResult 单次请求结果
+	AttackResult struct {
 		Name     string
 		Duration time.Duration
 		Error    error
+		Received int
 	}
 
 	// StatsReport 输出报告

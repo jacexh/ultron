@@ -9,13 +9,13 @@ import (
 
 type (
 	// HandleResult type of result handle function
-	HandleResult func(*RequestResult)
+	HandleResult func(*AttackResult)
 	// HandleReport type of report handle function
 	HandleReport func(map[string]*StatsReport)
 
 	resultHandleChain struct {
 		handles []HandleResult
-		ch      chan *RequestResult
+		ch      chan *AttackResult
 		wg      sync.WaitGroup
 	}
 
@@ -42,14 +42,14 @@ func (rc *resultHandleChain) AddHandle(fn HandleResult) {
 	rc.handles = append(rc.handles, fn)
 }
 
-func (rc *resultHandleChain) channel() chan *RequestResult {
+func (rc *resultHandleChain) channel() chan *AttackResult {
 	return rc.ch
 }
 
 func (rc *resultHandleChain) listening() {
 	for msg := range rc.ch {
 		rc.wg.Add(1)
-		go func(ret *RequestResult) {
+		go func(ret *AttackResult) {
 			defer rc.wg.Done()
 			for _, f := range rc.handles {
 				f(ret)
@@ -99,7 +99,7 @@ func printReportToConsole(report map[string]*StatsReport) {
 func init() {
 	ResultHandleChain = &resultHandleChain{
 		handles: []HandleResult{defaultStatsCollector.log},
-		ch:      make(chan *RequestResult),
+		ch:      make(chan *AttackResult),
 	}
 	ReportHandleChain = &reportHandleChain{
 		handles: []HandleReport{printReportToConsole},

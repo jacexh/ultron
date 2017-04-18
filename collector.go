@@ -39,7 +39,7 @@ func (c *statsCollector) logFailure(name string, err error) {
 }
 
 // Receiving 主函数，监听channel进行统计
-func (c *statsCollector) log(ret *RequestResult) {
+func (c *statsCollector) log(ret *AttackResult) {
 	if ret.Error == nil {
 		c.logSuccess(ret.Name, ret.Duration)
 	} else {

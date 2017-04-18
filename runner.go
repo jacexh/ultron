@@ -141,9 +141,9 @@ func (r *runner) attack() {
 			return
 		}
 
-		_, err := q.Fire()
+		size, err := q.Fire()
 		duration := time.Since(start)
-		ResultHandleChain.channel() <- &RequestResult{Name: q.Name(), Duration: duration, Error: err}
+		ResultHandleChain.channel() <- &AttackResult{Name: q.Name(), Duration: duration, Error: err, Received: size}
 
 		if r.shouldStop() {
 			return
