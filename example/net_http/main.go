@@ -8,16 +8,17 @@ import (
 )
 
 func main() {
-	baidu := ultron.NewHTTPRequest("GET: baidu")
+	baidu := ultron.NewHTTPAttacker("GET: baidu")
 	baidu.Prepare = func() *http.Request {
 		req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.33/benchmark", nil)
 		return req
 	}
-	index := ultron.NewHTTPRequest("INDEX")
+	index := ultron.NewHTTPAttacker("INDEX")
 	index.Prepare = func() *http.Request {
 		req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.33/", nil)
 		return req
 	}
+
 
 	taskSet := ultron.NewTaskSet()
 	taskSet.MinWait = ultron.ZeroDuration

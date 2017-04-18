@@ -9,7 +9,7 @@ import (
 
 // TaskSet 任务集
 type TaskSet struct {
-	requests    map[Request]int
+	attackers   map[Attacker]int
 	totalWeight int
 	MinWait     time.Duration
 	MaxWait     time.Duration
@@ -21,34 +21,34 @@ type TaskSet struct {
 // NewTaskSet 新建任务集
 func NewTaskSet() *TaskSet {
 	return &TaskSet{
-		requests: map[Request]int{},
-		MinWait:  DefaultMinWait,
-		MaxWait:  DefaultMaxWait,
-		ctx:      map[string]interface{}{},
+		attackers: map[Attacker]int{},
+		MinWait:   DefaultMinWait,
+		MaxWait:   DefaultMaxWait,
+		ctx:       map[string]interface{}{},
 	}
 }
 
 // Add 添加Query以及权重
-func (t *TaskSet) Add(q Request, w int) *TaskSet {
+func (t *TaskSet) Add(a Attacker, w int) *TaskSet {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	q.SetParent(t)
+	a.SetTaskSet(t)
 
 	if w > 0 {
 		t.totalWeight += w
 	}
-	t.requests[q] = w
+	t.attackers[a] = w
 	return t
 }
 
 // PickUp 根据权重获取一个Query对象
-func (t *TaskSet) PickUp() Request {
+func (t *TaskSet) PickUp() Attacker {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 
 	hint := rand.Intn(t.totalWeight) + 1
-	for q, w := range t.requests {
+	for q, w := range t.attackers {
 		if w > 0 {
 			if hint <= w {
 				return q
@@ -89,7 +89,6 @@ func (t *TaskSet) Get(key string) interface{} {
 		return val
 	}
 	return nil
-
 }
 
 func init() {

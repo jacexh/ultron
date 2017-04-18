@@ -70,7 +70,7 @@ func (r *runner) Run() {
 	}
 
 	entries := []string{}
-	for e := range r.task.requests {
+	for e := range r.task.attackers {
 		entries = append(entries, e.Name())
 	}
 	r.collector.createEntries(entries...)
@@ -141,7 +141,7 @@ func (r *runner) attack() {
 			return
 		}
 
-		err := q.Fire()
+		_, err := q.Fire()
 		duration := time.Since(start)
 		ResultHandleChain.channel() <- &RequestResult{Name: q.Name(), Duration: duration, Error: err}
 

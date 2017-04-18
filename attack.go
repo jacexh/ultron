@@ -21,15 +21,16 @@ const (
 )
 
 type (
-	// Request .
-	Request interface {
-		SetParent(*TaskSet)
+	// Attacker .
+	Attacker interface {
+		TaskSet() *TaskSet
+		SetTaskSet(*TaskSet)
 		Name() string
-		Fire() error
+		Fire() (int, error)
 	}
 
-	// FastHTTPRequest 结构体
-	FastHTTPRequest struct {
+	// FastHTTPAttacker 结构体
+	FastHTTPAttacker struct {
 		client     *fasthttp.Client
 		name       string
 		parent     *TaskSet
@@ -37,8 +38,8 @@ type (
 		CheckChain []func(*fasthttp.Response) error
 	}
 
-	// HTTPRequest net/http request
-	HTTPRequest struct {
+	// HTTPAttacker net/http request
+	HTTPAttacker struct {
 		client     *http.Client
 		name       string
 		parent     *TaskSet
@@ -48,16 +49,16 @@ type (
 )
 
 var (
-	// DefaultFastHTTTPClient 默认fasthttp客户端
-	DefaultFastHTTTPClient = &fasthttp.Client{
+	// DefaultFastHTTTPAttackerConfig 默认fasthttp配置
+	DefaultFastHTTTPAttackerConfig = &fasthttp.Client{
 		MaxConnsPerHost:     1000,
 		MaxIdleConnDuration: time.Second * 30,
 		ReadTimeout:         time.Second * 60,
 		WriteTimeout:        time.Second * 30,
 	}
 
-	// DefaultHTTPClient default net/http client
-	DefaultHTTPClient = &http.Client{
+	// DefaultHTTPAttackerConfig 默认配置
+	DefaultHTTPAttackerConfig = &http.Client{
 		Timeout: time.Second * 60,
 		Transport: &http.Transport{
 			DisableKeepAlives:   false,
@@ -67,10 +68,10 @@ var (
 	}
 )
 
-// NewFastHTTPRequest 创建fasthttp实例
-func NewFastHTTPRequest(n string) *FastHTTPRequest {
-	return &FastHTTPRequest{
-		client: DefaultFastHTTTPClient,
+// NewFastHTTPAttacker 创建fasthttp实例
+func NewFastHTTPAttacker(n string) *FastHTTPAttacker {
+	return &FastHTTPAttacker{
+		client: DefaultFastHTTTPAttackerConfig,
 		name:   n,
 		CheckChain: []func(*fasthttp.Response) error{
 			func(r *fasthttp.Response) error { return checkStatusCode(r.StatusCode()) },
@@ -79,17 +80,22 @@ func NewFastHTTPRequest(n string) *FastHTTPRequest {
 }
 
 // Name 获取http请求名称
-func (f *FastHTTPRequest) Name() string {
+func (f *FastHTTPAttacker) Name() string {
 	return f.name
 }
 
-// SetParent 设置task
-func (f *FastHTTPRequest) SetParent(t *TaskSet) {
+// SetTaskSet 设置task
+func (f *FastHTTPAttacker) SetTaskSet(t *TaskSet) {
 	f.parent = t
 }
 
+// TaskSet 获取TaskSet
+func (f *FastHTTPAttacker) TaskSet() *TaskSet {
+	return f.parent
+}
+
 // Fire 发起请求
-func (f *FastHTTPRequest) Fire() error {
+func (f *FastHTTPAttacker) Fire() (int, error) {
 	if f.Prepare == nil {
 		panic(errors.New("please imple Prepare() method"))
 	}
@@ -97,23 +103,23 @@ func (f *FastHTTPRequest) Fire() error {
 	request := f.Prepare()
 
 	if err := f.client.Do(request, response); err != nil {
-		return err
+		return 0, err
 	}
 	response.Body()
 
 	for _, f := range f.CheckChain {
 		err := f(response)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(response.Body()), nil
 }
 
-// NewHTTPRequest create new HTTPRequest instance
-func NewHTTPRequest(n string) *HTTPRequest {
-	return &HTTPRequest{
-		client: DefaultHTTPClient,
+// NewHTTPAttacker create new HTTPRequest instance
+func NewHTTPAttacker(n string) *HTTPAttacker {
+	return &HTTPAttacker{
+		client: DefaultHTTPAttackerConfig,
 		name:   n,
 		CheckChain: []func(*http.Response, []byte) error{
 			func(r *http.Response, b []byte) error { return checkStatusCode(r.StatusCode) },
@@ -122,34 +128,39 @@ func NewHTTPRequest(n string) *HTTPRequest {
 }
 
 // Name return the name of HTTPRequest
-func (h *HTTPRequest) Name() string {
+func (h *HTTPAttacker) Name() string {
 	return h.name
 }
 
-// Fire send to request and read response
-func (h *HTTPRequest) Fire() error {
+// Fire send request and read response
+func (h *HTTPAttacker) Fire() (int, error) {
 	if h.Prepare == nil {
 		panic(errors.New("please impl Prepare()"))
 	}
 	resp, err := h.client.Do(h.Prepare())
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	for _, check := range h.CheckChain {
 		err := check(resp, body)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(body), nil
 }
 
-// SetParent set taskset
-func (h *HTTPRequest) SetParent(t *TaskSet) {
+// SetTaskSet set taskset
+func (h *HTTPAttacker) SetTaskSet(t *TaskSet) {
 	h.parent = t
+}
+
+// TaskSet 获取TaskSet
+func (h *HTTPAttacker) TaskSet() *TaskSet {
+	return h.parent
 }
