@@ -89,10 +89,25 @@ func (re *reportHandleChain) safeClose() {
 }
 
 func printReportToConsole(report map[string]*StatsReport) {
-	data, err := json.Marshal(report)
-	if err == nil {
-		fmt.Println(string(data))
-		return
+	var full bool
+	for _, r := range report {
+		if r.FullHistory {
+			full = true
+		}
+		break
+	}
+
+	if !full {
+		fmt.Printf("|%-24s|%6s|%10s|%10s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", "Name", "QPS", "Requests", "Failures", "Min", "Max", "Avg", "Median", "70%", "80%", "90%", "95%", "99%")
+		for _, r := range report {
+			fmt.Printf("|%-24s|%6d|%10d|%10d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|\n", r.Name, r.QPS, r.Requests, r.Failures, r.Min, r.Max, r.Average, r.Median, r.Distributions["0.70"], r.Distributions["0.80"], r.Distributions["0.90"], r.Distributions["0.95"], r.Distributions["0.99"])
+		}
+		fmt.Printf("\n")
+	} else {
+		data, err := json.Marshal(report)
+		if err == nil {
+			fmt.Println(string(data))
+		}
 	}
 }
 
