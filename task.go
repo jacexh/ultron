@@ -42,8 +42,8 @@ func (t *TaskSet) Add(a Attacker, w int) *TaskSet {
 	return t
 }
 
-// PickUp 根据权重获取一个Query对象
-func (t *TaskSet) PickUp() Attacker {
+// pickUp 根据权重获取一个Query对象
+func (t *TaskSet) pickUp() Attacker {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 
@@ -59,8 +59,8 @@ func (t *TaskSet) PickUp() Attacker {
 	panic(errors.New("what happened?"))
 }
 
-// Wait return wait time
-func (t *TaskSet) Wait() time.Duration {
+// wait return wait time
+func (t *TaskSet) wait() time.Duration {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 

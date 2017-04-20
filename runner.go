@@ -134,7 +134,7 @@ func (r *runner) attack() {
 	}()
 
 	for {
-		q := r.task.PickUp()
+		q := r.task.pickUp()
 		start := time.Now()
 
 		if r.shouldStop() {
@@ -149,7 +149,7 @@ func (r *runner) attack() {
 			return
 		}
 
-		wait := r.task.Wait()
+		wait := r.task.wait()
 		if wait != ZeroDuration {
 			time.Sleep(wait)
 		}
