@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,40 +15,55 @@ import (
 
 type (
 	runner struct {
-		concurrence   int
-		duration      time.Duration
-		deadLine      time.Time
-		requests      uint64
-		totalRequests uint64
-		workers       int64
-		hatchRate     int
-		task          *TaskSet
-		collector     *statsCollector
-		wg            sync.WaitGroup
-		stop          bool
-		lock          sync.RWMutex
+		Config    *RunnerConfig
+		deadLine  time.Time
+		requests  uint64
+		workers   int64
+		task      *TaskSet
+		collector *statsCollector
+		wg        sync.WaitGroup
+		stop      bool
+		lock      sync.RWMutex
+	}
+
+	// RunnerConfig runner配置参数
+	RunnerConfig struct {
+		Duration    time.Duration
+		Requests    uint64
+		Concurrence int
+		HatchRate   int
 	}
 
 	cleanupFunc func(map[string]*StatsReport)
 )
 
-// CoreRunner 核心执行器
-var CoreRunner *runner
+// Runner 执行器
+var Runner *runner
 
 func newRunner(c *statsCollector) *runner {
 	return &runner{
-		concurrence: DefaultConcurrence,
-		collector:   c,
-		duration:    ZeroDuration,
+		Config: &RunnerConfig{
+			Duration:    ZeroDuration,
+			Requests:    0,
+			Concurrence: DefaultConcurrence,
+			HatchRate:   0, // start all workers in same time
+		},
+		collector: c,
 	}
 }
 
-func (r *runner) WithTaskSet(t *TaskSet) *runner {
-	r.task = t
-	return r
-}
+func (r *runner) Run(t *TaskSet) {
+	if t == nil {
+		Logger.Panic("invalid TaskSet")
+		panic("invalid TaskSet")
+	}
 
-func (r *runner) Run() {
+	r.task = t
+
+	if err := r.checkConfig(); err != nil {
+		panic(err)
+	}
+
 	Logger.Info("start")
 
 	go ResultHandleChain.listening()
@@ -76,7 +92,7 @@ func (r *runner) Run() {
 	r.collector.createEntries(entries...)
 
 	for _, counts := range r.hatchWorkerCounts() {
-		Logger.Info(fmt.Sprintf("start %d workers", counts))
+		Logger.Info(fmt.Sprintf("hatched %d workers", counts))
 		for i := 0; i < counts; i++ {
 			r.wg.Add(1)
 			atomic.AddInt64(&r.workers, 1)
@@ -104,19 +120,19 @@ func (r *runner) hatchWorkerCounts() []int {
 	rounds := 1
 	ret := []int{}
 
-	if r.hatchRate > 0 && r.hatchRate < r.concurrence {
-		rounds = r.concurrence / r.hatchRate
+	if r.Config.HatchRate > 0 && r.Config.HatchRate < r.Config.Concurrence {
+		rounds = r.Config.Concurrence / r.Config.HatchRate
 		for i := 0; i < rounds; i++ {
-			ret = append(ret, r.hatchRate)
+			ret = append(ret, r.Config.HatchRate)
 		}
 
-		last := r.concurrence % r.hatchRate
+		last := r.Config.Concurrence % r.Config.HatchRate
 		if last > 0 {
 			ret = append(ret, last)
 		}
 
 	} else {
-		ret = append(ret, r.concurrence)
+		ret = append(ret, r.Config.Concurrence)
 	}
 
 	return ret
@@ -163,23 +179,12 @@ func (r *runner) Worker() int64 {
 }
 
 func (r *runner) setDeadline() {
-	if r.duration > ZeroDuration {
+	if r.Config.Duration > ZeroDuration {
 		r.lock.Lock()
-		r.deadLine = time.Now().Add(r.duration)
+		r.deadLine = time.Now().Add(r.Config.Duration)
 		r.lock.Unlock()
 		Logger.Info("set deadline", zap.Time("deadline", r.deadLine))
 	}
-}
-
-// SetDuration .
-func (r *runner) SetDuration(d time.Duration) *runner {
-	r.duration = d
-	return r
-}
-
-func (r *runner) SetTotalRequests(n uint64) *runner {
-	r.totalRequests = n
-	return r
 }
 
 func (r *runner) handleInterrupt(c cleanupFunc) {
@@ -200,7 +205,7 @@ func (r *runner) shouldStop() bool {
 
 func (r *runner) checkExitConditions() {
 	for {
-		if r.duration > ZeroDuration {
+		if r.Config.Duration > ZeroDuration {
 			r.lock.Lock()
 			if !r.deadLine.IsZero() && time.Now().After(r.deadLine) {
 				r.stop = true
@@ -209,9 +214,9 @@ func (r *runner) checkExitConditions() {
 			}
 			r.lock.Unlock()
 		}
-		if r.totalRequests > 0 {
+		if r.Config.Requests > 0 {
 			r.lock.Lock()
-			if atomic.LoadUint64(&r.requests) >= r.totalRequests {
+			if atomic.LoadUint64(&r.requests) >= r.Config.Requests {
 				r.stop = true
 				r.lock.Unlock()
 				break
@@ -228,18 +233,14 @@ func (r *runner) feedReportHandleChain(fullHistory bool) {
 	ReportHandleChain.channel() <- ret
 }
 
-func (r *runner) SetHatchRate(n int) *runner {
-	r.hatchRate = n
-	return r
-}
-
-func (r *runner) SetConcurrence(n int) *runner {
-	if n > 0 {
-		r.concurrence = n
+func (r *runner) checkConfig() error {
+	if r.Config.Concurrence == 0 {
+		Logger.Error("invalid Concurrence value", zap.Int("Concurrenct", r.Config.Concurrence))
+		return errors.New("invalid Concurrence value")
 	}
-	return r
+	return nil
 }
 
 func init() {
-	CoreRunner = newRunner(defaultStatsCollector)
+	Runner = newRunner(defaultStatsCollector)
 }

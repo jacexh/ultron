@@ -19,11 +19,16 @@ func main() {
 		return req
 	}
 
-
 	taskSet := ultron.NewTaskSet()
 	taskSet.MinWait = ultron.ZeroDuration
 	taskSet.MaxWait = ultron.ZeroDuration
 	taskSet.Add(baidu, 2)
 	taskSet.Add(index, 1)
-	ultron.CoreRunner.WithTaskSet(taskSet).SetDuration(time.Second * 20).Run()
+	ultron.Runner.Config = &ultron.RunnerConfig{
+		Concurrence: 100,
+		Duration:    time.Minute * 1,
+		HatchRate:   10,
+	}
+
+	ultron.Runner.Run(taskSet)
 }

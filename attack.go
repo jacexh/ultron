@@ -21,7 +21,7 @@ const (
 )
 
 type (
-	// Attacker .
+	// Attacker attacker interface
 	Attacker interface {
 		TaskSet() *TaskSet
 		SetTaskSet(*TaskSet)
@@ -31,7 +31,7 @@ type (
 
 	// FastHTTPAttacker 结构体
 	FastHTTPAttacker struct {
-		client     *fasthttp.Client
+		Client     *fasthttp.Client
 		name       string
 		parent     *TaskSet
 		Prepare    func() *fasthttp.Request
@@ -40,7 +40,7 @@ type (
 
 	// HTTPAttacker net/http request
 	HTTPAttacker struct {
-		client     *http.Client
+		Client     *http.Client
 		name       string
 		parent     *TaskSet
 		Prepare    func() *http.Request
@@ -49,21 +49,21 @@ type (
 )
 
 var (
-	// DefaultFastHTTTPAttackerConfig 默认fasthttp配置
-	DefaultFastHTTTPAttackerConfig = &fasthttp.Client{
-		MaxConnsPerHost:     1000,
+	// DefaultFastHTTTPClient 默认fasthttp client
+	DefaultFastHTTTPClient = &fasthttp.Client{
+		MaxConnsPerHost:     5000,
 		MaxIdleConnDuration: time.Second * 30,
 		ReadTimeout:         time.Second * 60,
 		WriteTimeout:        time.Second * 30,
 	}
 
-	// DefaultHTTPAttackerConfig 默认配置
-	DefaultHTTPAttackerConfig = &http.Client{
+	// DefaultHTTPClient 默认net/http client
+	DefaultHTTPClient = &http.Client{
 		Timeout: time.Second * 60,
 		Transport: &http.Transport{
 			DisableKeepAlives:   false,
-			MaxIdleConns:        2000,
-			MaxIdleConnsPerHost: 1000,
+			MaxIdleConns:        10000,
+			MaxIdleConnsPerHost: 5000,
 		},
 	}
 )
@@ -71,7 +71,7 @@ var (
 // NewFastHTTPAttacker 创建fasthttp实例
 func NewFastHTTPAttacker(n string) *FastHTTPAttacker {
 	return &FastHTTPAttacker{
-		client: DefaultFastHTTTPAttackerConfig,
+		Client: DefaultFastHTTTPClient,
 		name:   n,
 		CheckChain: []func(*fasthttp.Response) error{
 			func(r *fasthttp.Response) error { return checkStatusCode(r.StatusCode()) },
@@ -102,7 +102,7 @@ func (f *FastHTTPAttacker) Fire() (int, error) {
 	response := fasthttp.AcquireResponse()
 	request := f.Prepare()
 
-	if err := f.client.Do(request, response); err != nil {
+	if err := f.Client.Do(request, response); err != nil {
 		return 0, err
 	}
 	body := response.Body()
@@ -119,7 +119,7 @@ func (f *FastHTTPAttacker) Fire() (int, error) {
 // NewHTTPAttacker create new HTTPRequest instance
 func NewHTTPAttacker(n string) *HTTPAttacker {
 	return &HTTPAttacker{
-		client: DefaultHTTPAttackerConfig,
+		Client: DefaultHTTPClient,
 		name:   n,
 		CheckChain: []func(*http.Response, []byte) error{
 			func(r *http.Response, b []byte) error { return checkStatusCode(r.StatusCode) },
@@ -137,7 +137,7 @@ func (h *HTTPAttacker) Fire() (int, error) {
 	if h.Prepare == nil {
 		panic(errors.New("please impl Prepare()"))
 	}
-	resp, err := h.client.Do(h.Prepare())
+	resp, err := h.Client.Do(h.Prepare())
 	if err != nil {
 		return 0, err
 	}
