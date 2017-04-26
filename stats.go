@@ -116,16 +116,21 @@ func (s *statsEntry) currentQPS() float64 {
 	if s.lastRequestTime.IsZero() {
 		return 0
 	}
-	end := s.lastRequestTime.Unix()
-	start := s.lastRequestTime.Add(-s.interval).Unix()
+	// end := s.lastRequestTime.Unix()
+	// start := s.lastRequestTime.Add(-s.interval).Unix()
+	now := time.Now()
+	start := now.Add(-s.interval)
+	if start.Before(s.startTime) {
+		start = s.startTime
+	}
 	var total int64
 
-	for k, v := range s.trendSuccess {
-		if k >= start && k <= end {
+	for i := start.Unix(); i < now.Unix(); i++ {
+		if v, ok := s.trendSuccess[i]; ok {
 			total += v
 		}
 	}
-	return float64(total) / float64(s.interval/time.Second)
+	return float64(total) / now.Sub(start).Seconds()
 }
 
 // Percentile 获取x%的响应时间
