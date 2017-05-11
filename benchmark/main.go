@@ -15,14 +15,6 @@ func (b *BenchmarkAttacher) Name() string {
 	return "benchmark"
 }
 
-func (b *BenchmarkAttacher) TaskSet() *ultron.TaskSet {
-	return b.taskset
-}
-
-func (b *BenchmarkAttacher) SetTaskSet(s *ultron.TaskSet) {
-	b.taskset = s
-}
-
 func (b *BenchmarkAttacher) Fire() (int, error) {
 	time.Sleep(time.Millisecond * time.Duration(rand.Int63n(11)))
 	return 0, nil

@@ -23,8 +23,6 @@ const (
 type (
 	// Attacker attacker interface
 	Attacker interface {
-		TaskSet() *TaskSet
-		SetTaskSet(*TaskSet)
 		Name() string
 		Fire() (int, error)
 	}
@@ -82,16 +80,6 @@ func NewFastHTTPAttacker(n string) *FastHTTPAttacker {
 // Name 获取http请求名称
 func (f *FastHTTPAttacker) Name() string {
 	return f.name
-}
-
-// SetTaskSet 设置task
-func (f *FastHTTPAttacker) SetTaskSet(t *TaskSet) {
-	f.parent = t
-}
-
-// TaskSet 获取TaskSet
-func (f *FastHTTPAttacker) TaskSet() *TaskSet {
-	return f.parent
 }
 
 // Fire 发起请求
@@ -157,14 +145,4 @@ func (h *HTTPAttacker) Fire() (int, error) {
 	}
 
 	return len(body), nil
-}
-
-// SetTaskSet set taskset
-func (h *HTTPAttacker) SetTaskSet(t *TaskSet) {
-	h.parent = t
-}
-
-// TaskSet 获取TaskSet
-func (h *HTTPAttacker) TaskSet() *TaskSet {
-	return h.parent
 }

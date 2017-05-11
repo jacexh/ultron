@@ -33,8 +33,6 @@ func (t *TaskSet) Add(a Attacker, w int) *TaskSet {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	a.SetTaskSet(t)
-
 	if w > 0 {
 		t.totalWeight += w
 	}
