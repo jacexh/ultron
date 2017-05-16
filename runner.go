@@ -91,13 +91,15 @@ func (r *runner) Run(t *TaskSet) {
 	}
 	r.collector.createEntries(entries...)
 
+	var hatched int
 	for _, counts := range r.hatchWorkerCounts() {
-		Logger.Info(fmt.Sprintf("hatched %d workers", counts))
 		for i := 0; i < counts; i++ {
 			r.wg.Add(1)
 			atomic.AddInt64(&r.workers, 1)
 			go r.attack()
 		}
+		hatched += counts
+		Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
 		time.Sleep(time.Second * 1)
 	}
 	Logger.Info("hatch complete")
