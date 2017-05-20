@@ -33,17 +33,23 @@ type (
 		name       string
 		parent     *TaskSet
 		Prepare    func() *fasthttp.Request
-		CheckChain []func(*fasthttp.Response) error
+		CheckChain []FastHTTPAttackerChecker
 	}
+
+	// FastHTTPAttackerChecker FastHTTPAttacker response检查器
+	FastHTTPAttackerChecker func(*fasthttp.Response) error
 
 	// HTTPAttacker net/http request
 	HTTPAttacker struct {
 		Client     *http.Client
 		name       string
 		parent     *TaskSet
-		Prepare    func() *http.Request
-		CheckChain []func(*http.Response, []byte) error
+		Prepare    func() (*http.Request, error)
+		CheckChain []HTTPAttackerChecker
 	}
+
+	// HTTPAttackerChecker HTTPAttacker response检查器
+	HTTPAttackerChecker func(*http.Response, []byte) error
 )
 
 var (
@@ -71,7 +77,7 @@ func NewFastHTTPAttacker(n string) *FastHTTPAttacker {
 	return &FastHTTPAttacker{
 		Client: DefaultFastHTTTPClient,
 		name:   n,
-		CheckChain: []func(*fasthttp.Response) error{
+		CheckChain: []FastHTTPAttackerChecker{
 			func(r *fasthttp.Response) error { return checkStatusCode(r.StatusCode()) },
 		},
 	}
@@ -104,12 +110,17 @@ func (f *FastHTTPAttacker) Fire() (int, error) {
 	return len(body), nil
 }
 
+// AddCheckers 批量添加FastHTTPAttackerChecker
+func (f *FastHTTPAttacker) AddCheckers(c ...FastHTTPAttackerChecker) {
+	f.CheckChain = append(f.CheckChain, c...)
+}
+
 // NewHTTPAttacker create new HTTPRequest instance
 func NewHTTPAttacker(n string) *HTTPAttacker {
 	return &HTTPAttacker{
 		Client: DefaultHTTPClient,
 		name:   n,
-		CheckChain: []func(*http.Response, []byte) error{
+		CheckChain: []HTTPAttackerChecker{
 			func(r *http.Response, b []byte) error { return checkStatusCode(r.StatusCode) },
 		},
 	}
@@ -125,7 +136,11 @@ func (h *HTTPAttacker) Fire() (int, error) {
 	if h.Prepare == nil {
 		panic(errors.New("please impl Prepare()"))
 	}
-	resp, err := h.Client.Do(h.Prepare())
+	req, err := h.Prepare()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := h.Client.Do(req)
 	if err != nil {
 		return 0, err
 	}
@@ -145,4 +160,9 @@ func (h *HTTPAttacker) Fire() (int, error) {
 	}
 
 	return len(body), nil
+}
+
+// AddCheckers 批量添加HTTPAttackerChecker
+func (h *HTTPAttacker) AddCheckers(c ...HTTPAttackerChecker) {
+	h.CheckChain = append(h.CheckChain, c...)
 }

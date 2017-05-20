@@ -9,14 +9,12 @@ import (
 
 func main() {
 	baidu := ultron.NewHTTPAttacker("GET: baidu")
-	baidu.Prepare = func() *http.Request {
-		req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.33/benchmark", nil)
-		return req
+	baidu.Prepare = func() (*http.Request, error) {
+		return http.NewRequest(http.MethodGet, "http://192.168.1.33/benchmark", nil)
 	}
 	index := ultron.NewHTTPAttacker("INDEX")
-	index.Prepare = func() *http.Request {
-		req, _ := http.NewRequest(http.MethodGet, "http://192.168.1.33/", nil)
-		return req
+	index.Prepare = func() (*http.Request, error) {
+		return http.NewRequest(http.MethodGet, "http://192.168.1.33/", nil)
 	}
 
 	taskSet := ultron.NewTaskSet()
