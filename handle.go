@@ -38,8 +38,8 @@ var (
 	ReportHandleChain *reportHandleChain
 )
 
-func (rc *resultHandleChain) AddHandle(fn HandleResult) {
-	rc.handles = append(rc.handles, fn)
+func (rc *resultHandleChain) AddHandles(fn ...HandleResult) {
+	rc.handles = append(rc.handles, fn...)
 }
 
 func (rc *resultHandleChain) channel() chan *AttackResult {
@@ -63,8 +63,8 @@ func (rc *resultHandleChain) safeClose() {
 	close(rc.ch)
 }
 
-func (re *reportHandleChain) AddHandle(fn HandleReport) {
-	re.handles = append(re.handles, fn)
+func (re *reportHandleChain) AddHandles(fn ...HandleReport) {
+	re.handles = append(re.handles, fn...)
 }
 
 func (re *reportHandleChain) channel() chan map[string]*StatsReport {
