@@ -3,6 +3,7 @@ package ultron
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -36,6 +37,8 @@ var (
 	ResultHandleChain *resultHandleChain
 	// ReportHandleChain handlers for each timing stats report
 	ReportHandleChain *reportHandleChain
+
+	cutLine = strings.Repeat("-", 126)
 )
 
 func (rc *resultHandleChain) AddHandles(fn ...HandleResult) {
@@ -98,11 +101,13 @@ func printReportToConsole(report map[string]*StatsReport) {
 	}
 
 	if !full {
-		s := fmt.Sprintf("|%-24s|%6s|%10s|%10s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", "Name", "QPS", "Requests", "Failures", "Min", "Max", "Avg", "Median", "70%", "80%", "90%", "95%", "99%")
+		s := fmt.Sprintf("|%-48s|%12s|%12s|%12s|%8s|%9s|%8s|%8s|\n", "Name", "Requests", "Failures", "QPS", "Min", "Max", "Avg", "Median")
+		d := fmt.Sprintf("\nPercentage of the requests completed within given times: \n\n|%-48s|%12s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", "Name", "Requests", "60%", "70%", "80%", "90%", "95%", "98%", "99%")
 		for _, r := range report {
-			s += fmt.Sprintf("|%-24s|%6d|%10d|%10d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|\n", r.Name, r.QPS, r.Requests, r.Failures, r.Min, r.Max, r.Average, r.Median, r.Distributions["0.70"], r.Distributions["0.80"], r.Distributions["0.90"], r.Distributions["0.95"], r.Distributions["0.99"])
+			s += fmt.Sprintf("|%-48s|%12d|%12d|%12d|%8d|%9d|%8d|%8d|\n", r.Name, r.Requests, r.Failures, r.QPS, r.Min, r.Max, r.Average, r.Median)
+			d += fmt.Sprintf("|%-48s|%12d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|\n", r.Name, r.Requests, r.Distributions["0.60"], r.Distributions["0.70"], r.Distributions["0.80"], r.Distributions["0.90"], r.Distributions["0.95"], r.Distributions["0.98"], r.Distributions["0.99"])
 		}
-		fmt.Println(s)
+		fmt.Println(cutLine + "\n" + s + d + cutLine + "\n")
 	} else {
 		data, err := json.Marshal(report)
 		if err == nil {
