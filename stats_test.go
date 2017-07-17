@@ -42,7 +42,7 @@ func TestTotalQPS(t *testing.T) {
 	}
 	time.Sleep(time.Second * 1)
 	s.logSuccess(time.Millisecond * 84)
-	assert.True(t, (s.TotalQPS() > 9900.0), "greater than 9900")
+	assert.True(t, (s.totalQPS() > 9900.0), "greater than 9900")
 }
 
 func TestPercentile(t *testing.T) {
@@ -54,11 +54,11 @@ func TestPercentile(t *testing.T) {
 	s.logSuccess(time.Millisecond * 30)
 	s.logSuccess(time.Millisecond * 50)
 
-	assert.Equal(t, time.Millisecond*10, s.Percentile(0))
-	assert.Equal(t, time.Millisecond*20, s.Percentile(.4))
-	assert.Equal(t, time.Millisecond*50, s.Percentile(1))
-	assert.Equal(t, time.Millisecond*30, s.Percentile(.8))
-	assert.Equal(t, time.Millisecond*50, s.Percentile(.99))
+	assert.Equal(t, time.Millisecond*10, s.percentile(0))
+	assert.Equal(t, time.Millisecond*20, s.percentile(.4))
+	assert.Equal(t, time.Millisecond*50, s.percentile(1))
+	assert.Equal(t, time.Millisecond*30, s.percentile(.8))
+	assert.Equal(t, time.Millisecond*50, s.percentile(.99))
 }
 
 func TestCurrentQPS(t *testing.T) {
@@ -76,7 +76,7 @@ func TestCurrentQPS(t *testing.T) {
 	time.Sleep(time.Second * 4)
 	s.logSuccess(time.Millisecond * 20) // refresh the last response time
 
-	assert.True(t, (s.CurrentQPS() > 2.0), "greater than 2")
+	assert.True(t, (s.currentQPS() > 2.0), "greater than 2")
 }
 
 func TestAverage(t *testing.T) {
@@ -86,7 +86,7 @@ func TestAverage(t *testing.T) {
 	s.logSuccess(time.Millisecond * 30)
 	s.logSuccess(time.Millisecond * 80)
 
-	assert.Equal(t, time.Millisecond*35, s.Average())
+	assert.Equal(t, time.Millisecond*35, s.average())
 }
 
 func TestFailRation(t *testing.T) {
@@ -96,7 +96,7 @@ func TestFailRation(t *testing.T) {
 	s.logSuccess(time.Millisecond * 30)
 	s.logSuccess(time.Millisecond * 80)
 	s.logFailure(errors.New("any"))
-	assert.Equal(t, 0.2, s.FailRation())
+	assert.Equal(t, 0.2, s.failRation())
 }
 
 func TestReport(t *testing.T) {
