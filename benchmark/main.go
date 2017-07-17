@@ -1,22 +1,19 @@
 package main
 
 import (
-	"math/rand"
 	"time"
 
 	"github.com/jacexh/ultron"
 )
 
-type BenchmarkAttacher struct {
-	taskset *ultron.TaskSet
-}
+type BenchmarkAttacher struct{}
 
 func (b *BenchmarkAttacher) Name() string {
 	return "benchmark"
 }
 
 func (b *BenchmarkAttacher) Fire() (int, error) {
-	time.Sleep(time.Millisecond * time.Duration(rand.Int63n(11)))
+	time.Sleep(time.Millisecond * 10)
 	return 0, nil
 }
 

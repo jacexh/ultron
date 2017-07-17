@@ -8,8 +8,9 @@ before_install:
 
 install:
 - mkdir -p $GOPATH/bin
-- curl https://glide.sh/get | sh
-- glide install
+- go get -u github.com/golang/dep/cmd/dep
+- dep init
+- dep ensure
 
 script:
 - go test
