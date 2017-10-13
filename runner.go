@@ -102,7 +102,7 @@ func (r *runner) Run(t *TaskSet) {
 		Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
 		time.Sleep(time.Second * 1)
 	}
-	Logger.Info("hatch complete")
+	Logger.Info("hatched complete")
 	r.setDeadline()
 
 	r.wg.Wait()
@@ -162,16 +162,16 @@ func (r *runner) attack() {
 		size, err := q.Fire()
 		duration := time.Since(start)
 		ResultHandleChain.channel() <- &AttackResult{Name: q.Name(), Duration: duration, Error: err, Received: size}
+		atomic.AddUint64(&r.requests, 1)
 
 		if r.shouldStop() {
 			return
 		}
 
 		wait := r.task.wait()
-		if wait != ZeroDuration {
+		if wait > ZeroDuration {
 			time.Sleep(wait)
 		}
-		atomic.AddUint64(&r.requests, 1)
 	}
 }
 
@@ -208,22 +208,21 @@ func (r *runner) shouldStop() bool {
 func (r *runner) checkExitConditions() {
 	for {
 		if r.Config.Duration > ZeroDuration {
-			r.lock.Lock()
 			if !r.deadLine.IsZero() && time.Now().After(r.deadLine) {
+				r.lock.Lock()
 				r.stop = true
 				r.lock.Unlock()
 				break
 			}
-			r.lock.Unlock()
 		}
+
 		if r.Config.Requests > 0 {
-			r.lock.Lock()
 			if atomic.LoadUint64(&r.requests) >= r.Config.Requests {
+				r.lock.Lock()
 				r.stop = true
 				r.lock.Unlock()
 				break
 			}
-			r.lock.Unlock()
 		}
 		time.Sleep(time.Millisecond * 200)
 	}

@@ -63,8 +63,7 @@ func (t *TaskSet) wait() time.Duration {
 	defer t.lock.RUnlock()
 
 	delta := ZeroDuration
-	if t.MaxWait == t.MinWait || t.MinWait < t.MaxWait {
-	} else {
+	if t.MaxWait > t.MinWait {
 		delta = time.Duration(rand.Int63n(int64(t.MaxWait-t.MinWait)) + 1)
 	}
 	return t.MinWait + delta
