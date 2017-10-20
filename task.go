@@ -2,92 +2,58 @@ package ultron
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
-	"time"
 )
 
-// TaskSet 任务集
-type TaskSet struct {
-	attackers   map[Attacker]int
-	totalWeight int
-	MinWait     time.Duration
-	MaxWait     time.Duration
-	OnStart     func() error
-	lock        sync.RWMutex
-	ctx         map[string]interface{}
+type (
+	// Task Attacker集合
+	Task struct {
+		attackers   map[Attacker]int
+		totalWeight int
+		mu          sync.RWMutex
+	}
+)
+
+// NewTask 创建一个Task对象
+func NewTask() *Task {
+	return &Task{attackers: map[Attacker]int{}}
 }
 
-// NewTaskSet 新建任务集
-func NewTaskSet() *TaskSet {
-	return &TaskSet{
-		attackers: map[Attacker]int{},
-		MinWait:   DefaultMinWait,
-		MaxWait:   DefaultMaxWait,
-		ctx:       map[string]interface{}{},
+// Add 往Task中添加一个Attacker对象, weight 表示该Attacker的权重
+func (t *Task) Add(a Attacker, weight int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if weight <= 0 {
+		Logger.Warn(fmt.Sprintf("Attacker named %s with invalid weight: %d", a.Name(), weight))
+		return
+	}
+
+	t.totalWeight += weight
+	t.attackers[a] = weight
+}
+
+// Del 从Task中移除一个Attacker对象
+func (t *Task) Del(a Attacker) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if weight, ok := t.attackers[a]; ok {
+		t.totalWeight -= weight
+		delete(t.attackers, a)
 	}
 }
 
-// Add 添加Query以及权重
-func (t *TaskSet) Add(a Attacker, w int) *TaskSet {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+func (t *Task) pickUp() Attacker {
+	hit := rand.Intn(t.totalWeight) + 1
 
-	if w > 0 {
-		t.totalWeight += w
-	}
-	t.attackers[a] = w
-	return t
-}
-
-// pickUp 根据权重获取一个Query对象
-func (t *TaskSet) pickUp() Attacker {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-
-	hint := rand.Intn(t.totalWeight) + 1
-	for q, w := range t.attackers {
-		if w > 0 {
-			if hint <= w {
-				return q
-			}
-			hint -= w
+	for a, w := range t.attackers {
+		if hit <= w {
+			return a
 		}
+		hit -= w
 	}
-	panic(errors.New("what happened?"))
-}
-
-// wait return wait time
-func (t *TaskSet) wait() time.Duration {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-
-	delta := ZeroDuration
-	if t.MaxWait > t.MinWait {
-		delta = time.Duration(rand.Int63n(int64(t.MaxWait-t.MinWait)) + 1)
-	}
-	return t.MinWait + delta
-}
-
-// Set 在TaskSet中写入一条可供上下文读取的记录
-func (t *TaskSet) Set(key string, value interface{}) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	t.ctx[key] = value
-}
-
-// Get 在TaskSet中读取一条记录
-func (t *TaskSet) Get(key string) interface{} {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-
-	if val, ok := t.ctx[key]; ok {
-		return val
-	}
-	return nil
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
+	panic(errors.New("unreachable code"))
 }

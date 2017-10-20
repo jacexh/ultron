@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ultron;
+
+service Ultron {
+    rpc Send(stream Result) returns(Ack) {}
+    rpc Subscribe(ClientInfo) returns(stream Message) {}
+}
+
+message Result {
+    string name=1;
+    int64 duration=2;
+    AttackerError error=3;
+}
+
+message AttackerError {
+    string name=1;
+    string causedBy=2;
+}
+
+message ClientInfo {
+    string id=1;
+}
+
+message Ack {}
+
+message Message{
+    enum Type {
+        Disconnect=0; // 中断连接
+        RefreshConfig=1; // 下发RunnerConfig配置到各个slave
+        StartAttack=2; // 通知slave开始执行压测
+        StopAttack=3;  // 通知slave停止压测
+    }
+    Type type=1;
+    bytes data=2;
+}
