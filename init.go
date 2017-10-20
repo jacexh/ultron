@@ -5,8 +5,15 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/json-iterator/go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+	// Logger 全局日志
+	Logger *zap.Logger
 )
 
 func init() {

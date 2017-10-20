@@ -8,6 +8,12 @@
   revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
 
 [[projects]]
+  name = "github.com/json-iterator/go"
+  packages = ["."]
+  revision = "6240e1e7983a85228f7fd9c3e1b6932d46ec58e2"
+  version = "1.0.3"
+
+[[projects]]
   name = "go.uber.org/atomic"
   packages = ["."]
   revision = "4e336646b2ef9fc6e47be8e21594178f98e5ebcf"
@@ -52,6 +58,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "50fd70378ceb68bfdf987c660f2f46d6e63c6b4d190944b4ff08f526f9461a9b"
+  inputs-digest = "a596961def1a5985b48654caae2e0b1f5a4fd21c2bfb06c7cfc5236f9839474b"
   solver-name = "gps-cdcl"
   solver-version = 1

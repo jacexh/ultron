@@ -27,8 +27,8 @@ func main() {
 	ultron.LocalEventHook.Concurrency = 0
 	ultron.LocalRunner.WithTask(task)
 	ultron.LocalRunner.Config.Concurrence = 10000
-	ultron.LocalRunner.Config.Requests = 7471348
-	ultron.LocalRunner.Config.Duration = time.Minute
+	ultron.LocalRunner.Config.HatchRate = 200
+	ultron.LocalRunner.Config.Duration = time.Minute * 3
 	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
 	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
 

@@ -2,7 +2,6 @@ package ultron
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"

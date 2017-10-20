@@ -1,7 +1,6 @@
 package ultron
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -146,4 +145,3 @@ func printReportToConsole(report Report) {
 		}
 	}
 }
-
