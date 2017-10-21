@@ -14,9 +14,12 @@ import (
 )
 
 const (
-	statusIdle status = iota
-	statusBusy
-	statusStopped
+	// StatusIdle 空闲状态
+	StatusIdle Status = iota
+	// StatusBusy 执行中状态
+	StatusBusy
+	// StatusStopped 已经停止状态
+	StatusStopped
 )
 
 var (
@@ -33,17 +36,18 @@ type (
 		WithConfig(*RunnerConfig)
 		WithTask(*Task)
 		GetConfig() *RunnerConfig
+		GetStatus() Status
 		Start()
-		IsFinished() bool
 		Done()
 	}
 
-	status int
+	// Status Runner状态
+	Status int
 
 	baseRunner struct {
 		Config   *RunnerConfig
 		task     *Task
-		status   status
+		status   Status
 		counts   uint64
 		deadline time.Time
 		mu       sync.RWMutex
@@ -62,7 +66,7 @@ type (
 )
 
 func newBaseRunner() *baseRunner {
-	return &baseRunner{status: statusIdle, Config: DefaultRunnerConfig}
+	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig}
 }
 
 func (br *baseRunner) WithConfig(rc *RunnerConfig) {
@@ -80,11 +84,11 @@ func (br *baseRunner) GetConfig() *RunnerConfig {
 func (br *baseRunner) Done() {
 	br.mu.Lock()
 	defer br.mu.Unlock()
-	br.status = statusStopped
+	br.status = StatusStopped
 }
 
-func (br *baseRunner) IsFinished() bool {
-	if br.getStatus() == statusStopped {
+func isFinished(br *baseRunner) bool {
+	if br.GetStatus() == StatusStopped {
 		return true
 	}
 
@@ -93,15 +97,17 @@ func (br *baseRunner) IsFinished() bool {
 		return true
 	}
 
+	br.mu.RLock()
 	if br.Config.Duration > ZeroDuration && !br.deadline.IsZero() && time.Now().After(br.deadline) {
+		br.mu.RUnlock()
 		br.Done()
 		return true
 	}
-
+	br.mu.RUnlock()
 	return false
 }
 
-func (br *baseRunner) getStatus() status {
+func (br *baseRunner) GetStatus() Status {
 	br.mu.RLock()
 	defer br.mu.RUnlock()
 	return br.status
@@ -137,7 +143,7 @@ func (lr *localRunner) Start() {
 	}
 
 	Logger.Info("start to attack")
-	lr.status = statusBusy
+	lr.status = StatusBusy
 
 	lr.once.Do(func() {
 		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
@@ -168,7 +174,7 @@ func (lr *localRunner) Start() {
 	go func() {
 		t := time.NewTicker(time.Millisecond * 200)
 		for range t.C {
-			if lr.IsFinished() {
+			if isFinished(lr.baseRunner) {
 				t.Stop()
 				break
 			}
@@ -178,7 +184,9 @@ func (lr *localRunner) Start() {
 	hatchWorkers(lr.baseRunner, localResultPipeline)
 
 	if lr.Config.Duration > ZeroDuration {
+		lr.mu.Lock()
 		lr.deadline = time.Now().Add(lr.Config.Duration)
+		lr.mu.Unlock()
 		Logger.Info("set deadline", zap.Time("deadline", lr.deadline))
 	}
 	Logger.Info("hatched complete")
@@ -223,7 +231,7 @@ func attack(br *baseRunner, ch resultPipeline) {
 	for {
 		q := br.task.pickUp()
 		start := time.Now()
-		if br.getStatus() == statusStopped {
+		if br.GetStatus() == StatusStopped {
 			return
 		}
 		err := q.Fire()
@@ -232,7 +240,7 @@ func attack(br *baseRunner, ch resultPipeline) {
 		ret := newResult(q.Name(), duration, err)
 		ch <- ret
 
-		if br.getStatus() == statusStopped {
+		if br.GetStatus() == StatusStopped {
 			return
 		}
 		br.Config.block()

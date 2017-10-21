@@ -131,7 +131,7 @@ func (mr *masterRunner) Start() {
 		Logger.Info("ready to attack")
 		<-serverStart
 		Logger.Info("attack")
-		mr.status = statusBusy
+		mr.status = StatusBusy
 		mr.counts = 0
 		mr.deadline = time.Time{}
 
@@ -153,7 +153,7 @@ func (mr *masterRunner) Start() {
 		go func() {
 			t := time.NewTicker(time.Millisecond * 200)
 			for range t.C {
-				if mr.IsFinished() {
+				if isFinished(mr.baseRunner) {
 					serverStop <- struct{}{}
 					break
 				}

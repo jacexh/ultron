@@ -1,7 +1,6 @@
 package ultron
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -12,13 +11,15 @@ type (
 	Task struct {
 		attackers   map[Attacker]int
 		totalWeight int
+		preSort     map[int]Attacker
+		once        sync.Once
 		mu          sync.RWMutex
 	}
 )
 
 // NewTask 创建一个Task对象
 func NewTask() *Task {
-	return &Task{attackers: map[Attacker]int{}}
+	return &Task{attackers: map[Attacker]int{}, preSort: map[int]Attacker{}}
 }
 
 // Add 往Task中添加一个Attacker对象, weight 表示该Attacker的权重
@@ -47,13 +48,24 @@ func (t *Task) Del(a Attacker) {
 }
 
 func (t *Task) pickUp() Attacker {
-	hit := rand.Intn(t.totalWeight) + 1
-
-	for a, w := range t.attackers {
-		if hit <= w {
-			return a
+	t.once.Do(func() {
+		offset := 0
+		for a, w := range t.attackers {
+			for i := 0; i < w; i++ {
+				t.preSort[offset+i] = a
+			}
+			offset += w
 		}
-		hit -= w
-	}
-	panic(errors.New("unreachable code"))
+	})
+	return t.preSort[rand.Intn(t.totalWeight)]
+
+	// hit := rand.Intn(t.totalWeight) + 1
+
+	// for a, w := range t.attackers {
+	// 	if hit <= w {
+	// 		return a
+	// 	}
+	// 	hit -= w
+	// }
+	// panic(errors.New("unreachable code"))
 }
