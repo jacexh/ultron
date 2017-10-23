@@ -43,7 +43,7 @@ var (
 	// MasterListenAddr server端默认监听地址
 	MasterListenAddr = ":9500"
 
-	defaultSessionPool *sessionPool
+	defaultSessionPool = &sessionPool{}
 	// ServerStart MasterRunner启动压测的信号
 	ServerStart = make(chan struct{}, 1)
 	// ServerStop MasterRunner停止压测的信号
@@ -168,6 +168,16 @@ func (mr *masterRunner) Start() {
 					ServerStop <- struct{}{}
 					break
 				}
+			}
+		}()
+
+		go func() {
+			t := time.NewTicker(StatsReportInterval)
+			for range t.C {
+				if isFinished(mr.baseRunner) {
+					break
+				}
+				masterReportPipeline <- mr.stats.report(false)
 			}
 		}()
 

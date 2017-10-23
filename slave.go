@@ -2,7 +2,6 @@ package ultron
 
 import (
 	"context"
-	"io"
 	"os"
 	"sync"
 
@@ -48,12 +47,15 @@ func (sl *slaveRunner) handleMsg() {
 		sl.gClient.(*ultronClient).cc.Close()
 		os.Exit(1)
 	}
+	Logger.Info("subscribed")
 
 	for {
 		msg, err := c.Recv()
-		if err != io.EOF {
+		if err != nil {
 			c.CloseSend()
+			Logger.Error("got error", zap.Error(err))
 			sl.gClient.(*ultronClient).cc.Close()
+			break
 		}
 
 		switch msg.Type {
@@ -93,6 +95,8 @@ func (sl *slaveRunner) handleMsg() {
 			Logger.Warn("unknown message", zap.Any("received", msg))
 		}
 	}
+
+	Logger.Warn("subscribed end")
 }
 
 func (sl *slaveRunner) handleResult() ResultHandleFunc {
@@ -132,6 +136,7 @@ func (sl *slaveRunner) Start() {
 
 	sl.once.Do(func() {
 		go sl.handleMsg()
+		go sl.sendStream(SlaveResultPipelineBufferSize)
 		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
 		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
 		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
@@ -142,6 +147,7 @@ func (sl *slaveRunner) Start() {
 		Logger.Info("slaver: " + sl.id + " is ready")
 		<-slaveStart
 		sl.status = StatusBusy
+		Logger.Info("attack !!!")
 
 		hatchWorkers(sl.baseRunner, slaveResultPipeline)
 		sl.wg.Wait()
