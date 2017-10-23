@@ -59,10 +59,6 @@ type (
 		once  sync.Once
 		*baseRunner
 	}
-
-	slaveRunner struct {
-		*baseRunner
-	}
 )
 
 func newBaseRunner() *baseRunner {
@@ -149,7 +145,7 @@ func (lr *localRunner) Start() {
 		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
 		localResultPipeline = newResultPipeline(LocalResultPipelineBufferSize)
 		LocalEventHook.AddResultHandleFunc(lr.log)
-		go LocalEventHook.listen(localResultPipeline, localReportPipeline)
+		LocalEventHook.listen(localResultPipeline, localReportPipeline)
 
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, os.Interrupt)

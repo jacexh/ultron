@@ -86,33 +86,37 @@ func (eh *eventHook) listen(retC resultPipeline, repC reportPipeline) {
 
 	// 	}
 	// }
-	go func(c resultPipeline) {
-		for r := range c {
-			if eh.Concurrency > 0 {
-				eh.ch <- struct{}{}
-			}
-			go func(r *Result) {
-				defer func() {
-					if eh.Concurrency > 0 {
-						<-eh.ch
+	if retC != nil {
+		go func(c resultPipeline) {
+			for r := range c {
+				if eh.Concurrency > 0 {
+					eh.ch <- struct{}{}
+				}
+				go func(r *Result) {
+					defer func() {
+						if eh.Concurrency > 0 {
+							<-eh.ch
+						}
+					}()
+					for _, f := range eh.retFuncs {
+						f(r)
 					}
-				}()
-				for _, f := range eh.retFuncs {
-					f(r)
-				}
-			}(r)
-		}
-	}(retC)
+				}(r)
+			}
+		}(retC)
+	}
 
-	go func(c reportPipeline) {
-		for rep := range c {
-			go func(r Report) {
-				for _, f := range eh.repFuncs {
-					f(r)
-				}
-			}(rep)
-		}
-	}(repC)
+	if repC != nil {
+		go func(c reportPipeline) {
+			for rep := range c {
+				go func(r Report) {
+					for _, f := range eh.repFuncs {
+						f(r)
+					}
+				}(rep)
+			}
+		}(repC)
+	}
 }
 
 func printReportToConsole(report Report) {

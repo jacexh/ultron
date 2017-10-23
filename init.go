@@ -43,5 +43,5 @@ func init() {
 
 	LocalRunner = newLocalRunner(newSummaryStats())
 	MasterRunner = newMasterRunner(MasterListenAddr, newSummaryStats())
-	// SlaveRunner = newLocalRunner(defaultSummaryStats)
+	SlaveRunner = newSlaveRunner()
 }
