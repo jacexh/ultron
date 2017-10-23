@@ -41,12 +41,15 @@ var (
 	MasterRunner *masterRunner
 
 	// MasterListenAddr server端默认监听地址
-	MasterListenAddr = "0.0.0.0:9500"
+	MasterListenAddr = ":9500"
 
 	defaultSessionPool *sessionPool
-	serverStart        = make(chan struct{}, 1)
-	serverStop         = make(chan struct{}, 1)
-	serverInterrpt     = make(chan struct{}, 1)
+	// ServerStart MasterRunner启动压测的信号
+	ServerStart = make(chan struct{}, 1)
+	// ServerStop MasterRunner停止压测的信号
+	ServerStop = make(chan struct{}, 1)
+	// ServerInterrupt MasterRunner压测被中断的信号
+	ServerInterrupt = make(chan struct{}, 1)
 )
 
 func newSession() *session {
@@ -115,10 +118,10 @@ func (mr *masterRunner) Start() {
 			Logger.Error(fmt.Sprintf("listen to %s failed", mr.addr), zap.Error(err))
 			os.Exit(1)
 		}
-		Logger.Info("listen on " + mr.Listener.Addr().String())
 		mr.Listener = lis
 	}
 
+	Logger.Info("listen on " + mr.Listener.Addr().String())
 	mr.serv = grpc.NewServer()
 	RegisterUltronServer(mr.serv, mr)
 
@@ -129,7 +132,15 @@ func (mr *masterRunner) Start() {
 
 	for {
 		Logger.Info("ready to attack")
-		<-serverStart
+
+		<-ServerStart
+
+		err := mr.Config.check()
+		if err != nil {
+			Logger.Error("bad RunnerConfig", zap.Error(err))
+			continue
+		}
+
 		Logger.Info("attack")
 		mr.status = StatusBusy
 		mr.counts = 0
@@ -146,7 +157,7 @@ func (mr *masterRunner) Start() {
 			go func() {
 				<-signalCh
 				Logger.Error("capatured interrupt signal")
-				serverInterrpt <- struct{}{}
+				ServerInterrupt <- struct{}{}
 			}()
 		})
 
@@ -154,13 +165,13 @@ func (mr *masterRunner) Start() {
 			t := time.NewTicker(time.Millisecond * 200)
 			for range t.C {
 				if isFinished(mr.baseRunner) {
-					serverStop <- struct{}{}
+					ServerStop <- struct{}{}
 					break
 				}
 			}
 		}()
 
-		err := defaultSessionPool.sendConfigToSlaves(mr.Config)
+		err = defaultSessionPool.sendConfigToSlaves(mr.Config)
 		if err != nil {
 			Logger.Error("occur error", zap.Error(err))
 			os.Exit(1)
@@ -182,11 +193,11 @@ func (mr *masterRunner) Start() {
 		}
 
 		select {
-		case <-serverStop: // 压测结束信号
+		case <-ServerStop: // 压测结束信号
 			Logger.Info("stop to attack")
 			defaultSessionPool.batchSendMessage(Message_StopAttack, nil)
 
-		case <-serverInterrpt:
+		case <-ServerInterrupt:
 			defaultSessionPool.batchSendMessage(Message_Disconnect, nil)
 			printReportToConsole(mr.stats.report(true))
 			os.Exit(1)

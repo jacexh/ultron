@@ -12,6 +12,8 @@ import (
 
 var (
 	json = jsoniter.ConfigCompatibleWithStandardLibrary
+	// J .
+	J = json
 	// Logger 全局日志
 	Logger *zap.Logger
 )
