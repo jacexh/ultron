@@ -119,6 +119,7 @@ func (sl *slaveRunner) sendStream(size int) {
 		err = stream.Send(r)
 		if err != nil {
 			Logger.Error("occur error on sending result to master", zap.Error(err))
+			os.Exit(1)
 			break
 		}
 	}
@@ -136,7 +137,7 @@ func (sl *slaveRunner) Start() {
 
 	sl.once.Do(func() {
 		go sl.handleMsg()
-		go sl.sendStream(SlaveResultPipelineBufferSize)
+		go sl.sendStream(ResultStreamBufferSize)
 		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
 		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
 		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
@@ -151,5 +152,6 @@ func (sl *slaveRunner) Start() {
 
 		hatchWorkers(sl.baseRunner, slaveResultPipeline)
 		sl.wg.Wait()
+		Logger.Info("attack stopped")
 	}
 }
