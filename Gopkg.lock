@@ -5,13 +5,25 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
-  revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+  revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
+
+[[projects]]
+  name = "github.com/influxdata/influxdb"
+  packages = ["client/v2","models","pkg/escape"]
+  revision = "a7c3d3c0f7b74f71919047adbc4933460967a576"
+  version = "v1.3.6"
 
 [[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "6240e1e7983a85228f7fd9c3e1b6932d46ec58e2"
   version = "1.0.3"
+
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
+  version = "v1.1.0"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -35,7 +47,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "aabf50738bcdd9b207582cbe796b59ed65d56680"
+  revision = "92447d55896d6f92b4a0d4fd83bd078b0374e8fa"
 
 [[projects]]
   branch = "master"
@@ -58,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a596961def1a5985b48654caae2e0b1f5a4fd21c2bfb06c7cfc5236f9839474b"
+  inputs-digest = "e278730246a6a5b2a19e1d780ea53dc8b7415409c3c23e09f990cf4eb07543bc"
   solver-name = "gps-cdcl"
   solver-version = 1

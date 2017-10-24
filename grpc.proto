@@ -30,6 +30,8 @@ message Message{
         RefreshConfig=1; // 下发RunnerConfig配置到各个slave
         StartAttack=2; // 通知slave开始执行压测
         StopAttack=3;  // 通知slave停止压测
+
+        Ping=9;
     }
     Type type=1;
     bytes data=2;

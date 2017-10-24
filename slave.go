@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 
@@ -55,7 +56,7 @@ func (sl *slaveRunner) handleMsg() {
 			c.CloseSend()
 			Logger.Error("got error", zap.Error(err))
 			sl.gClient.(*ultronClient).cc.Close()
-			break
+			os.Exit(1)
 		}
 
 		switch msg.Type {
@@ -91,12 +92,13 @@ func (sl *slaveRunner) handleMsg() {
 				Logger.Warn("SlaveRunner is not running, ignore this message")
 			}
 
+		case Message_Ping:
+			Logger.Info(fmt.Sprintf("i am alive, SlaveRunner Status: %d", sl.GetStatus()))
+
 		default:
 			Logger.Warn("unknown message", zap.Any("received", msg))
 		}
 	}
-
-	Logger.Warn("subscribed end")
 }
 
 func (sl *slaveRunner) handleResult() ResultHandleFunc {

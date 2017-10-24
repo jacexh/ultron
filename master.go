@@ -50,6 +50,8 @@ var (
 	ServerStop = make(chan struct{}, 1)
 	// ServerInterrupt MasterRunner压测被中断的信号
 	ServerInterrupt = make(chan struct{}, 1)
+
+	pingInterval = time.Second * 15
 )
 
 func newSession() *session {
@@ -130,10 +132,37 @@ func (mr *masterRunner) Start() {
 		Logger.Error("grpc server down", zap.Error(mr.serv.Serve(mr.Listener)))
 	}()
 
+	go func() {
+		for {
+			time.Sleep(pingInterval)
+			defaultSessionPool.ping("")
+		}
+	}()
+
+	mr.once.Do(func() {
+		masterReportPipeline = newReportPipeline(MasterReportPipelineBufferSize)
+		masterResultPipline = newResultPipeline(MasterResultPipelineBufferSize)
+		MasterEventHook.AddResultHandleFunc(mr.count, mr.stats.log)
+		go MasterEventHook.listen(masterResultPipline, masterReportPipeline)
+
+		signalCh := make(chan os.Signal, 1)
+		signal.Notify(signalCh, os.Interrupt)
+		go func() {
+			<-signalCh
+			Logger.Error("capatured interrupt signal")
+			ServerInterrupt <- struct{}{}
+		}()
+	})
+
 	for {
 		Logger.Info("ready to attack")
 
-		<-ServerStart
+		select {
+		case <-ServerInterrupt:
+			Logger.Info("no runner was running, exit")
+			os.Exit(0)
+		case <-ServerStart:
+		}
 
 		err := mr.Config.check()
 		if err != nil {
@@ -146,25 +175,16 @@ func (mr *masterRunner) Start() {
 		mr.counts = 0
 		mr.deadline = time.Time{}
 
-		mr.once.Do(func() {
-			masterReportPipeline = newReportPipeline(MasterReportPipelineBufferSize)
-			masterResultPipline = newResultPipeline(MasterResultPipelineBufferSize)
-			MasterEventHook.AddResultHandleFunc(mr.count, mr.stats.log)
-			go MasterEventHook.listen(masterResultPipline, masterReportPipeline)
-
-			signalCh := make(chan os.Signal, 1)
-			signal.Notify(signalCh, os.Interrupt)
-			go func() {
-				<-signalCh
-				Logger.Error("capatured interrupt signal")
-				ServerInterrupt <- struct{}{}
-			}()
-		})
-
 		go func() {
 			t := time.NewTicker(time.Millisecond * 200)
 			for range t.C {
 				if isFinished(mr.baseRunner) {
+					ServerStop <- struct{}{}
+					break
+				}
+				if defaultSessionPool.getSlaveCounts() == 0 { // 如果slave都不存在了，测试就没必要进行下去
+					Logger.Warn("all slavers was dead")
+					mr.Done()
 					ServerStop <- struct{}{}
 					break
 				}
@@ -251,4 +271,20 @@ func (sp *sessionPool) getSlaveCounts() int {
 		return true
 	})
 	return n
+}
+
+func (sp *sessionPool) ping(c string) {
+	if c == "" {
+		sp.batchSendMessage(Message_Ping, nil)
+		return
+	}
+
+	sp.pool.Range(func(key, value interface{}) bool {
+		cid := key.(string)
+		if cid == c {
+			value.(*session).ch <- &Message{Type: Message_Ping}
+			return false
+		}
+		return true
+	})
 }
