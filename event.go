@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -66,26 +67,6 @@ func (eh *eventHook) listen(retC resultPipeline, repC reportPipeline) {
 		eh.ch = make(chan struct{}, eh.Concurrency)
 	}
 
-	// for {
-	// 	select {
-	// 	case rep := <-repC: // 频次低，不用阻塞
-	// 		go func(r Report) {
-	// 			for _, f := range eh.repFuncs {
-	// 				f(r)
-	// 			}
-	// 		}(rep)
-
-	// 	case ret := <-retC:
-	// 		eh.ch <- struct{}{}
-	// 		go func(r *Result) {
-	// 			defer func() { <-eh.ch }()
-	// 			for _, f := range eh.retFuncs {
-	// 				f(r)
-	// 			}
-	// 		}(ret)
-
-	// 	}
-	// }
 	if retC != nil {
 		go func(c resultPipeline) {
 			for r := range c {
@@ -122,6 +103,8 @@ func (eh *eventHook) listen(retC resultPipeline, repC reportPipeline) {
 func printReportToConsole(report Report) {
 	var full bool
 	var keys []string
+	var f *os.File
+	var err error
 
 	for k, r := range report {
 		keys = append(keys, k)
@@ -138,12 +121,24 @@ func printReportToConsole(report Report) {
 		s += fmt.Sprintf("|%-48s|%12d|%12d|%12d|%8d|%9d|%8d|%8d|\n", r.Name, r.Requests, r.Failures, r.QPS, r.Min, r.Max, r.Average, r.Median)
 		d += fmt.Sprintf("|%-48s|%12d|%8d|%8d|%8d|%8d|%8d|%8d|%8d|\n", r.Name, r.Requests, r.Distributions["0.60"], r.Distributions["0.70"], r.Distributions["0.80"], r.Distributions["0.90"], r.Distributions["0.95"], r.Distributions["0.98"], r.Distributions["0.99"])
 	}
-	fmt.Println(cutLine + "\n" + s + d + cutLine + "\n")
+	op := cutLine + "\n" + s + d + cutLine + "\n"
+	fmt.Println(op)
+	if additionalOutput != "" {
+		f, err = os.OpenFile(additionalOutput, os.O_APPEND|os.O_WRONLY, 0666)
+		if err == nil {
+			defer f.Close()
+			f.WriteString(op)
+		}
+	}
 
 	if full {
 		data, err := json.MarshalIndent(report, "", "  ")
 		if err == nil {
-			fmt.Printf("============= Summary Report =============\n\n" + string(data) + "\n")
+			op = "============= Summary Report =============\n\n" + string(data) + "\n"
+			fmt.Printf(op)
+			if additionalOutput != "" {
+				f.WriteString(op)
+			}
 		} else {
 			Logger.Error("marshel report object failed", zap.Error(err))
 		}

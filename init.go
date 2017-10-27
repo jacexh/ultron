@@ -3,6 +3,7 @@ package ultron
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/json-iterator/go"
@@ -16,6 +17,9 @@ var (
 	J = json
 	// Logger 全局日志
 	Logger *zap.Logger
+
+	output           = "ULTRON_LOG"
+	additionalOutput string
 )
 
 func init() {
@@ -23,6 +27,12 @@ func init() {
 	cfg.Encoding = "console"
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	if os.Getenv(output) != "" {
+		additionalOutput = os.Getenv(output)
+		cfg.OutputPaths = append(cfg.OutputPaths, additionalOutput)
+		cfg.ErrorOutputPaths = append(cfg.ErrorOutputPaths, additionalOutput)
+	}
 
 	var err error
 	Logger, err = cfg.Build()

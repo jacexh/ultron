@@ -236,6 +236,10 @@ func attack(br *baseRunner, ch resultPipeline) {
 		ret := newResult(q.Name(), duration, err)
 		ch <- ret
 
+		if err != nil {
+			Logger.Warn("occur error: " + err.Error())
+		}
+
 		if br.GetStatus() == StatusStopped {
 			return
 		}
