@@ -158,9 +158,9 @@ func (i *InfluxDBHelper) HandleResult() ultron.ResultHandleFunc {
 		)
 		if err != nil {
 			ultron.Logger.Error("failed to create new point: " + err.Error())
+		} else {
+			i.buffer.addPoint(point)
 		}
-
-		i.buffer.addPoint(point)
 	}
 }
 
@@ -181,8 +181,9 @@ func (i *InfluxDBHelper) HandleReport() ultron.ReportHandleFunc {
 			)
 			if err != nil {
 				ultron.Logger.Error("failed to create new point: " + err.Error())
+			} else {
+				i.buffer.addPoint(point)
 			}
-			i.buffer.addPoint(point)
 		}
 	}
 }
