@@ -74,15 +74,17 @@ func (b *batchPointsBuffer) flushing() {
 			continue
 		}
 
-		err := b.helper.client.Write(b.bp)
+		go func(c influx.Client, bp influx.BatchPoints) {
+			err := c.Write(bp)
+			if err != nil {
+				ultron.Logger.Error("failed to write bach points: " + err.Error())
+			}
+		}(b.helper.client, b.bp)
+
 		b.bp = nil
 		b.mu.Unlock()
-
-		if err != nil {
-			ultron.Logger.Error("failed to write batch points: " + err.Error())
-			continue
-		}
 	}
+
 }
 
 func newInfluxDBHTTPClient(url, user, password string) (influx.Client, error) {
