@@ -44,6 +44,7 @@ var (
 				KeepAlive: 30 * time.Second,
 				DualStack: true,
 			}).DialContext,
+			DisableKeepAlives:     false,
 			MaxIdleConns:          2000,
 			MaxIdleConnsPerHost:   1000,
 			IdleConnTimeout:       30 * time.Second,
