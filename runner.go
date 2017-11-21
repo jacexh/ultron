@@ -168,7 +168,7 @@ func (lr *localRunner) Start() {
 	}()
 
 	go func() {
-		t := time.NewTicker(time.Millisecond * 200)
+		t := time.NewTicker(200 * time.Millisecond)
 		for range t.C {
 			if isFinished(lr.baseRunner) {
 				t.Stop()
@@ -193,7 +193,7 @@ func (lr *localRunner) Start() {
 	localReportPipeline <- lr.stats.report(true)
 
 	Logger.Info("task done")
-	time.Sleep(time.Second * 1)
+	time.Sleep(1 * time.Second)
 	os.Exit(0)
 }
 

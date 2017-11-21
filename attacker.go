@@ -2,7 +2,9 @@ package ultron
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
@@ -32,13 +34,21 @@ type (
 
 var (
 	// DefaultHTTPClient 默认http.Client
-	// Todo: 后续做优化
+	// http://tleyden.github.io/blog/2016/11/21/tuning-the-go-http-client-library-for-load-testing/
 	DefaultHTTPClient = &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: 90 * time.Second,
 		Transport: &http.Transport{
-			DisableKeepAlives:   false,
-			MaxIdleConns:        10000,
-			MaxIdleConnsPerHost: 5000,
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:          2000,
+			MaxIdleConnsPerHost:   1000,
+			IdleConnTimeout:       30 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
 )
@@ -76,6 +86,12 @@ func (ha *HTTPAttacker) Fire() error {
 		return err
 	}
 
+	if ha.CheckChain == nil || len(ha.CheckChain) == 0 {
+		io.Copy(ioutil.Discard, resp.Body) // no checker defined, discard body
+		resp.Body.Close()
+		return nil
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		Logger.Error("occur error on receiving http response", zap.Error(err))
@@ -84,6 +100,9 @@ func (ha *HTTPAttacker) Fire() error {
 	resp.Body.Close()
 
 	for _, check := range ha.CheckChain {
+		if check == nil {
+			continue
+		}
 		if err = check(resp, body); err != nil {
 			return err
 		}
