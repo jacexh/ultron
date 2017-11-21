@@ -36,7 +36,9 @@ var (
 	DefaultHTTPClient = &http.Client{
 		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
-			DisableKeepAlives: false,
+			DisableKeepAlives:   false,
+			MaxIdleConns:        10000,
+			MaxIdleConnsPerHost: 5000,
 		},
 	}
 )
