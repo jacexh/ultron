@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/valyala/fasthttp"
+
 	"go.uber.org/zap"
 )
 
@@ -30,6 +32,20 @@ type (
 		name       string
 		CheckChain []HTTPResponseCheck
 	}
+
+	// FastHTTPAttacker a http attacker base on fasthttp: https://github.com/valyala/fasthttp
+	FastHTTPAttacker struct {
+		Client     *fasthttp.Client
+		Prepare    FastHTTPPrepareFunc
+		name       string
+		CheckChain []FastHTTPResponseCheck
+	}
+
+	// FastHTTPPrepareFunc 构造fasthttp.Request请求参数
+	FastHTTPPrepareFunc func(*fasthttp.Request)
+
+	// FastHTTPResponseCheck check fasthttp.Response
+	FastHTTPResponseCheck func(*fasthttp.Response) error
 )
 
 var (
@@ -51,6 +67,15 @@ var (
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+	}
+
+	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPClient
+	DefaultFastHTTPClient = &fasthttp.Client{
+		Name:                "ultron",
+		MaxConnsPerHost:     2000,
+		MaxIdleConnDuration: 90 * time.Second,
+		ReadTimeout:         90 * time.Second,
+		WriteTimeout:        60 * time.Second,
 	}
 )
 
@@ -117,4 +142,58 @@ func CheckHTTPStatusCode(resp *http.Response, body []byte) error {
 		return fmt.Errorf("bad status code: %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// CheckFastHTTPStatusCode check if status code >= 400
+func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
+	if code := resp.StatusCode(); code >= http.StatusBadRequest {
+		return fmt.Errorf("bad status code: %d", code)
+	}
+	return nil
+}
+
+// NewFastHTTPAttacker return a new instance of FastHTTPAttacker
+func NewFastHTTPAttacker(n string, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
+	return &FastHTTPAttacker{
+		Client:     DefaultFastHTTPClient,
+		name:       n,
+		Prepare:    p,
+		CheckChain: check,
+	}
+}
+
+// Name return attacker's name
+func (fa *FastHTTPAttacker) Name() string {
+	return fa.name
+}
+
+// Fire send request and check response
+func (fa *FastHTTPAttacker) Fire() error {
+	if fa.Prepare == nil {
+		panic("please impl Prepare() first")
+	}
+
+	req := fasthttp.AcquireRequest()
+	fa.Prepare(req)
+	resp := fasthttp.AcquireResponse()
+
+	if err := fa.Client.Do(req, resp); err != nil {
+		fa.release(req, resp)
+		return err
+	}
+
+	for _, c := range fa.CheckChain {
+		if err := c(resp); err != nil {
+			fa.release(req, resp)
+			return err
+		}
+	}
+
+	fa.release(req, resp)
+	return nil
+}
+
+func (fa *FastHTTPAttacker) release(req *fasthttp.Request, resp *fasthttp.Response) {
+	fasthttp.ReleaseRequest(req)
+	fasthttp.ReleaseResponse(resp)
 }
