@@ -33,19 +33,19 @@
   name = "github.com/json-iterator/go"
   version = "1.0.3"
 
-[[constraint]]
+[[override]]
   name = "google.golang.org/grpc"
   version = "1.9.1"
   source = "https://github.com/grpc/grpc-go.git"
 
-[[constraint]]
+[[override]]
   name = "google.golang.org/genproto"
   source = "https://github.com/google/go-genproto.git"
 
-[[constraint]]
+[[override]]
   name = "golang.org/x/net"
   source = "https://github.com/golang/net.git"
 
-[[constraint]]
+[[override]]
   name = "golang.org/x/text"
   source = "https://github.com/golang/text.git"
