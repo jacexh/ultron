@@ -156,25 +156,25 @@ func (as *attackerStats) currentQPS() float64 {
 		return 0
 	}
 
-	now := time.Now().Add(-time.Second) // 当前一秒可能未完成，统计时，截至到前一秒
-	start := now.Add(-as.interval)
+	now := time.Now().Add(-time.Second)            // 当前一秒可能未完成，统计时，往前推一秒
+	start := now.Add(-(as.interval - time.Second)) // 比如当前15秒，往回推5秒，起点是11秒而不是10秒
 
 	if start.Before(as.startTime) {
 		start = as.startTime
 	}
 
-	if now.Unix() == start.Unix() {
-		return 0 // 相减会是0，不处理这种情况
-	}
+	//if now.Unix() == start.Unix() {
+	//	return 0 // 相减会是0，不处理这种情况
+	//}
 
 	var total int64
 
-	for i := start.Unix(); i < now.Unix(); i++ {
+	for i := start.Unix(); i <= now.Unix(); i++ {
 		if v, ok := as.trendSuccess[i]; ok {
 			total += v
 		}
 	}
-	return float64(total) / float64(now.Unix()-start.Unix())
+	return float64(total) / float64(now.Unix()-start.Unix()+1)
 }
 
 // percentile 获取x%的响应时间

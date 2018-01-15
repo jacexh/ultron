@@ -69,7 +69,7 @@ var (
 		},
 	}
 
-	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPClient
+	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPAttacker
 	DefaultFastHTTPClient = &fasthttp.Client{
 		Name:                "ultron",
 		MaxConnsPerHost:     2000,
