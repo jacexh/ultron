@@ -7,32 +7,28 @@ a http load testing tool in go
 
 ### **Script**
 
-file path: `example/fasthttp/main.go`
+file path: `example/http/main.go`
 
 ```go
-benchmark := ultron.NewFastHTTPAttacker("fasthttp-benchmark")
-benchmark.Prepare = func() *fasthttp.Request {
-  req := fasthttp.AcquireRequest()
-  req.SetRequestURI("http://192.168.1.30")
-  return req
-}
+attacker := ultron.NewHTTPAttacker("benchmark", func() (*http.Request, error) { return http.NewRequest(http.MethodGet, "http://127.0.0.1/", nil) })
+task := ultron.NewTask()
+task.Add(attacker, 1)
 
-task := ultron.NewTaskSet()
-task.MinWait = ultron.ZeroDuration
-task.MaxWait = ultron.ZeroDuration
-task.Add(benchmark, 1)
+ultron.LocalRunner.Config.Concurrence = 1000
+ultron.LocalRunner.Config.HatchRate = 10
+ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
+ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
 
-ultron.Runner.Config.Concurrence = 200
-ultron.Runner.Config.Requests = 100000
-ultron.Runner.Run(task)
+ultron.LocalRunner.WithTask(task)
+ultron.LocalRunner.Start()
 ```
 
 ### Report
 
 ```json
 {
-  "fasthttp-benchmark": {
-    "name": "fasthttp-benchmark",
+  "benchmark": {
+    "name": "benchmark",
     "requests": 1917994,
     "failures": 0,
     "min": 0,

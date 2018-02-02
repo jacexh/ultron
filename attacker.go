@@ -42,7 +42,7 @@ type (
 	}
 
 	// FastHTTPPrepareFunc 构造fasthttp.Request请求参数
-	FastHTTPPrepareFunc func(*fasthttp.Request)
+	FastHTTPPrepareFunc func(*fasthttp.Request) error
 
 	// FastHTTPResponseCheck check fasthttp.Response
 	FastHTTPResponseCheck func(*fasthttp.Response) error
@@ -174,22 +174,24 @@ func (fa *FastHTTPAttacker) Fire() error {
 	}
 
 	req := fasthttp.AcquireRequest()
-	fa.Prepare(req)
 	resp := fasthttp.AcquireResponse()
+	defer fa.release(req, resp)
+
+	err := fa.Prepare(req)
+	if err != nil {
+		return err
+	}
 
 	if err := fa.Client.Do(req, resp); err != nil {
 		fa.release(req, resp)
-		return err
 	}
 
 	for _, c := range fa.CheckChain {
 		if err := c(resp); err != nil {
-			fa.release(req, resp)
 			return err
 		}
 	}
 
-	fa.release(req, resp)
 	return nil
 }
 

@@ -10,7 +10,10 @@ const (
 )
 
 func main() {
-	attacker := ultron.NewFastHTTPAttacker("benchmark", func(r *fasthttp.Request) { r.SetRequestURI(api) })
+	attacker := ultron.NewFastHTTPAttacker("benchmark", func(r *fasthttp.Request) error {
+		r.SetRequestURI(api)
+		return nil
+	})
 	task := ultron.NewTask()
 	task.Add(attacker, 1)
 
