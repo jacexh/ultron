@@ -57,7 +57,7 @@ func (rc *RunnerConfig) block() {
 func (rc *RunnerConfig) check() error {
 	if rc.Concurrence <= 0 {
 		Logger.Error("invalid Concurrence value, it should be greater than 0", zap.Int("Concurrence", rc.Concurrence))
-		return errors.New("invalud Concurrect value")
+		return errors.New("invalid Concurrency value")
 	}
 	if rc.MaxWait < rc.MinWait || rc.MaxWait < ZeroDuration {
 		Logger.Error("invalid MaxWait/MinWait value")
@@ -69,7 +69,7 @@ func (rc *RunnerConfig) check() error {
 // hatchWorkerCounts 根据HatchRate和Concurrence的值，计算出每秒启动的worker(goroutine)数量
 func (rc *RunnerConfig) hatchWorkerCounts() []int {
 	rounds := 1
-	ret := []int{}
+	var ret []int
 
 	if rc.HatchRate > 0 && rc.HatchRate < rc.Concurrence {
 		rounds = rc.Concurrence / rc.HatchRate
@@ -91,7 +91,7 @@ func split(total uint64, n uint64) []uint64 {
 		return []uint64{total}
 	}
 
-	ret := []uint64{}
+	var ret []uint64
 	size := total / n
 	for k := uint64(0); k < n; k++ {
 		ret = append(ret, size)
@@ -101,7 +101,7 @@ func split(total uint64, n uint64) []uint64 {
 }
 
 func (rc *RunnerConfig) split(n int) []*RunnerConfig {
-	ret := []*RunnerConfig{}
+	var ret []*RunnerConfig
 	c := split(uint64(rc.Concurrence), uint64(n))
 	h := split(uint64(rc.HatchRate), uint64(n))
 
