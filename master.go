@@ -80,7 +80,7 @@ func (mr *masterRunner) Send(stream Ultron_SendServer) error {
 			Logger.Error("occur error on receiving result from client")
 			return err
 		}
-		masterResultPipline <- ret
+		masterResultPipeline <- ret
 	}
 	return nil
 }
@@ -141,9 +141,9 @@ func (mr *masterRunner) Start() {
 
 	mr.once.Do(func() {
 		masterReportPipeline = newReportPipeline(MasterReportPipelineBufferSize)
-		masterResultPipline = newResultPipeline(MasterResultPipelineBufferSize)
+		masterResultPipeline = newResultPipeline(MasterResultPipelineBufferSize)
 		MasterEventHook.AddResultHandleFunc(mr.count, mr.stats.log)
-		go MasterEventHook.listen(masterResultPipline, masterReportPipeline)
+		go MasterEventHook.listen(masterResultPipeline, masterReportPipeline)
 
 		signalCh := make(chan os.Signal, 1)
 		signal.Notify(signalCh, os.Interrupt)

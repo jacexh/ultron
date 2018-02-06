@@ -6,9 +6,9 @@ type (
 )
 
 var (
-	localResultPipeline resultPipeline
-	slaveResultPipeline resultPipeline
-	masterResultPipline resultPipeline
+	localResultPipeline  resultPipeline
+	slaveResultPipeline  resultPipeline
+	masterResultPipeline resultPipeline
 
 	// LocalResultPipelineBufferSize .
 	LocalResultPipelineBufferSize = 1000
