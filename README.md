@@ -1,6 +1,7 @@
 # Ultron
 a http load testing tool in go
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/jacexh/ultron)](https://goreportcard.com/report/github.com/jacexh/ultron)
 [![Build Status](https://travis-ci.org/jacexh/ultron.svg?branch=master)](https://travis-ci.org/jacexh/ultron)
 
 ## Example:
