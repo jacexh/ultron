@@ -54,7 +54,7 @@ var (
 	DefaultHTTPClient = &http.Client{
 		Timeout: 90 * time.Second,
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			Proxy: nil,
 			DialContext: (&net.Dialer{
 				Timeout:   30 * time.Second,
 				KeepAlive: 30 * time.Second,
