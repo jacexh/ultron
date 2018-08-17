@@ -183,7 +183,7 @@ func (fa *FastHTTPAttacker) Fire() error {
 	}
 
 	if err := fa.Client.Do(req, resp); err != nil {
-		fa.release(req, resp)
+		return err
 	}
 
 	for _, c := range fa.CheckChain {
