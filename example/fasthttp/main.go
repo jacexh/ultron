@@ -17,9 +17,9 @@ func main() {
 	task := ultron.NewTask()
 	task.Add(attacker, 1)
 
-	ultron.LocalEventHook.Concurrency = 0
+	//ultron.LocalEventHook.Concurrency = 0
 
-	ultron.LocalRunner.Config.Concurrence = 100
+	ultron.LocalRunner.Config.Concurrence = 1000
 	ultron.LocalRunner.Config.HatchRate = 10
 	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
 	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
