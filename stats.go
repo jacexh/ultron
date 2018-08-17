@@ -27,8 +27,8 @@ type (
 		totalResponseTime time.Duration                // 成功请求的response time总和，基于原始的响应时间
 		minResponseTime   time.Duration                // 最快的响应时间
 		maxResponseTime   time.Duration                // 最慢的响应时间
-		trendSuccess      map[int64]int64              // 按时间轴（秒级）记录成功请求次数
-		trendFailures     map[int64]int64              // 按时间轴（秒级）记录错误的请求次数
+		trendSuccess      *limitedSizeMap              // 按时间轴（秒级）记录成功请求次数
+		trendFailures     *limitedSizeMap              // 按时间轴（秒级）记录错误的请求次数
 		responseTimes     map[roundedMillisecond]int64 // 按优化后的响应时间记录成功请求次数
 		failuresTimes     map[string]int64             // 记录不同错误的次数
 		startTime         time.Time                    // 第一次收到请求的时间(包括成功以及失败)
@@ -39,6 +39,11 @@ type (
 
 	summaryStats struct {
 		nodes sync.Map
+	}
+
+	limitedSizeMap struct {
+		content map[int64]int64
+		size int64
 	}
 
 	// AttackerReport Attacker级别的报告
@@ -84,14 +89,35 @@ func timeDurationToMillisecond(t time.Duration) int64 {
 	return int64(t) / int64(time.Millisecond)
 }
 
+func newLimitedSizeMap(s int64) *limitedSizeMap {
+	return &limitedSizeMap{
+		content: map[int64]int64{},
+		size: s,
+	}
+}
+
+func (ls *limitedSizeMap) accumulate(k, v int64) {
+	// 调用方自身来保证线程安全
+	if _, ok := ls.content[k]; ok {
+		ls.content[k] += v
+	} else {
+		for key, _ := range ls.content {
+			if (k - key)  > ls.size {
+				delete(ls.content, key)
+			}
+		}
+		ls.content[k] = v
+	}
+}
+
 func newAttackerStats(n string) *attackerStats {
 	return &attackerStats{
 		name:          n,
-		trendSuccess:  map[int64]int64{},
-		trendFailures: map[int64]int64{},
+		trendSuccess:  newLimitedSizeMap(20),
+		trendFailures: newLimitedSizeMap(20),
 		responseTimes: map[roundedMillisecond]int64{},
 		failuresTimes: map[string]int64{},
-		interval:      time.Second * 12,
+		interval:      12 * time.Second,
 	}
 }
 
@@ -117,7 +143,8 @@ func (as *attackerStats) logSuccess(ret *Result) {
 	}
 
 	as.totalResponseTime += t
-	as.trendSuccess[now.Unix()]++
+	//as.trendSuccess[now.Unix()]++
+	as.trendSuccess.accumulate(now.Unix(), 1)
 	as.responseTimes[timeDurationToRoundedMillisecond(t)]++
 }
 
@@ -142,7 +169,8 @@ func (as *attackerStats) logFailure(ret *Result) {
 
 	atomic.AddInt64(&as.numFailures, 1)
 	as.failuresTimes[ret.Error.Error()]++
-	as.trendFailures[now.Unix()]++
+	//as.trendFailures[now.Unix()]++
+	as.trendFailures.accumulate(now.Unix(), 1)
 }
 
 // totalQPS 获取总的QPS
@@ -170,7 +198,7 @@ func (as *attackerStats) currentQPS() float64 {
 	var total int64
 
 	for i := start.Unix(); i <= now.Unix(); i++ {
-		if v, ok := as.trendSuccess[i]; ok {
+		if v, ok := as.trendSuccess.content[i]; ok {
 			total += v
 		}
 	}
@@ -192,7 +220,7 @@ func (as *attackerStats) percentile(f float64) time.Duration {
 		return as.maxResponseTime
 	}
 
-	times := []int{}
+	var times []int
 	for k := range as.responseTimes {
 		times = append(times, int(k))
 	}
