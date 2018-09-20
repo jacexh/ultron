@@ -132,7 +132,7 @@ func NewInfluxDBHelper(conf *InfluxDBHelperConfig) (*InfluxDBHelper, error) {
 
 	buf := &batchPointsBuffer{
 		helper:   nil,
-		interval: time.Millisecond * 500,
+		interval: 200 * time.Millisecond,
 		conf:     influx.BatchPointsConfig{Precision: "ms", Database: conf.Database},
 	}
 	helper := &InfluxDBHelper{client: client, conf: conf, buffer: buf}
@@ -176,7 +176,25 @@ func (i *InfluxDBHelper) HandleReport() ultron.ReportHandleFunc {
 			point, err := influx.NewPoint(
 				i.conf.MeasurementAggregation,
 				map[string]string{"api": report.Name},
-				map[string]interface{}{"qps": report.QPS},
+				map[string]interface{}{
+					"qps":        report.QPS,
+					"success":    report.Requests,
+					"failures":   report.Failures,
+					"fail_ratio": report.FailRatio,
+					"min":        report.Min,
+					"max":        report.Max,
+					"avg":        report.Average,
+					"TP50":       report.Distributions["0.50"],
+					"TP60":       report.Distributions["0.60"],
+					"TP70":       report.Distributions["0.70"],
+					"TP80":       report.Distributions["0.80"],
+					"TP90":       report.Distributions["0.90"],
+					"TP95":       report.Distributions["0.95"],
+					"TP96":       report.Distributions["0.96"],
+					"TP97":       report.Distributions["0.97"],
+					"TP98":       report.Distributions["0.98"],
+					"TP99":       report.Distributions["0.99"],
+				},
 				time.Now(),
 			)
 			if err != nil {
