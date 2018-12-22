@@ -9,8 +9,8 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
+      - run: export GO111MODULE=on
       - run: go env
-      - run: go mod init
       - run: go mod download
       - run:
           name: run unit tests
