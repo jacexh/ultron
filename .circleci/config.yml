@@ -6,7 +6,6 @@ jobs:
     working_directory: /go/src/github.com/
     environment:
       TEST_RESULTS: /tmp/test-results
-      GO111MODULE: on
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
