@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/jacexh/ultron"
+	"github.com/qastub/ultron"
 )
 
 const (

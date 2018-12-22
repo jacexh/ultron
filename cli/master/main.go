@@ -6,8 +6,7 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
-
-	"github.com/jacexh/ultron"
+	"github.com/qastub/ultron"
 )
 
 var (

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jacexh/ultron"
+	"github.com/qastub/ultron"
 	"github.com/valyala/fasthttp"
 )
 

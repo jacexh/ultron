@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/jacexh/ultron"
+	"github.com/qastub/ultron"
 	"github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
 )

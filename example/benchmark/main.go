@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/jacexh/ultron"
+	"github.com/qastub/ultron"
 )
 
 type (
