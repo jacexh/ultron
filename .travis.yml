@@ -6,9 +6,13 @@ go:
 env:
   - GO111MODULE=on
 
-before_install: :
+cache:
+  directories:
+    - vendor
+
+before_install:
   - go env
-  - go mod download
+  - go mod vendor
 
 script:
   - go test -race -coverprofile=coverage.txt -covermode=atomic -v
