@@ -6,10 +6,12 @@ go:
 env:
   - GO111MODULE=on
 
-before_script:
+before_install: :
   - go env
   - go mod download
 
 script:
-  - go test -v .
+  - go test -race -coverprofile=coverage.txt -covermode=atomic -v .
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
