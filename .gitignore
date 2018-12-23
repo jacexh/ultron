@@ -27,3 +27,4 @@ vendor/
 .idea/
 .vscode/
 .env
+go.sum

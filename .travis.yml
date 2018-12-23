@@ -6,15 +6,16 @@ go:
 env:
   - GO111MODULE=on
 
-cache:
-  directories:
-    - vendor
+git:
+  depth: 1
 
-before_install:
-  - go env
-  - go mod vendor
+install: true
+
+before_script:
+  - go install -mod vendor github.com/golangci/golangci-lint/cmd/golangci-lint
 
 script:
+  - golangci-lint run
   - go test -race -coverprofile=coverage.txt -covermode=atomic -v
 
 after_success:
