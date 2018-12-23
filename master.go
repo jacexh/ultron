@@ -13,8 +13,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-
-	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc"
 )
 
 type (

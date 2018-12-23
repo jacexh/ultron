@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/qastub/ultron"
 	"github.com/json-iterator/go"
+	"github.com/qastub/ultron"
 	"github.com/valyala/fasthttp"
 )
 

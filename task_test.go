@@ -1,11 +1,11 @@
 package ultron
 
 import (
-	"time"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
-
-
 
 type (
 	toTestAttacker struct {
@@ -34,4 +34,20 @@ func BenchmarkPickUp(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		task.pickUp()
 	}
+}
+
+func TestTask_Add(t *testing.T) {
+	task := NewTask()
+	attacker := newAttacker("hello")
+	task.Add(attacker, 1)
+	actual := task.pickUp()
+	assert.Equal(t, attacker, actual)
+}
+
+func TestTask_NoAttacker(t *testing.T) {
+	task := NewTask()
+	attacker := newAttacker("hello")
+	task.Add(attacker, 1)
+	task.Del(attacker)
+	assert.Panics(t, func() { task.pickUp() })
 }

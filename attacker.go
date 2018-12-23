@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-
 	"go.uber.org/zap"
 )
 
