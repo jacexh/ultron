@@ -6,7 +6,7 @@
 
 // mkasm_darwin.go generates assembly trampolines to call libSystem routines from Go.
 //This program must be run after mksyscall.go.
-package main
+package unix
 
 import (
 	"bytes"

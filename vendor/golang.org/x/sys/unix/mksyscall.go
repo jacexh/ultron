@@ -21,7 +21,7 @@ call.  This must only be used for system calls which can never
 block, as otherwise the system call could cause all goroutines to
 hang.
 */
-package main
+package unix
 
 import (
 	"bufio"

@@ -1,7 +1,7 @@
 package ultron
 
 import (
-	"Richard1ybb/ultron/utils"
+	"github.com/qastub/ultron/utils"
 	"context"
 	"fmt"
 	"os"

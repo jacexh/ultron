@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 	"go.uber.org/zap"
-	"Richard1ybb/ultron/utils"
+	"github.com/qastub/ultron/utils"
 )
 
 const (
