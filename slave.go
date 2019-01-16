@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"Richard1ybb/ultron/utils"
 	"context"
 	"fmt"
 	"os"
@@ -87,7 +88,7 @@ func (sl *slaveRunner) handleMsg() {
 		case Message_StopAttack:
 			Logger.Info("reveived message to stop attack")
 			if sl.GetStatus() == StatusBusy {
-				sl.Done()
+				StageRunnerStatusPipeline <- StatusStopped
 			} else {
 				Logger.Warn("SlaveRunner is not running, ignore this message")
 			}
@@ -128,13 +129,56 @@ func (sl *slaveRunner) sendStream(size int) {
 	stream.CloseSend()
 }
 
+//func (sl *slaveRunner) Start() {
+//	if sl.gClient == nil {
+//		panic("you should invoke Connect(addr string) method first")
+//	}
+//
+//	if sl.task == nil {
+//		panic("no task provided")
+//	}
+//
+//	sl.once.Do(func() {
+//		go sl.handleMsg()
+//		go sl.sendStream(ResultStreamBufferSize)
+//		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
+//		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
+//		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
+//	})
+//
+//	for {
+//		sl.status = StatusIdle
+//		Logger.Info("slaver: " + sl.id + " is ready")
+//		<-slaveStart
+//		sl.status = StatusBusy
+//		Logger.Info("attack !!!")
+//
+//		hatchWorkers(sl.baseRunner, slaveResultPipeline)
+//		sl.wg.Wait()
+//		Logger.Info("attack stopped")
+//	}
+//}
+
+
+//TODO
+//简单粗暴，需要优化
 func (sl *slaveRunner) Start() {
+	for {
+		sl.status = StatusIdle
+		Logger.Info("slaver: " + sl.id + " is ready")
+		<-slaveStart
+		sl.start()
+	}
+}
+
+func (sl *slaveRunner) start() {
+
 	if sl.gClient == nil {
 		panic("you should invoke Connect(addr string) method first")
 	}
 
-	if sl.task == nil {
-		panic("no task provided")
+	if err := checkRunner(sl.baseRunner); err != nil {
+		panic(err)
 	}
 
 	sl.once.Do(func() {
@@ -143,17 +187,60 @@ func (sl *slaveRunner) Start() {
 		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
 		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
 		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
+
+		// ctrl+c退出,输出信号
+		//signalCh := make(chan os.Signal, 1)
+		//signal.Notify(signalCh, os.Interrupt)
+		//go func() {
+		//	<-signalCh
+		//	Logger.Error("capatured interrupt signal")
+		//	printReportToConsole(lr.stats.report(true))
+		//	os.Exit(1)
+		//}()
 	})
 
-	for {
-		sl.status = StatusIdle
-		Logger.Info("slaver: " + sl.id + " is ready")
-		<-slaveStart
-		sl.status = StatusBusy
-		Logger.Info("attack !!!")
+	go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
 
-		hatchWorkers(sl.baseRunner, slaveResultPipeline)
-		sl.wg.Wait()
-		Logger.Info("attack stopped")
+	go statusControl(StageRunnerStatusPipeline)
+
+	pctx, pcancel := createCancelFunc(sl.baseRunner, _parentCtx)
+
+	//[]time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
+	timers := utils.NewTimers(sl.GetStageRunningTime())
+	Logger.Info("start to attack")
+	sl.status = StatusBusy
+
+	for {
+		select {
+		case <- pctx.Done():
+			//fmt.Println("feedTicker.Stop()")
+			sl.baseRunner.Done()
+			//localReportPipeline <- lr.stats.report(true)
+			Logger.Info("stages have be done. STOP!")
+			StageRunnerStatusPipeline <- StatusStopped
+			return
+		case cc := <-timers.C:
+			if cc >= 0 && cc <= len(sl.baseRunner.Config.Stages) - 1 {
+				scc := sl.baseRunner.Config.Stages[cc]
+				Logger.Info("start ", zap.Int("task：", cc))
+
+				func() {
+					if scc.Concurrence == 0 {
+						// do nothing
+						Logger.Info("keep Concurrence")
+					} else {
+						hatchWorkersCancelable(pctx, sl.baseRunner, scc, localResultPipeline, CounterPipeline)
+					}
+				}()
+
+			} else {
+				Logger.Info("pcancel()")
+				pcancel()
+				StageRunnerStatusPipeline <- StatusStopped
+			}
+		}
 	}
 }
+
+
+
