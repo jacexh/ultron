@@ -128,6 +128,7 @@ func (rc *RunnerConfig) check() error {
 		}
 		rc.v1Runner2Stage()
 	}
+
 	if (len(rc.Stages) == 0 && rc.Concurrence == 0) || (len(rc.Stages) != 0 && rc.Concurrence != 0) {
 		Logger.Error("invalid runnerConfig, something wrong ", zap.Any("runnerConfig", rc))
 		return errors.New("invalid runnerConfig")

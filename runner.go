@@ -320,6 +320,7 @@ func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Contex
 
 
 func (lr *localRunner) Start() {
+	fmt.Println(lr.baseRunner.Config.Stages)
 	if err := checkRunner(lr.baseRunner); err != nil {
 		panic(err)
 	}
