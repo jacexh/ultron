@@ -11,12 +11,12 @@ import (
 type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
-		Duration    time.Duration `json:"duration"`      //v2废弃，但兼容V1
-		Requests    uint64        `json:"requests"`      //总请求数
-		Concurrence int           `json:"concurrence"`   //v2废弃，但兼容V1
-		HatchRate   int           `json:"hatch_rate"`    //v2废弃，但兼容V1
-		MinWait     time.Duration `json:"min_wait"`
-		MaxWait     time.Duration `json:"max_wait"`
+		Duration    time.Duration    `json:"duration"`      //v2废弃，但兼容V1
+		Requests    uint64           `json:"requests"`      //总请求数
+		Concurrence int              `json:"concurrence"`   //v2废弃，但兼容V1
+		HatchRate   int              `json:"hatch_rate"`    //v2废弃，但兼容V1
+		MinWait     time.Duration    `json:"min_wait"`
+		MaxWait     time.Duration    `json:"max_wait"`
 		Stages       []*StageConfig
 	}
 
@@ -255,7 +255,12 @@ func split(total uint64, n uint64) []uint64 {
 func (rc *RunnerConfig) split(n int) []*RunnerConfig {
 	var ret []*RunnerConfig
 	var stageconfig [][]*StageConfig
-	rc.check()
+
+	err := rc.check()
+	if err != nil {
+		Logger.Error("bad RunnerConfig", zap.Error(err))
+
+	}
 	req := split(rc.Requests, uint64(n))
 
 	for _, stage := range rc.Stages {
