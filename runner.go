@@ -198,16 +198,29 @@ func CountNumbers2Stop(countPipeline countPipeline, number2Stop *uint64) {
 	}
 }
 
-// 主控入口
-func statusControl(ch chan Status) {
+// 主控入口  for localrunner
+func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
 	for {
 		select {
 		case status := <- ch:
 			if status == StatusStopped {
-				_parentCancel()
+				pcancel()
 				Logger.Info("stageRunner status is stoped.STOP!")
 				time.Sleep(2 * time.Second)
 				os.Exit(0)
+			}
+		}
+	}
+}
+
+// for salve
+func statusControl(ch chan Status, pcancel context.CancelFunc) {
+	for {
+		select {
+		case status := <- ch:
+			if status == StatusStopped {
+				pcancel()
+				Logger.Info("stageRunner status is stoped.STOP!")
 			}
 		}
 	}
@@ -344,7 +357,6 @@ func (lr *localRunner) Start() {
 	lr.stats.reset()
 
 	Logger.Info("stages start")
-	defer _parentCancel()
 
 	//counter := newCounter(1000)
 
@@ -362,11 +374,11 @@ func (lr *localRunner) Start() {
 
 	go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
 
-	go statusControl(StageRunnerStatusPipeline)
-
 	//Logger.Info(fmt.Sprintf("deadline at ", sr.deadline))
 	//pctx, pcancel := context.WithDeadline(parentCtx, sr.deadline)
 	pctx, pcancel := createCancelFunc(lr.baseRunner, _parentCtx)
+
+	go statusControlEndExit(StageRunnerStatusPipeline, pcancel)
 
 	//[]time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
 	timers := utils.NewTimers(lr.GetStageRunningTime())
@@ -490,6 +502,7 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 				return
 			}
 			err := q.Fire()
+			Logger.Info("fire")
 			duration := time.Since(start)
 
 			countPipe <- 1 // 往计数channel发送信号

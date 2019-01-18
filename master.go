@@ -216,6 +216,7 @@ func (mr *masterRunner) Start() {
 				if mr.Config.Concurrence%mr.Config.HatchRate > 0 {
 					secs++
 				}
+				//TODO have a bug
 				mr.baseRunner.deadline = time.Now().Add(time.Second * time.Duration(secs))
 			}
 			Logger.Info("set deadline", zap.Time("deadline", mr.deadline))
