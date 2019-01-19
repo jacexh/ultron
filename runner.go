@@ -207,7 +207,7 @@ func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
 				pcancel()
 				Logger.Info("stageRunner status is stoped.STOP!")
 				time.Sleep(2 * time.Second)
-				os.Exit(0)
+				//os.Exit(0)
 			}
 		}
 	}

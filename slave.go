@@ -196,57 +196,59 @@ func (sl *slaveRunner) Start() {
 		//}()
 	})
 
-
-
-	//[]time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
-
 	for {
 		Logger.Info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 		sl.status = StatusIdle
 		Logger.Info("slaver: " + sl.id + " is ready")
-		<-slaveStart //开始
-
-		pctx, pcancel := createCancelFunc(sl.baseRunner, _parentCtx)
-
-		go statusControl(StageRunnerStatusPipeline, pcancel)
-		go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
-
-		timers := utils.NewTimers(sl.GetStageRunningTime())
-		Logger.Info("start to attack")
-		sl.status = StatusBusy
-
-		for {
-			select {
-			case <- pctx.Done():
-				//fmt.Println("feedTicker.Stop()")
-				sl.baseRunner.Done()
-				//localReportPipeline <- lr.stats.report(true)
-				Logger.Info("stages have be done. STOP!")
-				StageRunnerStatusPipeline <- StatusStopped
-				return
-			case cc := <-timers.C:
-				if cc >= 0 && cc <= len(sl.baseRunner.Config.Stages) - 1 {
-					scc := sl.baseRunner.Config.Stages[cc]
-					Logger.Info("start ", zap.Int("task：", cc))
-
-					func() {
-						if scc.Concurrence == 0 {
-							// do nothing
-							Logger.Info("keep Concurrence")
-						} else {
-							hatchWorkersCancelable(pctx, sl.baseRunner, scc, slaveResultPipeline, CounterPipeline)
-						}
-					}()
-
-				} else {
-					Logger.Info("pcancel()")
-					pcancel()
-				}
-			}
-		}
-
+		<- slaveStart //开始
+		sl.getStart()
 	}
 }
+
+
+func (sl *slaveRunner) getStart() {
+
+	pctx, pcancel := createCancelFunc(sl.baseRunner, _parentCtx)
+
+	go statusControl(StageRunnerStatusPipeline, pcancel)
+	go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
+
+	timers := utils.NewTimers(sl.GetStageRunningTime())
+	Logger.Info("start to attack")
+	sl.status = StatusBusy
+
+	for {
+		select {
+		case <- pctx.Done():
+			//fmt.Println("feedTicker.Stop()")
+			sl.baseRunner.Done()
+			//localReportPipeline <- lr.stats.report(true)
+			Logger.Info("stages have be done. STOP!")
+			StageRunnerStatusPipeline <- StatusStopped
+			return
+		case cc := <-timers.C:
+			if cc >= 0 && cc <= len(sl.baseRunner.Config.Stages) - 1 {
+				scc := sl.baseRunner.Config.Stages[cc]
+				Logger.Info("start ", zap.Int("task：", cc))
+
+				func() {
+					if scc.Concurrence == 0 {
+						// do nothing
+						Logger.Info("keep Concurrence")
+					} else {
+						hatchWorkersCancelable(pctx, sl.baseRunner, scc, slaveResultPipeline, CounterPipeline)
+					}
+				}()
+
+			} else {
+				Logger.Info("pcancel()")
+				pcancel()
+			}
+		}
+	}
+
+}
+
 
 
 
