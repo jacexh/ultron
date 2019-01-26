@@ -68,13 +68,16 @@ func (sl *slaveRunner) handleMsg() {
 			os.Exit(0)
 
 		case Message_RefreshConfig:
-			conf := new(RunnerConfig)
-			err = json.Unmarshal(msg.Data, conf)
+			baser := new(BaseRunner)
+			err = json.Unmarshal(msg.Data, baser)
 			if err != nil {
 				Logger.Error("unmarshal RunnerConfig failed", zap.Error(err))
 			} else {
-				Logger.Info("refreshed runner config", zap.Any("new RunnerConfig", conf))
-				sl.WithConfig(conf)
+				Logger.Info("refreshed runner config", zap.Any("new BaseRunner", baser))
+				sl.WithConfig(baser.Config)
+				fmt.Println("---------------------------------------------")
+				fmt.Println("deadline：", baser.Deadline)
+				sl.WithDeadLine(baser.Deadline)
 			}
 
 		case Message_StartAttack:
@@ -220,8 +223,17 @@ func (sl *slaveRunner) getStart() {
 	for {
 		select {
 		case <- pctx.Done():
-			//fmt.Println("feedTicker.Stop()")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+			fmt.Println("feedTicker.Stop()-----------------------")
+
 			sl.baseRunner.Done()
+			pcancel()
 			//localReportPipeline <- lr.stats.report(true)
 			Logger.Info("stages have be done. STOP!")
 			StageRunnerStatusPipeline <- StatusStopped

@@ -17,7 +17,7 @@ type (
 		HatchRate   int              `json:"hatch_rate"`    //v2废弃，但兼容V1
 		MinWait     time.Duration    `json:"min_wait"`
 		MaxWait     time.Duration    `json:"max_wait"`
-		Stages       []*StageConfig
+		Stages       []*StageConfig  `json:"stages"`
 	}
 
 	StageConfig struct {

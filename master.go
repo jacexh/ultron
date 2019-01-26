@@ -172,7 +172,7 @@ func (mr *masterRunner) Start() {
 		Logger.Info("attack")
 		mr.status = StatusBusy
 		mr.counts = 0
-		mr.deadline = time.Time{}
+		//mr.Deadline = time.Time{}
 
 		go func() {
 			t := time.NewTicker(time.Millisecond * 200)
@@ -200,7 +200,9 @@ func (mr *masterRunner) Start() {
 			}
 		}()
 
-		err = defaultSessionPool.sendConfigToSlaves(mr.Config)
+		fmt.Println("=================================================")
+ 		fmt.Println(mr.baseRunner.Deadline)
+ 		err = defaultSessionPool.sendConfigToSlaves(mr.baseRunner)
 		if err != nil {
 			Logger.Error("occur error", zap.Error(err))
 			os.Exit(1)
@@ -210,22 +212,23 @@ func (mr *masterRunner) Start() {
 		defaultSessionPool.batchSendMessage(Message_StartAttack, nil)
 
 		if mr.Config.Duration > ZeroDuration { // 开始设置deadline
-			mr.deadline = time.Now().Add(mr.Config.Duration)
+			mr.Deadline = time.Now().Add(mr.Config.Duration)
 			if mr.Config.HatchRate > 0 && mr.Config.Concurrence > mr.Config.HatchRate {
 				secs := mr.Config.Concurrence / mr.Config.HatchRate
 				if mr.Config.Concurrence%mr.Config.HatchRate > 0 {
 					secs++
 				}
 				//TODO have a bug
-				mr.baseRunner.deadline = time.Now().Add(time.Second * time.Duration(secs))
+				mr.baseRunner.Deadline = time.Now().Add(time.Second * time.Duration(secs))
 			}
-			Logger.Info("set deadline", zap.Time("deadline", mr.deadline))
+			Logger.Info("set deadline", zap.Time("deadline", mr.Deadline))
 		}
 
 		select {
 		case <-ServerStop: // 压测结束信号
 			Logger.Info("stop to attack")
 			defaultSessionPool.batchSendMessage(Message_StopAttack, nil)
+			mr.baseRunner.Done()
 
 		case <-ServerInterrupt:
 			defaultSessionPool.batchSendMessage(Message_Disconnect, nil)
@@ -235,13 +238,16 @@ func (mr *masterRunner) Start() {
 	}
 }
 
-func (sp *sessionPool) sendConfigToSlaves(rc *RunnerConfig) error {
+func (sp *sessionPool) sendConfigToSlaves(br *baseRunner) error {
 	var e error
-	cs := rc.split(sp.getSlaveCounts())
+	cs := br.Config.split(sp.getSlaveCounts())
 	index := 0
 	sp.pool.Range(func(key, value interface{}) bool {
 		c := cs[index]
-		data, err := json.Marshal(c)
+		br.WithConfig(c)
+		fmt.Println("sendConfigToSlaves")
+		fmt.Println(br)
+		data, err := json.Marshal(br)
 		if err != nil {
 			e = err
 			return false

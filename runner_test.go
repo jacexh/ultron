@@ -341,7 +341,7 @@ func TestBaseRunner_WithDeadLine(t *testing.T) {
 		deadline := time.Now().Add(dura)
 		stagerunner.WithDeadLine(deadline)
 
-		if stagerunner.deadline != deadline {
+		if stagerunner.Deadline != deadline {
 			t.Error("BaseRunner_WithDeadLine wrong" )
 		}
 	}
@@ -637,12 +637,12 @@ func TestBaseRunner_start4(t *testing.T) {
 
 //定义总请求数
 func TestBaseRunner_start5(t *testing.T) {
-	t.Skip("just for debug ")
+	//t.Skip("just for debug ")
 
 	task := NewTask()
 	task.Add(NewHTTPAttacker("multilanguage",
 		func() (*http.Request, error) {
-			req, _ := http.NewRequest(http.MethodGet, "http://shouqianba-multilanguage.test.shouqianba.com/app/languages?appkey=ws_1540346060991", nil)
+			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
 			return req, nil
 		}), 10)
 	//task.Add(newAttacker("b"), 20)
@@ -658,7 +658,7 @@ func TestBaseRunner_start5(t *testing.T) {
 
 	base := newBaseRunner()
 	base.WithTask(task)
-	base.WithDeadLine(time.Now().Add(4 *time.Minute))
+	base.WithDeadLine(time.Now().Add(1 *time.Minute))
 	base.WithConfig(runnerconfig)
 	LocalRunner.baseRunner = base
 

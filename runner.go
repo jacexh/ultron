@@ -46,15 +46,17 @@ type (
 		Done()
 	}
 
+	BaseRunner baseRunner
+
 	// Status Runner状态
 	Status int
 
 	baseRunner struct {
-		Config   *RunnerConfig
+		Config   *RunnerConfig			`json:"Config"`
 		task     *Task
 		status   Status
 		counts   uint64
-		deadline time.Time          //总体停止时间
+		Deadline time.Time             `json:"Deadline"`        //总体停止时间
 		cancels  []context.CancelFunc
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
@@ -80,7 +82,7 @@ func (br *baseRunner) WithTask(t *Task) {
 }
 
 func (br *baseRunner) WithDeadLine(deadline time.Time) {
-	br.deadline = deadline
+	br.Deadline = deadline
 }
 
 func (br *baseRunner) GetConfig() *RunnerConfig {
@@ -105,30 +107,26 @@ func (br *baseRunner) GetStageRunningTime() []time.Duration{
 	return stageRunningTime
 }
 
-// TODO
+// master通过主动查询来确保结束
 func isFinished(br *baseRunner) bool {
-	//if br.GetStatus() == StatusStopped {
-	//	return true
-	//}
-	//
-	//if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
-	//	br.Done()
-	//	return true
-	//}
-	//
-	//br.mu.RLock()
-	//if br.Config.Duration > ZeroDuration && !br.deadline.IsZero() && time.Now().After(br.deadline) {
-	//	br.mu.RUnlock()
-	//	br.Done()
-	//	return true
-	//}
-	//br.mu.RUnlock()
-	br.mu.RLock()
-	defer br.mu.RUnlock()
-
 	if br.GetStatus() == StatusStopped {
 		return true
 	}
+
+	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
+		br.Done()
+		return true
+	}
+
+	br.mu.RLock()
+	if br.Config.Duration > ZeroDuration && !br.Deadline.IsZero() && time.Now().After(br.Deadline) {
+		br.mu.RUnlock()
+		br.Done()
+		Logger.Info("BASERRUNNER IS FINISHED")
+		return true
+	}
+	br.mu.RUnlock()
+
 	return false
 }
 
@@ -207,7 +205,7 @@ func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
 				pcancel()
 				Logger.Info("stageRunner status is stoped.STOP!")
 				time.Sleep(2 * time.Second)
-				//os.Exit(0)
+				os.Exit(0)
 			}
 		}
 	}
@@ -219,6 +217,7 @@ func statusControl(ch chan Status, pcancel context.CancelFunc) {
 		select {
 		case status := <- ch:
 			if status == StatusStopped {
+				Logger.Info("pcancel()")
 				pcancel()
 				Logger.Info("stageRunner status is stoped.STOP!")
 			}
@@ -256,12 +255,12 @@ func (br *baseRunner) AddCancelFunc(cancel *context.CancelFunc) {
 
 
 func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Context, context.CancelFunc) {
-	if br.deadline.IsZero() {
+	if br.Deadline.IsZero() {
 		Logger.Info("create WithCancel context")
 		return context.WithCancel(parentctx)
 	} else {
-		Logger.Info("create WithDeadline context. dead at ", zap.Time("deadline", br.deadline))
-		return context.WithDeadline(parentctx, br.deadline)
+		Logger.Info("create WithDeadline context. dead at ", zap.Time("deadline", br.Deadline))
+		return context.WithDeadline(parentctx, br.Deadline)
 	}
 }
 

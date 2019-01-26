@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -38,19 +39,24 @@ func main() {
 			return
 		}
 
-		conf := new(ultron.RunnerConfig)
-		err := ultron.J.NewDecoder(req.Body).Decode(conf)
+		baser := new(ultron.BaseRunner)
+		err := ultron.J.NewDecoder(req.Body).Decode(baser)
 		if err != nil {
 			dump(w, map[string]string{"error": err.Error()})
 			return
 		}
+
+		fmt.Println("baserunner: ", baser)
+		fmt.Println("config: ", baser.Config)
 
 		if ultron.MasterRunner.GetStatus() == ultron.StatusBusy {
 			dump(w, map[string]string{"error": "MasterRunner is running"})
 			return
 		}
 
-		ultron.MasterRunner.WithConfig(conf)
+		ultron.MasterRunner.WithConfig(baser.Config)
+		ultron.MasterRunner.WithDeadLine(baser.Deadline)
+		fmt.Println("ultron.MasterRunner.WithDeadLine(baser.Deadline)", ultron.MasterRunner.Deadline)
 		ultron.ServerStart <- struct{}{}
 
 		dump(w, map[string]string{"msg": "ok"})
@@ -77,6 +83,7 @@ func main() {
 			panic(err)
 		}
 		ultron.MasterRunner.Listener = lis
+		fmt.Println(ultron.MasterRunner)
 		ultron.MasterRunner.Start()
 	}()
 
