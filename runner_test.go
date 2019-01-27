@@ -637,7 +637,7 @@ func TestBaseRunner_start4(t *testing.T) {
 
 //定义总请求数
 func TestBaseRunner_start5(t *testing.T) {
-	//t.Skip("just for debug ")
+	t.Skip("just for debug ")
 
 	task := NewTask()
 	task.Add(NewHTTPAttacker("multilanguage",

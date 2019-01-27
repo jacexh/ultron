@@ -11,12 +11,12 @@ import (
 type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
-		Duration    time.Duration    `json:"duration"`      //v2废弃，但兼容V1
-		Requests    uint64           `json:"requests"`      //总请求数
-		Concurrence int              `json:"concurrence"`   //v2废弃，但兼容V1
-		HatchRate   int              `json:"hatch_rate"`    //v2废弃，但兼容V1
-		MinWait     time.Duration    `json:"min_wait"`
-		MaxWait     time.Duration    `json:"max_wait"`
+		Duration    time.Duration    `json:"duration,omitempy"`      //v2废弃，但兼容V1
+		Requests    uint64           `json:"requests"`               //总请求数
+		Concurrence int              `json:"concurrence,omitempy"`   //v2废弃，但兼容V1
+		HatchRate   int              `json:"hatch_rate,omitempy"`    //v2废弃，但兼容V1
+		MinWait     time.Duration    `json:"min_wait,omitempy"`
+		MaxWait     time.Duration    `json:"max_wait,omitempy"`
 		Stages       []*StageConfig  `json:"stages"`
 	}
 
@@ -26,17 +26,6 @@ type (
 		Concurrence        int           `json:"concurrence"`
 		HatchRate          int           `json:"hatch_rate"`
 	}
-
-
-	////阶段运行配置
-	//StageRunnerConfig struct {
-	//	Requests     		uint64        `json:"requests"`
-	//	MinWait      		time.Duration `json:"min_wait"`
-	//	MaxWait      		time.Duration `json:"max_wait"`
-	//	StageConfigs 		[]*StageConfig
-	//	StageConfigsChanged []*StageConfigsChanged
-	//	mu                  sync.Mutex
-	//}
 
 
 	StageConfigsChanged StageConfig
@@ -147,10 +136,6 @@ func (rc *RunnerConfig) v1Runner2Stage() {
 	rc.Concurrence = 0
 }
 
-//// 清除Concurrence，运行stage
-//func (rc *RunnerConfig) clearConcurrence()  {
-//}
-
 
 //TODO
 // hatchWorkerCounts 根据HatchRate和Concurrence的值，计算出每秒启动的worker(goroutine)数量
@@ -178,12 +163,6 @@ func (rc *RunnerConfig) hatchWorkerCounts() []int {
 func (sc *StageConfig) hatchWorkerCounts() []int {
 	rounds := 1
 	var ret []int
-	//var localConcurrence = sc.Concurrence
-
-	//if scc.Concurrence <= 0  {
-	//	Logger.Error("invalid Concurrence value, it should be greater than 0", zap.Int("Concurrence", scc.Concurrence))
-	//	//return errors.New("invalid Concurrency value")
-	//}
 
 	if sc.Concurrence > 0 {
 		if sc.HatchRate > 0 && sc.HatchRate < utils.Abs(sc.Concurrence) {
@@ -313,44 +292,9 @@ func (sc *StageConfig) split(n int) []*StageConfig {
 }
 
 
-//func NewStageRunnerConfig() *StageRunnerConfig {
-//	return &StageRunnerConfig{
-//		Requests:    0,               // 请求总数，默认不控制，**而且无法严格控制**
-//		MinWait:     time.Second * 3, // 在单独的goroutine中，两次请求之间最少等待的时间
-//		MaxWait:     time.Second * 5, // 在单独的goroutine中，两次请求之间最长等待的时间
-//		StageConfigs:[]*StageConfig{}, // 各阶段的并发量及加压频率
-//	}
-//}
-
 func (rc *RunnerConfig) AppendStage(sc ...*StageConfig) (rrc *RunnerConfig) {
 	rc.Stages = append(rc.Stages, sc...)
 	return rc
 }
-
-
-//func (src *StageRunnerConfig) check() error {
-//	if src.MaxWait < src.MinWait || src.MaxWait < ZeroDuration {
-//		Logger.Error("invalid MaxWait/MinWait value")
-//		return errors.New("invalid MaxWait/MinWait value")
-//	}
-//	if src.StageConfigs == nil {
-//		Logger.Error("empty StageConfigs")
-//		return errors.New("empty StageConfigs")
-//	}
-//
-//	return nil
-//}
-
-
-
-
-//func (src *StageRunnerConfig) block() {
-//	if src.MinWait == ZeroDuration && src.MaxWait == ZeroDuration {
-//		return
-//	}
-//
-//	time.Sleep(src.MinWait + time.Duration(rand.Int63n(int64(src.MaxWait-src.MinWait))+1))
-//}
-
 
 

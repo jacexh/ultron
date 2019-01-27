@@ -116,7 +116,7 @@ func (mr *masterRunner) Start() {
 	if mr.Listener == nil {
 		lis, err := net.Listen("tcp", mr.addr)
 		if err != nil {
-			Logger.Error(fmt.Sprintf("listen to %s failed", mr.addr), zap.Error(err))
+			Logger.Error(fmt.Sprintf("Listen to %s failed", mr.addr), zap.Error(err))
 			os.Exit(1)
 		}
 		mr.Listener = lis
@@ -202,8 +202,7 @@ func (mr *masterRunner) Start() {
 			}
 		}()
 
-		fmt.Println("=================================================")
- 		fmt.Println(mr.baseRunner.Deadline)
+
  		err = defaultSessionPool.sendConfigToSlaves(mr.baseRunner)
 		if err != nil {
 			Logger.Error("occur error", zap.Error(err))
@@ -248,8 +247,7 @@ func (sp *sessionPool) sendConfigToSlaves(br *baseRunner) error {
 	sp.pool.Range(func(key, value interface{}) bool {
 		c := cs[index]
 		br.WithConfig(c)
-		fmt.Println("sendConfigToSlaves")
-		fmt.Println(br)
+
 		data, err := json.Marshal(br)
 		if err != nil {
 			e = err

@@ -75,9 +75,10 @@ func (sl *slaveRunner) handleMsg() {
 			} else {
 				Logger.Info("refreshed runner config", zap.Any("new BaseRunner", baser))
 				sl.WithConfig(baser.Config)
-				fmt.Println("---------------------------------------------")
-				fmt.Println("deadline：", baser.Deadline)
 				sl.WithDeadLine(baser.Deadline)
+				Logger.Info("---------------------------------------------")
+				Logger.Info("baserunner", zap.Any("config:",*baser.Config))
+				Logger.Info("baserunner", zap.Time("deadline", baser.Deadline))
 			}
 
 		case Message_StartAttack:
@@ -132,44 +133,6 @@ func (sl *slaveRunner) sendStream(size int) {
 	stream.CloseSend()
 }
 
-//func (sl *slaveRunner) Start() {
-//	if sl.gClient == nil {
-//		panic("you should invoke Connect(addr string) method first")
-//	}
-//
-//	if sl.task == nil {
-//		panic("no task provided")
-//	}
-//
-//	sl.once.Do(func() {
-//		go sl.handleMsg()
-//		go sl.sendStream(ResultStreamBufferSize)
-//		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
-//		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
-//		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
-//	})
-//
-//	for {
-//		sl.status = StatusIdle
-//		Logger.Info("slaver: " + sl.id + " is ready")
-//		<-slaveStart
-//		sl.status = StatusBusy
-//		Logger.Info("attack !!!")
-//
-//		hatchWorkers(sl.baseRunner, slaveResultPipeline)
-//		sl.wg.Wait()
-//		Logger.Info("attack stopped")
-//	}
-//}
-
-
-//TODO
-//简单粗暴，需要优化
-//func (sl *slaveRunner) Start() {
-//	for {
-//
-//	}
-//}
 
 func (sl *slaveRunner) Start() {
 
@@ -185,19 +148,9 @@ func (sl *slaveRunner) Start() {
 		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
 		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
 
-		// ctrl+c退出,输出信号
-		//signalCh := make(chan os.Signal, 1)
-		//signal.Notify(signalCh, os.Interrupt)
-		//go func() {
-		//	<-signalCh
-		//	Logger.Error("capatured interrupt signal")
-		//	printReportToConsole(lr.stats.report(true))
-		//	os.Exit(1)
-		//}()
 	})
 
 	for {
-		Logger.Info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 		sl.status = StatusIdle
 		Logger.Info("slaver: " + sl.id + " is ready")
 		<- slaveStart //开始
@@ -224,15 +177,6 @@ func (sl *slaveRunner) getStart() {
 	for {
 		select {
 		case <- pctx.Done():
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-			fmt.Println("feedTicker.Stop()-----------------------")
-
 			sl.baseRunner.Done()
 			pcancel()
 			//localReportPipeline <- lr.stats.report(true)

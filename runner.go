@@ -267,71 +267,6 @@ func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Contex
 }
 
 
-//func (lr *localRunner) Start() {
-//	if err := checkRunner(lr.baseRunner); err != nil {
-//		Logger.Panic("occur error", zap.Error(err))
-//		panic(err)
-//	}
-//
-//	Logger.Info("start to attack")
-//	lr.status = StatusBusy
-//
-//	lr.once.Do(func() {
-//		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
-//		localResultPipeline = newResultPipeline(LocalResultPipelineBufferSize)
-//		LocalEventHook.AddResultHandleFunc(lr.log)
-//		LocalEventHook.listen(localResultPipeline, localReportPipeline)
-//
-//		signalCh := make(chan os.Signal, 1)
-//		signal.Notify(signalCh, os.Interrupt)
-//		go func() {
-//			<-signalCh
-//			Logger.Error("capatured interrupt signal")
-//			printReportToConsole(lr.stats.report(true))
-//			os.Exit(1)
-//		}()
-//
-//	})
-//
-//	lr.stats.reset()
-//
-//	feedTicker := time.NewTicker(StatsReportInterval)
-//	go func() {
-//		for range feedTicker.C {
-//			localReportPipeline <- lr.stats.report(false)
-//		}
-//	}()
-//
-//	go func() {
-//		t := time.NewTicker(200 * time.Millisecond)
-//		for range t.C {
-//			if isFinished(lr.baseRunner) {
-//				t.Stop()
-//				break
-//			}
-//		}
-//	}()
-//
-//	hatchWorkers(lr.baseRunner, localResultPipeline)
-//
-//	if lr.Config.Duration > ZeroDuration {
-//		lr.mu.Lock()
-//		lr.deadline = time.Now().Add(lr.Config.Duration)
-//		lr.mu.Unlock()
-//		Logger.Info("set deadline", zap.Time("deadline", lr.deadline))
-//	}
-//	Logger.Info("hatched complete")
-//
-//	lr.wg.Wait()
-//
-//	feedTicker.Stop()
-//	localReportPipeline <- lr.stats.report(true)
-//
-//	Logger.Info("task done")
-//	time.Sleep(1 * time.Second)
-//	os.Exit(0)
-//}
-
 
 func (lr *localRunner) Start() {
 	fmt.Println(lr.baseRunner.Config.Stages)
@@ -359,7 +294,6 @@ func (lr *localRunner) Start() {
 
 	Logger.Info("stages start")
 
-	//counter := newCounter(1000)
 
 	feedTicker := time.NewTicker(StatsReportInterval)
 	go func() {
@@ -367,21 +301,14 @@ func (lr *localRunner) Start() {
 			localReportPipeline <- lr.stats.report(false)  // 管道传输统计结果
 		}
 	}()
-	//defer func() {
-	//	fmt.Println("feedTicker.Stop()")
-	//	feedTicker.Stop()
-	//	localReportPipeline <- sr.stats.report(true)
-	//}()
+
 
 	go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
 
-	//Logger.Info(fmt.Sprintf("deadline at ", sr.deadline))
-	//pctx, pcancel := context.WithDeadline(parentCtx, sr.deadline)
 	pctx, pcancel := createCancelFunc(lr.baseRunner, _parentCtx)
 
 	go statusControlEndExit(StageRunnerStatusPipeline, pcancel)
 
-	//[]time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
 	timers := utils.NewTimers(lr.GetStageRunningTime())
 	Logger.Info("start to attack")
 	lr.status = StatusBusy
@@ -389,10 +316,10 @@ func (lr *localRunner) Start() {
 	for {
 		select {
 		case <- pctx.Done():
-			//fmt.Println("feedTicker.Stop()")
+
 			lr.baseRunner.Done()
 			feedTicker.Stop()
-			//localReportPipeline <- lr.stats.report(true)
+
 			printReportToConsole(lr.stats.report(true))
 			Logger.Info("stages have be done. STOP!")
 			StageRunnerStatusPipeline <- StatusStopped
@@ -404,22 +331,12 @@ func (lr *localRunner) Start() {
 
 				func() {
 
-					//if scc.Concurrence > 0 {
-					//	hatchWorkersCancelable(pctx, lr.baseRunner, scc, localResultPipeline, CounterPipeline)
-					//}
 					if scc.Concurrence == 0 {
 						// do nothing
 						Logger.Info("keep Concurrence")
 					} else {
 						hatchWorkersCancelable(pctx, lr.baseRunner, scc, localResultPipeline, CounterPipeline)
 					}
-					//if scc.Concurrence < 0 {
-					//	hatchCancelWorkers(lr.baseRunner, scc)
-					//}
-					//Logger.Info(fmt.Sprintf("time.sleep %s", scc.Duration))
-					//time.Sleep(scc.Duration)
-
-					//Logger.Info("task done", zap.Int("task：", cc))
 				}()
 			} else {
 				Logger.Info("pcancel()")
@@ -431,21 +348,6 @@ func (lr *localRunner) Start() {
 }
 
 
-
-//func hatchCancelWorkers(br *baseRunner, sc *StageConfig) {
-//
-//	var hatched int
-//	for _, counts := range sc.hatchWorkerCounts() {
-//		br.CancelWorkers(utils.Abs(counts))
-//		hatched += counts
-//		time.Sleep(time.Second)
-//		Logger.Info(fmt.Sprintf("cancel %d workers", hatched))
-//		time.Sleep(1 *time.Second)
-//	}
-//
-//}
-
-
 // countPipeline需要有消费者，否则超过buffer会阻塞
 func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *StageConfig, ch resultPipeline, countPipe countPipeline) {
 
@@ -454,9 +356,7 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 		for _, counts := range sc.hatchWorkerCounts() {
 			for i := 0; i < counts; i++ {
 				ctx, cancel := context.WithCancel(parentctx)
-				//sr.cancels = append(sr.cancels, cancel)
 				br.AddCancelFunc(&cancel) // append cancel
-				//sr.wg.Add(1)
 				go attackCancelAble(ctx, br, ch, countPipe)
 			}
 			hatched += counts
@@ -490,7 +390,6 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 	if ch == nil {
 		panic("invalid resultPipeline")
 	}
-	//fmt.Println("hahhahahaha")
 
 	for {
 		select {
