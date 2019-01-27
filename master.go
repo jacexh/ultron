@@ -217,7 +217,7 @@ func (mr *masterRunner) Start() {
 					secs++
 				}
 				//TODO have a bug
-				mr.baseRunner.Deadline = time.Now().Add(time.Second * time.Duration(secs))
+				//mr.baseRunner.Deadline = time.Now().Add(time.Second * time.Duration(secs))
 			}
 			Logger.Info("set deadline", zap.Time("deadline", mr.Deadline))
 		}
