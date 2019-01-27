@@ -110,13 +110,13 @@ func (br *baseRunner) GetStageRunningTime() []time.Duration{
 // master通过主动查询来确保结束
 func isFinished(br *baseRunner) bool {
 	if br.GetStatus() == StatusStopped {
-		Logger.Info("StatusStopped RUNNER IS FINISHED")
+		Logger.Debug("StatusStopped RUNNER IS FINISHED")
 		return true
 	}
 
 	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
 		br.Done()
-		Logger.Info("counts RUNNER IS FINISHED")
+		Logger.Debug("counts RUNNER IS FINISHED")
 		return true
 	}
 
@@ -124,7 +124,7 @@ func isFinished(br *baseRunner) bool {
 	if !br.Deadline.IsZero() && time.Now().After(br.Deadline) {
 		br.mu.RUnlock()
 		br.Done()
-		Logger.Info("Deadline RUNNER IS FINISHED")
+		Logger.Debug("Deadline RUNNER IS FINISHED")
 		return true
 	}
 	br.mu.RUnlock()
@@ -420,60 +420,4 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 			br.Config.block()
 		}
 	}
-
 }
-
-////TODO
-//func hatchWorkers(br *baseRunner, ch resultPipeline) {
-//	var hatched int
-//	for _, counts := range br.Config.hatchWorkerCounts() {
-//		for i := 0; i < counts; i++ {
-//			br.wg.Add(1)
-//			go attack(br, ch)
-//		}
-//		hatched += counts
-//		time.Sleep(time.Second)
-//		Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
-//	}
-//}
-//
-////TODO
-//func attack(br *baseRunner, ch resultPipeline) {
-//	defer br.wg.Done()
-//	defer func() {
-//		if rec := recover(); rec != nil {
-//			// Todo:
-//			debug.PrintStack()
-//			Logger.Error("recovered")
-//		}
-//	}()
-//
-//	if ch == nil {
-//		panic("invalid resultPipeline")
-//	}
-//
-//	for {
-//		q := br.task.pickUp()
-//		start := time.Now()
-//		if br.GetStatus() == StatusStopped {
-//			return
-//		}
-//		err := q.Fire()
-//		duration := time.Since(start)
-//		atomic.AddUint64(&br.counts, 1)
-//		ret := newResult(q.Name(), duration, err)
-//		ch <- ret
-//
-//		if err != nil {
-//			Logger.Warn("occur error: " + err.Error())
-//		}
-//
-//		if br.GetStatus() == StatusStopped {
-//			return
-//		}
-//		br.Config.block()
-//	}
-//}
-
-
-

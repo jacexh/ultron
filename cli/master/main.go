@@ -83,7 +83,6 @@ func main() {
 			panic(err)
 		}
 		ultron.MasterRunner.Listener = lis
-		fmt.Println(ultron.MasterRunner)
 		ultron.MasterRunner.Start()
 	}()
 

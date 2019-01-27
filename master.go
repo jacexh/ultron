@@ -116,7 +116,7 @@ func (mr *masterRunner) Start() {
 	if mr.Listener == nil {
 		lis, err := net.Listen("tcp", mr.addr)
 		if err != nil {
-			Logger.Error(fmt.Sprintf("Listen to %s failed", mr.addr), zap.Error(err))
+			Logger.Error(fmt.Sprintf("listen to %s failed", mr.addr), zap.Error(err))
 			os.Exit(1)
 		}
 		mr.Listener = lis
@@ -170,9 +170,7 @@ func (mr *masterRunner) Start() {
 		}
 
 		Logger.Info("attack")
-		mr.mu.Lock()
 		mr.status = StatusBusy
-		mr.mu.Unlock()
 		mr.counts = 0
 		//mr.Deadline = time.Time{}
 
@@ -201,7 +199,6 @@ func (mr *masterRunner) Start() {
 				masterReportPipeline <- mr.stats.report(false)
 			}
 		}()
-
 
  		err = defaultSessionPool.sendConfigToSlaves(mr.baseRunner)
 		if err != nil {

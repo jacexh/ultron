@@ -140,6 +140,9 @@ func (sl *slaveRunner) Start() {
 		panic("you should invoke Connect(addr string) method first")
 	}
 
+	if sl.task == nil {
+		panic("no task provided")
+	}
 
 	sl.once.Do(func() {
 		go sl.handleMsg()
@@ -205,7 +208,3 @@ func (sl *slaveRunner) getStart() {
 	}
 
 }
-
-
-
-

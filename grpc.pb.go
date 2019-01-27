@@ -39,12 +39,11 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Message_Type int32
 
 const (
-	Message_Disconnect        Message_Type = 0
-	Message_RefreshConfig     Message_Type = 1
-	Message_StartAttack       Message_Type = 2
-	Message_StopAttack        Message_Type = 3
-	Message_Ping              Message_Type = 9
-	Message_Goroutines 		  Message_Type = 10
+	Message_Disconnect    Message_Type = 0
+	Message_RefreshConfig Message_Type = 1
+	Message_StartAttack   Message_Type = 2
+	Message_StopAttack    Message_Type = 3
+	Message_Ping          Message_Type = 9
 )
 
 var Message_Type_name = map[int32]string{
