@@ -46,8 +46,6 @@ func main() {
 			return
 		}
 
-		fmt.Println("baserunner: ", baser)
-		fmt.Println("config: ", baser.Config)
 
 		if ultron.MasterRunner.GetStatus() == ultron.StatusBusy {
 			dump(w, map[string]string{"error": "MasterRunner is running"})
