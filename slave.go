@@ -177,9 +177,6 @@ func (sl *slaveRunner) Start() {
 		panic("you should invoke Connect(addr string) method first")
 	}
 
-	if err := checkRunner(sl.baseRunner); err != nil {
-		panic(err)
-	}
 
 	sl.once.Do(func() {
 		go sl.handleMsg()
@@ -210,6 +207,10 @@ func (sl *slaveRunner) Start() {
 
 
 func (sl *slaveRunner) getStart() {
+
+	if err := checkRunner(sl.baseRunner); err != nil {
+		panic(err)
+	}
 
 	pctx, pcancel := createCancelFunc(sl.baseRunner, _parentCtx)
 

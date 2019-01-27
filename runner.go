@@ -56,7 +56,7 @@ type (
 		task     *Task
 		status   Status
 		counts   uint64
-		Deadline time.Time             `json:"Deadline"`        //总体停止时间
+		Deadline time.Time             `json:"deadline,omitempy"`        //总体停止时间
 		cancels  []context.CancelFunc
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
@@ -503,7 +503,7 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 				return
 			}
 			err := q.Fire()
-			Logger.Info("fire")
+			//Logger.Info("fire")
 			duration := time.Since(start)
 
 			countPipe <- 1 // 往计数channel发送信号
