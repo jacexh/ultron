@@ -170,7 +170,9 @@ func (mr *masterRunner) Start() {
 		}
 
 		Logger.Info("attack")
+		mr.mu.Lock()
 		mr.status = StatusBusy
+		mr.mu.Unlock()
 		mr.counts = 0
 		//mr.Deadline = time.Time{}
 
@@ -193,9 +195,9 @@ func (mr *masterRunner) Start() {
 		go func() {
 			t := time.NewTicker(StatsReportInterval)
 			for range t.C {
-				if isFinished(mr.baseRunner) {
-					break
-				}
+				//if isFinished(mr.baseRunner) {
+				//	break
+				//}
 				masterReportPipeline <- mr.stats.report(false)
 			}
 		}()
@@ -229,6 +231,7 @@ func (mr *masterRunner) Start() {
 			Logger.Info("stop to attack")
 			defaultSessionPool.batchSendMessage(Message_StopAttack, nil)
 			mr.baseRunner.Done()
+			mr.stats.reset()
 
 		case <-ServerInterrupt:
 			defaultSessionPool.batchSendMessage(Message_Disconnect, nil)

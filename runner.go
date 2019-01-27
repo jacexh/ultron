@@ -110,19 +110,21 @@ func (br *baseRunner) GetStageRunningTime() []time.Duration{
 // master通过主动查询来确保结束
 func isFinished(br *baseRunner) bool {
 	if br.GetStatus() == StatusStopped {
+		Logger.Info("StatusStopped RUNNER IS FINISHED")
 		return true
 	}
 
 	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
 		br.Done()
+		Logger.Info("counts RUNNER IS FINISHED")
 		return true
 	}
 
 	br.mu.RLock()
-	if br.Config.Duration > ZeroDuration && !br.Deadline.IsZero() && time.Now().After(br.Deadline) {
+	if !br.Deadline.IsZero() && time.Now().After(br.Deadline) {
 		br.mu.RUnlock()
 		br.Done()
-		Logger.Info("BASERRUNNER IS FINISHED")
+		Logger.Info("Deadline RUNNER IS FINISHED")
 		return true
 	}
 	br.mu.RUnlock()
