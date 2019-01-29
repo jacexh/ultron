@@ -8,7 +8,7 @@
 // Data read from the web.
 // See forminfo.go for a description of the trie values associated with each rune.
 
-package norm
+package main
 
 import (
 	"bytes"

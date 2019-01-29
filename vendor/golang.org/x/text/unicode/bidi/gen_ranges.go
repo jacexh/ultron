@@ -4,7 +4,7 @@
 
 // +build ignore
 
-package bidi
+package main
 
 import (
 	"unicode"

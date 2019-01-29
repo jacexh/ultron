@@ -4,7 +4,7 @@
 
 // +build ignore
 
-package bidi
+package main
 
 // Class is the Unicode BiDi class. Each rune has a single class.
 type Class uint

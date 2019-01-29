@@ -9,7 +9,7 @@
 //
 //	go run gen.go -output fixedhuff.go
 
-package flate
+package main
 
 import (
 	"bytes"

@@ -10,7 +10,7 @@
 // sequence are used to lookup offsets in the index table to be used for the
 // next byte. The last byte is used to index into a table with 16-bit values.
 
-package norm
+package main
 
 import (
 	"fmt"

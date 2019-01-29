@@ -1,6 +1,6 @@
 // +build ignore
 
-package cpuid
+package main
 
 import (
 	"bytes"
