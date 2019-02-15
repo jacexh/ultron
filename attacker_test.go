@@ -50,7 +50,7 @@ func TestFastHTTPAttacker_Fire_NoPrepare(t *testing.T) {
 
 func TestFastHTTPAttacker_Fire_PrepareError(t *testing.T) {
 	p := new(mockFasthttpPrepare)
-	p.On("handle").Return(errors.New("bad prepare func"))
+	p.On("handle", fasthttp.AcquireRequest()).Return(errors.New("bad prepare func"))
 	attacker := NewFastHTTPAttacker("hello", p.handle)
 
 	assert.EqualError(t, attacker.Fire(), "bad prepare func")
