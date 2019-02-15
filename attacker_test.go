@@ -2,7 +2,10 @@ package ultron
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -10,30 +13,27 @@ import (
 )
 
 type (
-	mockFasthttpPrepare struct {
-		mock.Mock
-	}
-
-	mockFasthttpClient struct {
+	mockPrepareFunc struct {
 		mock.Mock
 	}
 )
 
-func (ep *mockFasthttpPrepare) handle(req *fasthttp.Request) error {
+func (ep *mockPrepareFunc) fastHTTPPrepare(req *fasthttp.Request) error {
 	args := ep.Called(req)
 	return args.Error(0)
 }
 
-func (fc *mockFasthttpClient) Do(req *fasthttp.Request, res *fasthttp.Response) error {
-	args := fc.Called(req, res)
-	return args.Error(0)
+func (ep *mockPrepareFunc) httpPrepare() (*http.Request, error) {
+	args := ep.Called()
+	return args.Get(0).(*http.Request), args.Error(1)
 }
 
 func TestNewFastHTTPAttacker(t *testing.T) {
-	attcker := NewFastHTTPAttacker("hello", nil)
-	assert.Equal(t, attcker.Name(), "hello")
-	assert.Nil(t, attcker.CheckChain)
-	assert.Nil(t, attcker.Prepare)
+	attacker := NewFastHTTPAttacker("hello", nil)
+	assert.NotNil(t, attacker)
+	assert.Equal(t, attacker.Name(), "hello")
+	assert.Nil(t, attacker.CheckChain)
+	assert.Nil(t, attacker.Prepare)
 }
 
 func TestFastHTTPAttacker_Name(t *testing.T) {
@@ -49,18 +49,37 @@ func TestFastHTTPAttacker_Fire_NoPrepare(t *testing.T) {
 }
 
 func TestFastHTTPAttacker_Fire_PrepareError(t *testing.T) {
-	p := new(mockFasthttpPrepare)
-	p.On("handle", fasthttp.AcquireRequest()).Return(errors.New("bad prepare func"))
-	attacker := NewFastHTTPAttacker("hello", p.handle)
+	p := new(mockPrepareFunc)
+	p.On("fastHTTPPrepare", fasthttp.AcquireRequest()).Return(errors.New("bad prepare func"))
+	attacker := NewFastHTTPAttacker("hello", p.fastHTTPPrepare)
 
 	assert.EqualError(t, attacker.Fire(), "bad prepare func")
 }
 
-//func TestFastHTTPAttacker_Fire_RequestError(t *testing.T) {
-//	p := new(mockFasthttpPrepare)
-//	p.On("handle").Return(nil)
-//	attacker := NewFastHTTPAttacker("hello", p.handle)
-//
-//	c := new(mockFasthttpClient)
-//	attacker.Client = c
-//}
+func TestNewHTTPAttacker(t *testing.T) {
+	name := "hello world"
+	attacker := NewHTTPAttacker(name, nil)
+	assert.NotNil(t, attacker)
+	assert.Equal(t, name, attacker.Name())
+	assert.Nil(t, attacker.Prepare)
+	assert.Nil(t, attacker.CheckChain)
+}
+
+func TestHTTPAttacker_Name(t *testing.T) {
+	name := strconv.FormatInt(time.Now().UnixNano(), 10)
+	attacker := NewHTTPAttacker(name, nil)
+	assert.NotNil(t, attacker)
+	assert.Equal(t, name, attacker.Name())
+}
+
+func TestHTTPAttacker_Fire_NoPrepare(t *testing.T) {
+	assert.Panics(t, func() { NewHTTPAttacker("hello", nil).Fire() })
+}
+
+func TestHTTPAttacker_Fire_PrepareError(t *testing.T) {
+	p := new(mockPrepareFunc)
+	req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
+	p.On("httpPrepare").Return(req, errors.New("bad prepare func"))
+	attacker := NewHTTPAttacker("hello", p.httpPrepare)
+	assert.EqualError(t, attacker.Fire(), "bad prepare func")
+}
