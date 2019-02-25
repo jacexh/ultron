@@ -75,10 +75,10 @@ func (sl *slaveRunner) handleMsg() {
 			} else {
 				Logger.Info("refreshed runner config", zap.Any("new BaseRunner", baser))
 				sl.WithConfig(baser.Config)
-				sl.WithDeadLine(baser.Deadline)
+				//sl.WithDeadLine(baser.Deadline)
 				Logger.Info("---------------------------------------------")
 				Logger.Info("baserunner", zap.Any("config:",*baser.Config))
-				Logger.Info("baserunner", zap.Time("deadline", baser.Deadline))
+				//Logger.Info("baserunner", zap.Time("deadline", baser.Deadline))
 			}
 
 		case Message_StartAttack:
@@ -170,8 +170,8 @@ func (sl *slaveRunner) getStart() {
 
 	pctx, pcancel := createCancelFunc(sl.baseRunner, _parentCtx)
 
-	go statusControl(StageRunnerStatusPipeline, pcancel)
-	go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
+	go statusControl(StageRunnerStatusPipeline, pcancel, false)
+	//go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
 
 	timers := utils.NewTimers(sl.GetStageRunningTime())
 	Logger.Info("start to attack")
@@ -188,7 +188,7 @@ func (sl *slaveRunner) getStart() {
 			return
 		case cc := <-timers.C:
 			if cc >= 0 && cc <= len(sl.baseRunner.Config.Stages) - 1 {
-				scc := sl.baseRunner.Config.Stages[cc]
+				scc := sl.baseRunner.Config.stagesChanged[cc]
 				Logger.Info("start ", zap.Int("task：", cc))
 
 				func() {
@@ -196,7 +196,7 @@ func (sl *slaveRunner) getStart() {
 						// do nothing
 						Logger.Info("keep Concurrence")
 					} else {
-						hatchWorkersCancelable(pctx, sl.baseRunner, scc, slaveResultPipeline, CounterPipeline)
+						hatchWorkersCancelable(pctx, sl.baseRunner, scc, slaveResultPipeline)
 					}
 				}()
 

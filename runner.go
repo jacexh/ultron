@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
+	"github.com/qastub/ultron/utils"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
-	"go.uber.org/zap"
-	"github.com/qastub/ultron/utils"
 )
 
 const (
@@ -56,8 +55,8 @@ type (
 		task     *Task
 		status   Status
 		counts   uint64
-		Deadline time.Time             `json:"deadline,omitempy"`        //总体停止时间
-		cancels  []context.CancelFunc
+		deadline time.Time             //`json:"deadline,omitempy"`        //总体停止时间
+		cancels  cancelMap
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
 	}
@@ -67,10 +66,19 @@ type (
 		once  sync.Once
 		*baseRunner
 	}
+
+	cancelMap struct {
+		index   uint8
+		cancels map[uint8]context.CancelFunc
+	}
 )
 
+func newCancelMap() cancelMap {
+	return cancelMap{cancels: make(map[uint8]context.CancelFunc)}
+}
+
 func newBaseRunner() *baseRunner {
-	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig}
+	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig, cancels: newCancelMap()}
 }
 
 func (br *baseRunner) WithConfig(rc *RunnerConfig) {
@@ -82,7 +90,7 @@ func (br *baseRunner) WithTask(t *Task) {
 }
 
 func (br *baseRunner) WithDeadLine(deadline time.Time) {
-	br.Deadline = deadline
+	br.deadline = deadline
 }
 
 func (br *baseRunner) GetConfig() *RunnerConfig {
@@ -96,6 +104,7 @@ func (br *baseRunner) Done() {
 	br.status = StatusStopped
 }
 
+// 把阶段运行时间组成一个列表
 func (br *baseRunner) GetStageRunningTime() []time.Duration{
 	br.mu.RLock()
 	defer br.mu.RUnlock()
@@ -107,6 +116,7 @@ func (br *baseRunner) GetStageRunningTime() []time.Duration{
 	return stageRunningTime
 }
 
+//TODO
 // master通过主动查询来确保结束
 func isFinished(br *baseRunner) bool {
 	if br.GetStatus() == StatusStopped {
@@ -121,7 +131,7 @@ func isFinished(br *baseRunner) bool {
 	}
 
 	br.mu.RLock()
-	if !br.Deadline.IsZero() && time.Now().After(br.Deadline) {
+	if !br.deadline.IsZero() && time.Now().After(br.deadline) {
 		br.mu.RUnlock()
 		br.Done()
 		Logger.Debug("Deadline RUNNER IS FINISHED")
@@ -129,6 +139,23 @@ func isFinished(br *baseRunner) bool {
 	}
 	br.mu.RUnlock()
 
+	return false
+}
+
+
+//for slave
+func isOverAmount(br *baseRunner) bool {
+
+	if br.GetStatus() == StatusStopped {
+		Logger.Debug("StatusStopped RUNNER IS FINISHED")
+		return true
+	}
+
+	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
+		br.Done()
+		Logger.Debug("counts RUNNER IS FINISHED")
+		return true
+	}
 	return false
 }
 
@@ -163,58 +190,68 @@ func checkRunner(br *baseRunner) error {
 		return err
 	}
 
-	br.Config.UpdateStageConfig()
+	br.updateBaseRunner()
 	return nil
 }
+
+
+// 将stage配置及deadline 更新 为 Machine friendly
+// 需要在压测开始前运行
+func (br *baseRunner) updateBaseRunner() {
+
+	br.Config.updateStageConfig()
+	br.updateDeadline()
+}
+
 
 func (lr *localRunner) log(r *Result) {
 	lr.stats.log(r)
 }
 
 
-func CountNumbers2Stop(countPipeline countPipeline, number2Stop *uint64) {
-	defer Logger.Info("func CountNumbers2Stop have finished")
-	Logger.Info("set requests", zap.Uint64("requests", *number2Stop))
-	var count uint64 = 0
-	if *number2Stop <= 0 {
-		for {
-			select {
-			case <-countPipeline:
-				// do nothing
-			}
-		}
-	} else {
-		for {
-			if atomic.LoadUint64(&count) < *number2Stop {
-				select {
-				case <-countPipeline:
-					atomic.AddUint64(&count, 1)
-				}
-			} else {
-				Logger.Info(fmt.Sprintf("have finished %d requests.STOP!", atomic.LoadUint64(&count)))
-				StageRunnerStatusPipeline <- StatusStopped
-			}
-		}
-	}
-}
+//func CountNumbers2Stop(countPipeline countPipeline, number2Stop *uint64) {
+//	defer Logger.Info("func CountNumbers2Stop have finished")
+//	Logger.Info("set requests", zap.Uint64("requests", *number2Stop))
+//	var count uint64 = 0
+//	if *number2Stop <= 0 {
+//		for {
+//			select {
+//			case <-countPipeline:
+//				// do nothing
+//			}
+//		}
+//	} else {
+//		for {
+//			if atomic.LoadUint64(&count) < *number2Stop {
+//				select {
+//				case <-countPipeline:
+//					atomic.AddUint64(&count, 1)
+//				}
+//			} else {
+//				Logger.Info(fmt.Sprintf("have finished %d requests.STOP!", atomic.LoadUint64(&count)))
+//				StageRunnerStatusPipeline <- StatusStopped
+//			}
+//		}
+//	}
+//}
 
-// 主控入口  for localrunner
-func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
-	for {
-		select {
-		case status := <- ch:
-			if status == StatusStopped {
-				pcancel()
-				Logger.Info("stageRunner status is stoped.STOP!")
-				time.Sleep(2 * time.Second)
-				os.Exit(0)
-			}
-		}
-	}
-}
+//// 主控入口  for localrunner
+//func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
+//	for {
+//		select {
+//		case status := <- ch:
+//			if status == StatusStopped {
+//				pcancel()
+//				Logger.Info("stageRunner status is stoped.STOP!")
+//				time.Sleep(2 * time.Second)
+//				os.Exit(0)
+//			}
+//		}
+//	}
+//}
 
-// for salve
-func statusControl(ch chan Status, pcancel context.CancelFunc) {
+// 主控入口
+func statusControl(ch chan Status, pcancel context.CancelFunc, isExit bool) {
 	for {
 		select {
 		case status := <- ch:
@@ -222,6 +259,11 @@ func statusControl(ch chan Status, pcancel context.CancelFunc) {
 				Logger.Info("pcancel()")
 				pcancel()
 				Logger.Info("stageRunner status is stoped.STOP!")
+				//是否在最后 退出整个程序
+				if isExit {
+					time.Sleep(2 * time.Second)
+					os.Exit(0)
+				}
 			}
 		}
 	}
@@ -233,43 +275,73 @@ func (br *baseRunner) CancelWorkers(num int) error{
 	defer br.mu.Unlock()
 	Logger.Info(fmt.Sprintf("cancel %d workers", num))
 
-	if num < 0 && len(br.cancels) < num {
+	if num < 0 || len(br.cancels.cancels) < num {
 		return errors.New("CancelWorkers num wrong")
 	}
 
-	for i := 0; i < num; i++ {
-		//Logger.Info(fmt.Sprintf("cancel a attacks"))
-		index := rand.Intn(len(br.cancels))
-		br.cancels[index]()
-		br.cancels = append(br.cancels[:index], br.cancels[index+1:]...)
+	//for i := 0; i < num; i++ {
+	//	//Logger.Info(fmt.Sprintf("cancel a attacks"))
+	//	index := rand.Intn(len(br.cancels))
+	//	br.cancels[index]()
+	//	br.cancels = append(br.cancels[:index], br.cancels[index+1:]...)
+	//}
+	//return nil
+
+	for k, v := range br.cancels.cancels {
+		if _, ok := br.cancels.cancels[k]; ok {
+			v()
+			delete(br.cancels.cancels, k)
+		} else {
+			Logger.Warn("wrong cancelFunc")
+		}
 	}
 	return nil
-
 }
 
 
 func (br *baseRunner) AddCancelFunc(cancel *context.CancelFunc) {
 	br.mu.Lock()
-	defer br.mu.Unlock()
 
-	br.cancels = append(br.cancels, *cancel)
+	br.cancels.cancels[br.cancels.index] = *cancel
+	br.cancels.index ++
+
+	br.mu.Unlock()
+}
+
+
+//更新deadline
+func (br *baseRunner) updateDeadline() {
+	br.mu.Lock()
+	defer br.mu.Unlock()
+	var d = time.Now()
+
+	for _, sc := range br.Config.stagesChanged {
+		if sc.Duration <= ZeroDuration {
+			br.WithDeadLine(time.Time{})
+			return
+		} else {
+			d = d.Add(sc.Duration)
+		}
+	}
+
+	br.WithDeadLine(d)
+	return
 }
 
 
 func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Context, context.CancelFunc) {
-	if br.Deadline.IsZero() {
+	if br.deadline.IsZero() {
 		Logger.Info("create WithCancel context")
 		return context.WithCancel(parentctx)
 	} else {
-		Logger.Info("create WithDeadline context. dead at ", zap.Time("deadline", br.Deadline))
-		return context.WithDeadline(parentctx, br.Deadline)
+		Logger.Info("create WithDeadline context. dead at ", zap.Time("deadline", br.deadline))
+		return context.WithDeadline(parentctx, br.deadline)
 	}
 }
 
 
-
 func (lr *localRunner) Start() {
-	fmt.Println(lr.baseRunner.Config.Stages)
+	Logger.Debug("stage config info", zap.Any("stage", lr.baseRunner.Config.Stages))
 	if err := checkRunner(lr.baseRunner); err != nil {
 		panic(err)
 	}
@@ -303,11 +375,12 @@ func (lr *localRunner) Start() {
 	}()
 
 
-	go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
+	//go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
 
 	pctx, pcancel := createCancelFunc(lr.baseRunner, _parentCtx)
 
-	go statusControlEndExit(StageRunnerStatusPipeline, pcancel)
+	go statusControl(StageRunnerStatusPipeline, pcancel, true)
+	go isOverAmount(lr.baseRunner)
 
 	timers := utils.NewTimers(lr.GetStageRunningTime())
 	Logger.Info("start to attack")
@@ -325,8 +398,8 @@ func (lr *localRunner) Start() {
 			StageRunnerStatusPipeline <- StatusStopped
 			return
 		case cc := <-timers.C:
-			if cc >= 0 && cc <= len(lr.baseRunner.Config.Stages) - 1 {
-				scc := lr.baseRunner.Config.Stages[cc]
+			if cc >= 0 && cc <= len(lr.baseRunner.Config.stagesChanged) - 1 {
+				scc := lr.baseRunner.Config.stagesChanged[cc]
 				Logger.Info("start ", zap.Int("task：", cc))
 
 				func() {
@@ -335,7 +408,7 @@ func (lr *localRunner) Start() {
 						// do nothing
 						Logger.Info("keep Concurrence")
 					} else {
-						hatchWorkersCancelable(pctx, lr.baseRunner, scc, localResultPipeline, CounterPipeline)
+						hatchWorkersCancelable(pctx, lr.baseRunner, scc, localResultPipeline)
 					}
 				}()
 			} else {
@@ -349,7 +422,7 @@ func (lr *localRunner) Start() {
 
 
 // countPipeline需要有消费者，否则超过buffer会阻塞
-func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *StageConfig, ch resultPipeline, countPipe countPipeline) {
+func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *StageConfigChanged, ch resultPipeline) {
 
 	var hatched int
 	if sc.Concurrence > 0 {
@@ -357,7 +430,7 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 			for i := 0; i < counts; i++ {
 				ctx, cancel := context.WithCancel(parentctx)
 				br.AddCancelFunc(&cancel) // append cancel
-				go attackCancelAble(ctx, br, ch, countPipe)
+				go attackCancelAble(ctx, br, ch)
 			}
 			hatched += counts
 			Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
@@ -376,9 +449,9 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 }
 
 
-func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, countPipe countPipeline) {
+func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline) {
 	//defer sr.wg.Done()
-	defer ctx.Done()
+	//defer ctx.Done()
 	defer func() {
 		if rec := recover(); rec != nil {
 			// Todo:
@@ -405,8 +478,7 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 			//Logger.Info("fire")
 			duration := time.Since(start)
 
-			countPipe <- 1 // 往计数channel发送信号
-			//atomic.AddUint64(&br.counts, 1)
+			atomic.AddUint64(&br.counts, 1)
 			ret := newResult(q.Name(), duration, err)
 			ch <- ret
 
@@ -414,9 +486,9 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline, co
 				Logger.Warn("occur error: " + err.Error())
 			}
 
-			if br.GetStatus() == StatusStopped {
-				return
-			}
+			//if br.GetStatus() == StatusStopped {
+			//	return
+			//}
 			br.Config.block()
 		}
 	}

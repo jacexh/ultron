@@ -209,8 +209,8 @@ func (mr *masterRunner) Start() {
 		mr.stats.reset()
 		defaultSessionPool.batchSendMessage(Message_StartAttack, nil)
 
+ 		//TODO
 		if mr.Config.Duration > ZeroDuration { // 开始设置deadline
-			mr.Deadline = time.Now().Add(mr.Config.Duration)
 			if mr.Config.HatchRate > 0 && mr.Config.Concurrence > mr.Config.HatchRate {
 				secs := mr.Config.Concurrence / mr.Config.HatchRate
 				if mr.Config.Concurrence%mr.Config.HatchRate > 0 {
@@ -219,7 +219,6 @@ func (mr *masterRunner) Start() {
 				//TODO have a bug
 				//mr.baseRunner.Deadline = time.Now().Add(time.Second * time.Duration(secs))
 			}
-			Logger.Info("set deadline", zap.Time("deadline", mr.Deadline))
 		}
 
 		select {

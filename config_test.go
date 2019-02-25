@@ -6,7 +6,7 @@ import (
 )
 
 func ExampleStageConfig_split() {
-	sc := NewStageConfig(10 *time.Minute, 100, 30)
+		sc := NewStageConfig(10 *time.Minute, 100, 30)
 	scs := sc.split(4)
 	for _, scc := range scs {
 		fmt.Println(scc)

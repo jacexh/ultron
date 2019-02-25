@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net"
 	"net/http"
 
@@ -53,8 +52,8 @@ func main() {
 		}
 
 		ultron.MasterRunner.WithConfig(baser.Config)
-		ultron.MasterRunner.WithDeadLine(baser.Deadline)
-		fmt.Println("ultron.MasterRunner.WithDeadLine(baser.Deadline)", ultron.MasterRunner.Deadline)
+		//ultron.MasterRunner.WithDeadLine(baser.Deadline)
+		//fmt.Println("ultron.MasterRunner.WithDeadLine(baser.Deadline)", ultron.MasterRunner.Deadline)
 		ultron.ServerStart <- struct{}{}
 
 		dump(w, map[string]string{"msg": "ok"})

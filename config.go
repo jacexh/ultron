@@ -11,13 +11,14 @@ import (
 type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
-		Duration    time.Duration    `json:"duration,omitempy"`      //v2废弃，但兼容V1
-		Requests    uint64           `json:"requests"`               //总请求数
-		Concurrence int              `json:"concurrence,omitempy"`   //v2废弃，但兼容V1
-		HatchRate   int              `json:"hatch_rate,omitempy"`    //v2废弃，但兼容V1
-		MinWait     time.Duration    `json:"min_wait,omitempy"`
-		MaxWait     time.Duration    `json:"max_wait,omitempy"`
-		Stages       []*StageConfig  `json:"stages"`
+		Duration      time.Duration    `json:"duration,omitempy"`      //v2废弃，但兼容V1
+		Requests      uint64           `json:"requests"`               //总请求数
+		Concurrence   int              `json:"concurrence,omitempy"`   //v2废弃，但兼容V1
+		HatchRate     int              `json:"hatch_rate,omitempy"`    //v2废弃，但兼容V1
+		MinWait       time.Duration    `json:"min_wait,omitempy"`
+		MaxWait       time.Duration    `json:"max_wait,omitempy"`
+		Stages        []*StageConfig   `json:"stages"`
+		stagesChanged []*StageConfigChanged
 	}
 
 	StageConfig struct {
@@ -28,7 +29,7 @@ type (
 	}
 
 
-	StageConfigsChanged StageConfig
+	StageConfigChanged StageConfig
 )
 
 var (
@@ -77,6 +78,7 @@ func (rc *RunnerConfig) block() {
 }
 
 // check 检查当前RunnerConfig配置是否合理
+// 兼容v1版本的runner 但是不能同时配置 stage和v1版本
 func (rc *RunnerConfig) check() error {
 
 	// stage模式
@@ -137,30 +139,30 @@ func (rc *RunnerConfig) v1Runner2Stage() {
 }
 
 
-//TODO
-// hatchWorkerCounts 根据HatchRate和Concurrence的值，计算出每秒启动的worker(goroutine)数量
-func (rc *RunnerConfig) hatchWorkerCounts() []int {
-	rounds := 1
-	var ret []int
-
-	if rc.HatchRate > 0 && rc.HatchRate < rc.Concurrence {
-		rounds = rc.Concurrence / rc.HatchRate
-		for i := 0; i < rounds; i++ {
-			ret = append(ret, rc.HatchRate)
-		}
-		last := rc.Concurrence % rc.HatchRate
-		if last > 0 {
-			ret = append(ret, last)
-		}
-	} else {
-		ret = append(ret, rc.Concurrence)
-	}
-	return ret
-}
+////TODO
+//// hatchWorkerCounts 根据HatchRate和Concurrence的值，计算出每秒启动的worker(goroutine)数量
+//func (rc *RunnerConfig) hatchWorkerCounts() []int {
+//	rounds := 1
+//	var ret []int
+//
+//	if rc.HatchRate > 0 && rc.HatchRate < rc.Concurrence {
+//		rounds = rc.Concurrence / rc.HatchRate
+//		for i := 0; i < rounds; i++ {
+//			ret = append(ret, rc.HatchRate)
+//		}
+//		last := rc.Concurrence % rc.HatchRate
+//		if last > 0 {
+//			ret = append(ret, last)
+//		}
+//	} else {
+//		ret = append(ret, rc.Concurrence)
+//	}
+//	return ret
+//}
 
 
 //计算出每秒启动协程的数量
-func (sc *StageConfig) hatchWorkerCounts() []int {
+func (sc *StageConfigChanged) hatchWorkerCounts() []int {
 	rounds := 1
 	var ret []int
 
@@ -197,15 +199,15 @@ func (sc *StageConfig) hatchWorkerCounts() []int {
 
 
 // 每个stage，协程变更数量  Concurrence  in:[100, 50, 70, 30] out:[100, -50, 20, -40]
-func (rc *RunnerConfig) UpdateStageConfig() {
-	var stageConfigChangeds = []*StageConfig{}
+func (rc *RunnerConfig) updateStageConfig() {
+	var stageConfigChangeds = []*StageConfigChanged{}
 
 	currentConcurrence := 0
 	for _, sc := range rc.Stages {
 		concurrenceChanged := sc.Concurrence - currentConcurrence
 		currentConcurrence = sc.Concurrence
 
-		scc := &StageConfig{
+		scc := &StageConfigChanged{
 			Duration:   	  sc.Duration,
 			Concurrence:	  concurrenceChanged,
 			HatchRate:  	  sc.HatchRate,
@@ -213,7 +215,7 @@ func (rc *RunnerConfig) UpdateStageConfig() {
 
 		stageConfigChangeds = append(stageConfigChangeds, scc)
 	}
-	rc.Stages = stageConfigChangeds
+	rc.stagesChanged = stageConfigChangeds
 }
 
 
@@ -292,7 +294,7 @@ func (sc *StageConfig) split(n int) []*StageConfig {
 }
 
 
-func (rc *RunnerConfig) AppendStage(sc ...*StageConfig) (rrc *RunnerConfig) {
+func (rc *RunnerConfig) AppendStage(sc ...*StageConfig) *RunnerConfig {
 	rc.Stages = append(rc.Stages, sc...)
 	return rc
 }

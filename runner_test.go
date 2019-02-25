@@ -88,7 +88,7 @@ func TestRunnerConfig_UpdateStageConfig(t *testing.T) {
 	stageConfig2 := NewStageConfig(7 *time.Minute, 100, 10)
 	stageConfig3 := NewStageConfig(2 *time.Hour, 600, 100)
 	runnerconfig.AppendStage(stageConfig1, stageConfig2, stageConfig3)
-	runnerconfig.UpdateStageConfig()
+	runnerconfig.updateStageConfig()
 
 	//initconcurrence := []int{50, 100, 70}
 	duration := []time.Duration{5 *time.Minute, 7 *time.Minute, 2 *time.Hour}
@@ -99,7 +99,7 @@ func TestRunnerConfig_UpdateStageConfig(t *testing.T) {
 		fmt.Println(scc.Concurrence)
 	}
 
-	for i, scc := range runnerconfig.Stages {
+	for i, scc := range runnerconfig.stagesChanged {
 		if scc.Concurrence != concurrenceResult[i] {
 			t.Error("UpdateStageRunnerConfig Concurrence wrong" )
 		}
@@ -118,7 +118,7 @@ func TestRunnerConfig_UpdateStageConfig2(t *testing.T) {
 	stageConfig1 := NewStageConfig(5 *time.Minute, 200, 11000)
 
 	runnerconfig.AppendStage(stageConfig1)
-	runnerconfig.UpdateStageConfig()
+	runnerconfig.updateStageConfig()
 
 	//initconcurrence := []int{50, 100, 70}
 	duration := []time.Duration{5 *time.Minute}
@@ -172,15 +172,16 @@ func TestRunnerConfig_Check(t *testing.T) {
 func TestBaseRunner_AddCancelFunc(t *testing.T) {
 
 	BaseRunner := newBaseRunner()
-	_, cancel1 := context.WithCancel(context.Background())
-	_, cancel2 := context.WithCancel(context.Background())
+	ctx, cancel1 := context.WithCancel(context.Background())
+	_, cancel2 := context.WithDeadline(ctx, time.Now())
 
 
 	BaseRunner.AddCancelFunc(&cancel1)
 	BaseRunner.AddCancelFunc(&cancel2)
+	fmt.Println(BaseRunner.cancels.cancels)
 
 	//stageRunner.cancels = append(stageRunner.cancels, cancel)
-	if len(BaseRunner.cancels) != 2 {
+	if len(BaseRunner.cancels.cancels) != 2 {
 		t.Error("StageRunner_addCancelFunc wrong" )
 	}
 }
@@ -341,7 +342,7 @@ func TestBaseRunner_WithDeadLine(t *testing.T) {
 		deadline := time.Now().Add(dura)
 		stagerunner.WithDeadLine(deadline)
 
-		if stagerunner.Deadline != deadline {
+		if stagerunner.deadline != deadline {
 			t.Error("BaseRunner_WithDeadLine wrong" )
 		}
 	}
@@ -349,7 +350,7 @@ func TestBaseRunner_WithDeadLine(t *testing.T) {
 
 
 func Test_hatchWorkerCounts(t *testing.T) {
-	StageConfigs := NewStageConfig(30 * time.Second, 500,100)
+	StageConfigs := StageConfigChanged{30 * time.Second, 500,100}
 	//runnerconfig := NewRunnerConfig()
 	//runnerconfig.AppendStage(StageConfigs)
 	s1 := []int{100, 100, 100, 100, 100}
@@ -360,7 +361,7 @@ func Test_hatchWorkerCounts(t *testing.T) {
 		}
 	}
 
-	StageConfigsChanged2 := NewStageConfig(30 * time.Second, 1000,0)
+	StageConfigsChanged2 := StageConfigChanged{30 * time.Second, 1000,0}
 	//runnerconfig2 := NewRunnerConfig()
 	//runnerconfig2.AppendStage(StageConfigsChanged2)
 	s2 := []int{1000}
@@ -371,7 +372,7 @@ func Test_hatchWorkerCounts(t *testing.T) {
 		}
 	}
 
-	StageConfigsChanged3 := NewStageConfig(30 * time.Second, 300,300)
+	StageConfigsChanged3 := StageConfigChanged{30 * time.Second, 300,300}
 	//runnerconfig3 := NewRunnerConfig()
 	//runnerconfig3.AppendStage(StageConfigsChanged3)
 	s3 := []int{300}
@@ -382,7 +383,7 @@ func Test_hatchWorkerCounts(t *testing.T) {
 		}
 	}
 
-	StageConfigsChanged4 := NewStageConfig(30 * time.Second, 500, 300)
+	StageConfigsChanged4 := StageConfigChanged{30 * time.Second, 500, 300}
 	//runnerconfig4 := NewRunnerConfig()
 	//runnerconfig4.AppendStage(StageConfigsChanged4)
 	s4 := []int{300, 200}
@@ -393,7 +394,7 @@ func Test_hatchWorkerCounts(t *testing.T) {
 		}
 	}
 
-	StageConfigsChanged5 := NewStageConfig(30 * time.Second, 500, 8000)
+	StageConfigsChanged5 := StageConfigChanged{30 * time.Second, 500, 8000}
 	//runnerconfig5 := NewRunnerConfig()
 	//runnerconfig5.AppendStage(StageConfigsChanged5)
 	s5 := []int{500}
@@ -404,7 +405,7 @@ func Test_hatchWorkerCounts(t *testing.T) {
 		}
 	}
 
-	StageConfigsChanged6 := NewStageConfig(30 * time.Second, 200,0)
+	StageConfigsChanged6 := StageConfigChanged{30 * time.Second, 200,0}
 	s6 := []int{200}
 	stagecount6 := StageConfigsChanged6.hatchWorkerCounts()
 	for index, count := range stagecount6 {
@@ -459,13 +460,13 @@ func TestBaseRunner_GetStatus(t *testing.T) {
 }
 
 func Test_hatchWorkerCounts2(t *testing.T)  {
-	stageconfig1 := NewStageConfig(0 *time.Second, -160, 0)
-	stageconfig2 := NewStageConfig(0 * time.Hour, 270, 16)
-	stageconfig3 := NewStageConfig(0 * time.Hour, -100, 15)
-	stageconfig4 := NewStageConfig(0 * time.Hour, 210, 100)
-	stageconfig5 := NewStageConfig(0 * time.Hour, 210, 0)
-	stageconfig6 := NewStageConfig(0 * time.Hour, 10, 23)
-	stageconfig7 := NewStageConfig(0 * time.Hour, -10, 23)
+	stageconfig1 := StageConfigChanged{0 *time.Second, -160, 0}
+	stageconfig2 := StageConfigChanged{0 * time.Hour, 270, 16}
+	stageconfig3 := StageConfigChanged{0 * time.Hour, -100, 15}
+	stageconfig4 := StageConfigChanged{0 * time.Hour, 210, 100}
+	stageconfig5 := StageConfigChanged{0 * time.Hour, 210, 0}
+	stageconfig6 := StageConfigChanged{0 * time.Hour, 10, 23}
+	stageconfig7 := StageConfigChanged{0 * time.Hour, -10, 23}
 
 
 	ints1 := stageconfig1.hatchWorkerCounts()
@@ -516,7 +517,7 @@ func TestBaseRunner_start(t *testing.T) {
 	task := NewTask()
 	task.Add(NewHTTPAttacker("multilanguage",
 		func() (*http.Request, error) {
-			req, _ := http.NewRequest(http.MethodGet, "http://shouqianba-multilanguage.test.shouqianba.com/app/languages?appkey=ws_1540346060991", nil)
+			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
 			return req, nil
 		}), 10)
 	//task.Add(newAttacker("b"), 20)
@@ -665,6 +666,102 @@ func TestBaseRunner_start5(t *testing.T) {
 	LocalRunner.Start()
 
 }
+
+
+func TestBaseRunner_UpdateDeadline(t *testing.T) {
+	br := newBaseRunner()
+	rc := NewRunnerConfig()
+	sc1 := NewStageConfig(10 *time.Minute, 100, 30)
+	sc2 := NewStageConfig(1 *time.Minute, 100, 30)
+	sc3 := NewStageConfig(2 *time.Minute, 100, 30)
+	rc.AppendStage(sc1, sc2, sc3)
+	rc.updateStageConfig()
+	br.WithConfig(rc)
+	br.updateDeadline()
+
+	if !(br.deadline.After(time.Now().Add(12 * time.Minute)) && br.deadline.Before(time.Now().Add(14 * time.Minute))) {
+		t.Error("UpdateDeadline error")
+	}
+}
+
+func TestBaseRunner_UpdateDeadline1(t *testing.T) {
+	br := newBaseRunner()
+	rc := NewRunnerConfig()
+	sc1 := NewStageConfig(1 *time.Hour, 100, 30)
+	sc2 := NewStageConfig(1 *time.Minute, 100, 30)
+	sc3 := NewStageConfig(2 *time.Minute, 100, 30)
+	rc.AppendStage(sc1, sc2, sc3)
+	rc.updateStageConfig()
+	br.WithConfig(rc)
+	br.updateDeadline()
+
+	if !(br.deadline.After(time.Now().Add(62 * time.Minute)) && br.deadline.Before(time.Now().Add(64 * time.Minute))) {
+		t.Error("UpdateDeadline error")
+	}
+}
+
+
+func TestBaseRunner_UpdateDeadline2(t *testing.T) {
+	br := newBaseRunner()
+	rc := NewRunnerConfig()
+	sc1 := NewStageConfig(10 *time.Minute, 100, 30)
+	sc2 := NewStageConfig(ZeroDuration, 100, 30)
+	sc3 := NewStageConfig(2 *time.Minute, 100, 30)
+	rc.AppendStage(sc1, sc2, sc3)
+	rc.updateStageConfig()
+	br.WithConfig(rc)
+	br.updateDeadline()
+
+	if !br.deadline.IsZero() {
+		t.Error("UpdateDeadline error")
+	}
+}
+
+
+func TestBaseRunner_UpdateBaseRunner(t *testing.T) {
+
+	br := newBaseRunner()
+	rc := NewRunnerConfig()
+	sc1 := NewStageConfig(10 *time.Minute, 100, 30)
+	//sc2 := NewStageConfig(ZeroDuration, 100, 30)
+	sc3 := NewStageConfig(2 *time.Minute, 100, 30)
+	rc.AppendStage(sc1, sc3)
+	br.WithConfig(rc)
+
+	br.updateBaseRunner()
+
+	if ! br.deadline.After(time.Now().Add(11 *time.Minute)) && br.deadline.Before(time.Now().Add(13 *time.Minute)) {
+		t.Error("updateBaseRunner error")
+	}
+}
+
+
+func TestBaseRunner_UpdateBaseRunner2(t *testing.T) {
+
+	br := newBaseRunner()
+	rc := NewRunnerConfig()
+	sc1 := NewStageConfig(10 *time.Minute, 100, 30)
+	//sc2 := NewStageConfig(ZeroDuration, 100, 30)
+	sc3 := NewStageConfig(0 *time.Minute, 100, 30)
+	rc.AppendStage(sc1, sc3)
+	br.WithConfig(rc)
+
+	br.updateBaseRunner()
+
+	if !br.deadline.Equal(time.Time{}) {
+		t.Error("updateBaseRunner error")
+	}
+}
+
+
+func BenchmarkBaseRunner_AddCancelFunc(b *testing.B) {
+	_, cancel := context.WithCancel(context.Background())
+	br := newBaseRunner()
+	for i := 0; i < b.N; i++ {
+		br.AddCancelFunc(&cancel)
+	}
+}
+
 
 
 

@@ -32,9 +32,9 @@ var (
 	MasterReportPipelineBufferSize = 20
 
 	StageRunnerStatusPipeline = newStatusPipline()
-	CounterPipeline = newCountPipeline(CounterPiplineBuffer)
+	//CounterPipeline = newCountPipeline(CounterPiplineBuffer)
 	//CounterPipline的Buffer大小
-	CounterPiplineBuffer = 1000
+	//CounterPiplineBuffer = 1000
 )
 
 func newResultPipeline(b int) resultPipeline {
@@ -49,6 +49,6 @@ func newStatusPipline() statusPipeline {
 	return make(chan Status)
 }
 
-func newCountPipeline(buffer int) countPipeline {
-	return make(chan uint8, buffer)
-}
+//func newCountPipeline(buffer int) countPipeline {
+//	return make(chan uint8, buffer)
+//}
