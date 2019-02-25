@@ -26,6 +26,8 @@ func timers(t *Tis) {
 	}
 }
 
+
+//TODO 使用reset()
 // 类似time包里的newtimer。只不过这个支持多个时间节点。
 func NewTimers(d []time.Duration) *Tis {
 	c := make(chan int)
