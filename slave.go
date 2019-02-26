@@ -76,7 +76,7 @@ func (sl *slaveRunner) handleMsg() {
 				Logger.Info("refreshed runner config", zap.Any("new BaseRunner", baser))
 				sl.WithConfig(baser.Config)
 				//sl.WithDeadLine(baser.Deadline)
-				Logger.Info("---------------------------------------------")
+				Logger.Info("------------------------------------------------------------")
 				Logger.Info("baserunner", zap.Any("config:",*baser.Config))
 				//Logger.Info("baserunner", zap.Time("deadline", baser.Deadline))
 			}

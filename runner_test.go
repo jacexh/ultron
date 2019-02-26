@@ -510,6 +510,35 @@ func Test_hatchWorkerCounts2(t *testing.T)  {
 	}
 }
 
+
+////兼容v1
+//func TestBaseRunner_startcompatible(t *testing.T) {
+//	t.Skip("just for debug")
+//
+//	task := NewTask()
+//	task.Add(NewHTTPAttacker("multilanguage",
+//		func() (*http.Request, error) {
+//			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
+//			return req, nil
+//		}), 10)
+//	//task.Add(newAttacker("b"), 20)
+//	task.Add(newAttacker("c"), 3)
+//
+//	base := newBaseRunner()
+//	base.WithTask(task)
+//	base.Config.Concurrence = 100
+//	base.Config.HatchRate = 10
+//	base.Config.MinWait = ultron.ZeroDuration
+//	base.Config.MaxWait = ultron.ZeroDuration
+//	//base.Config.Requests = 2000
+//	base.WithDeadLine(time.Now().Add(2 *time.Minute))
+//	LocalRunner.baseRunner = base
+//
+//	LocalRunner.Start()
+//
+//}
+
+
 func TestBaseRunner_start(t *testing.T) {
 	t.Skip("just for debug ")
 
@@ -523,21 +552,21 @@ func TestBaseRunner_start(t *testing.T) {
 	//task.Add(newAttacker("b"), 20)
 	task.Add(newAttacker("c"), 3)
 
-	stageconfig := NewStageConfig(1 * time.Minute, 100, 10)
-	stageconfig2 := NewStageConfig(0 *time.Minute, 200, 100)
+	stageconfig := NewStageConfig(2 * time.Minute, 100, 10)
+	stageconfig2 := NewStageConfig(2 *time.Minute, 200, 100)
 	//stageconfig3 := NewStageConfig(2 * time.Minute, 150, 10)
 	runnerconfig := NewRunnerConfig()
 	runnerconfig.AppendStage(stageconfig).AppendStage(stageconfig2)
+	runnerconfig.Requests = 2000
 	// .AppendStage(stageconfig3)
 
 	base := newBaseRunner()
 	base.WithTask(task)
-	base.WithDeadLine(time.Now().Add(4 *time.Minute))
+	base.WithDeadLine(time.Now().Add(3 *time.Minute))
 	base.WithConfig(runnerconfig)
 	LocalRunner.baseRunner = base
 
 	LocalRunner.Start()
-
 }
 
 func TestBaseRunner_start2(t *testing.T) {
@@ -547,14 +576,14 @@ func TestBaseRunner_start2(t *testing.T) {
 	task := NewTask()
 	task.Add(NewHTTPAttacker("multilanguage",
 		func() (*http.Request, error) {
-			req, _ := http.NewRequest(http.MethodGet, "http://shouqianba-multilanguage.test.shouqianba.com/app/languages?appkey=ws_1540346060991", nil)
+			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
 			return req, nil
 		}), 10)
 	//task.Add(newAttacker("b"), 20)
 	task.Add(newAttacker("c"), 3)
 
 	stageconfig := NewStageConfig(1 * time.Minute, 100, 10)
-	stageconfig2 := NewStageConfig(0 *time.Minute, 200, 0)
+	stageconfig2 := NewStageConfig(1 *time.Minute, 200, 0)
 	//stageconfig3 := NewStageConfig(2 * time.Minute, 150, 10)
 	runnerconfig := NewRunnerConfig()
 	runnerconfig.AppendStage(stageconfig).AppendStage(stageconfig2)
@@ -562,7 +591,6 @@ func TestBaseRunner_start2(t *testing.T) {
 
 	base := newBaseRunner()
 	base.WithTask(task)
-	base.WithDeadLine(time.Now().Add(4 *time.Minute))
 	base.WithConfig(runnerconfig)
 	LocalRunner.baseRunner = base
 

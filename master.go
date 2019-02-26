@@ -163,8 +163,8 @@ func (mr *masterRunner) Start() {
 		case <-ServerStart:
 		}
 
-		err := mr.Config.check()
-		if err != nil {
+
+		if err := checkRunner(mr.baseRunner); err != nil {
 			Logger.Error("bad RunnerConfig", zap.Error(err))
 			continue
 		}
@@ -200,7 +200,7 @@ func (mr *masterRunner) Start() {
 			}
 		}()
 
- 		err = defaultSessionPool.sendConfigToSlaves(mr.baseRunner)
+ 		err := defaultSessionPool.sendConfigToSlaves(mr.baseRunner)
 		if err != nil {
 			Logger.Error("occur error", zap.Error(err))
 			os.Exit(1)
@@ -209,17 +209,15 @@ func (mr *masterRunner) Start() {
 		mr.stats.reset()
 		defaultSessionPool.batchSendMessage(Message_StartAttack, nil)
 
- 		//TODO
-		if mr.Config.Duration > ZeroDuration { // 开始设置deadline
-			if mr.Config.HatchRate > 0 && mr.Config.Concurrence > mr.Config.HatchRate {
-				secs := mr.Config.Concurrence / mr.Config.HatchRate
-				if mr.Config.Concurrence%mr.Config.HatchRate > 0 {
-					secs++
-				}
-				//TODO have a bug
-				//mr.baseRunner.Deadline = time.Now().Add(time.Second * time.Duration(secs))
-			}
-		}
+		//if mr.Config.Duration > ZeroDuration { // 开始设置deadline
+		//	if mr.Config.HatchRate > 0 && mr.Config.Concurrence > mr.Config.HatchRate {
+		//		secs := mr.Config.Concurrence / mr.Config.HatchRate
+		//		if mr.Config.Concurrence%mr.Config.HatchRate > 0 {
+		//			secs++
+		//		}
+		//		mr.baseRunner.deadline = time.Now().Add(time.Second * time.Duration(secs))
+		//	}
+		//}
 
 		select {
 		case <-ServerStop: // 压测结束信号

@@ -147,13 +147,13 @@ func isFinished(br *baseRunner) bool {
 func isOverAmount(br *baseRunner) bool {
 
 	if br.GetStatus() == StatusStopped {
-		Logger.Debug("StatusStopped RUNNER IS FINISHED")
+		Logger.Info("StatusStopped RUNNER IS FINISHED")
 		return true
 	}
 
 	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
 		br.Done()
-		Logger.Debug("counts RUNNER IS FINISHED")
+		Logger.Info("requests is over. RUNNER FINISHED")
 		return true
 	}
 	return false
@@ -315,6 +315,11 @@ func (br *baseRunner) updateDeadline() {
 	defer br.mu.Unlock()
 	var d = time.Now()
 
+	//配置过deadline的，不更新deadline
+	if !br.deadline.Equal(time.Time{}) {
+		return
+	}
+
 	for _, sc := range br.Config.stagesChanged {
 		if sc.Duration <= ZeroDuration {
 			br.WithDeadLine(time.Time{})
@@ -380,7 +385,16 @@ func (lr *localRunner) Start() {
 	pctx, pcancel := createCancelFunc(lr.baseRunner, _parentCtx)
 
 	go statusControl(StageRunnerStatusPipeline, pcancel, true)
-	go isOverAmount(lr.baseRunner)
+
+	go func() {
+		t := time.NewTicker(200 * time.Millisecond)
+		for range t.C {
+			if isOverAmount(lr.baseRunner) {
+				t.Stop()
+				StageRunnerStatusPipeline <- StatusStopped
+			}
+		}
+	}()
 
 	timers := utils.NewTimers(lr.GetStageRunningTime())
 	Logger.Info("start to attack")
