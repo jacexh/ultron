@@ -37,7 +37,7 @@ var (
 	DefaultRunnerConfig = &RunnerConfig{
 		Duration:    ZeroDuration,    // 默认不控制压测时长
 		Requests:    0,               // 请求总数，默认不控制，**而且无法严格控制**
-		Concurrence: 100,             // 并发数，默认100并发
+		Concurrence: 0,               // 并发数，默认0并发    **19/3/2修改 原：100，改为0。为了判断是否是有效的配置。**
 		HatchRate:   0,               // 加压频率，表示每秒启动多少goroutine，直到达到Concurrence的值；0 表示不控制，所有的并发goroutine在瞬间启动
 		MinWait:     time.Second * 3, // 在单独的goroutine中，两次请求之间最少等待的时间
 		MaxWait:     time.Second * 5, // 在单独的goroutine中，两次请求之间最长等待的时间

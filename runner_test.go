@@ -201,6 +201,11 @@ func TestRunnerConfig_Check3(t *testing.T) {
 	}
 }
 
+
+func TestBaseRunner_checkunner(t *testing.T) {
+
+}
+
 //兼容v1
 func TestRunnerConfig_Check2(t *testing.T) {
 	d := 1 *time.Hour
@@ -511,32 +516,32 @@ func Test_hatchWorkerCounts2(t *testing.T)  {
 }
 
 
-////兼容v1
-//func TestBaseRunner_startcompatible(t *testing.T) {
-//	t.Skip("just for debug")
-//
-//	task := NewTask()
-//	task.Add(NewHTTPAttacker("multilanguage",
-//		func() (*http.Request, error) {
-//			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
-//			return req, nil
-//		}), 10)
-//	//task.Add(newAttacker("b"), 20)
-//	task.Add(newAttacker("c"), 3)
-//
-//	base := newBaseRunner()
-//	base.WithTask(task)
-//	base.Config.Concurrence = 100
-//	base.Config.HatchRate = 10
-//	base.Config.MinWait = ultron.ZeroDuration
-//	base.Config.MaxWait = ultron.ZeroDuration
-//	//base.Config.Requests = 2000
-//	base.WithDeadLine(time.Now().Add(2 *time.Minute))
-//	LocalRunner.baseRunner = base
-//
-//	LocalRunner.Start()
-//
-//}
+//兼容v1
+func TestBaseRunner_startcompatible(t *testing.T) {
+	t.Skip("just for debug")
+
+	task := NewTask()
+	task.Add(NewHTTPAttacker("multilanguage",
+		func() (*http.Request, error) {
+			req, _ := http.NewRequest(http.MethodGet, "http://www.baidu.com", nil)
+			return req, nil
+		}), 10)
+	//task.Add(newAttacker("b"), 20)
+	task.Add(newAttacker("c"), 3)
+
+	base := newBaseRunner()
+	base.WithTask(task)
+	base.Config.Concurrence = 100
+	base.Config.HatchRate = 10
+	base.Config.MinWait = ZeroDuration
+	base.Config.MaxWait = ZeroDuration
+	//base.Config.Requests = 2000
+	base.WithDeadLine(time.Now().Add(2 *time.Minute))
+	LocalRunner.baseRunner = base
+
+	LocalRunner.Start()
+
+}
 
 
 func TestBaseRunner_start(t *testing.T) {
@@ -756,7 +761,7 @@ func TestBaseRunner_UpdateBaseRunner(t *testing.T) {
 	rc.AppendStage(sc1, sc3)
 	br.WithConfig(rc)
 
-	br.updateBaseRunner()
+	br.activeBaseRunner()
 
 	if ! br.deadline.After(time.Now().Add(11 *time.Minute)) && br.deadline.Before(time.Now().Add(13 *time.Minute)) {
 		t.Error("updateBaseRunner error")
@@ -774,7 +779,7 @@ func TestBaseRunner_UpdateBaseRunner2(t *testing.T) {
 	rc.AppendStage(sc1, sc3)
 	br.WithConfig(rc)
 
-	br.updateBaseRunner()
+	br.activeBaseRunner()
 
 	if !br.deadline.Equal(time.Time{}) {
 		t.Error("updateBaseRunner error")

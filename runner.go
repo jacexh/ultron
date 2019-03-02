@@ -190,14 +190,14 @@ func checkRunner(br *baseRunner) error {
 		return err
 	}
 
-	br.updateBaseRunner()
+	br.activeBaseRunner()
 	return nil
 }
 
 
 // 将stage配置及deadline 更新 为 Machine friendly
 // 需要在压测开始前运行
-func (br *baseRunner) updateBaseRunner() {
+func (br *baseRunner) activeBaseRunner() {
 
 	br.Config.updateStageConfig()
 	br.updateDeadline()
