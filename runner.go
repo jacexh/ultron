@@ -55,7 +55,7 @@ type (
 		task     *Task
 		status   Status
 		counts   uint64
-		deadline time.Time             //`json:"deadline,omitempy"`        //总体停止时间
+		deadline time.Time               //`json:"deadline,omitempy"`        //总体停止时间
 		cancels  cancelMap
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
@@ -346,7 +346,8 @@ func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Contex
 
 
 func (lr *localRunner) Start() {
-	Logger.Debug("stage config info", zap.Any("stage", lr.baseRunner.Config.Stages))
+	Logger.Info("deadline info", zap.Time("deadline", lr.baseRunner.deadline))
+	Logger.Info("baseRunner info", zap.Any("baseRunner", lr.baseRunner))
 	if err := checkRunner(lr.baseRunner); err != nil {
 		panic(err)
 	}

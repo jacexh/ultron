@@ -3,6 +3,7 @@ package ultron
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"testing"
@@ -202,8 +203,29 @@ func TestRunnerConfig_Check3(t *testing.T) {
 }
 
 
-func TestBaseRunner_checkunner(t *testing.T) {
+func TestBaseRunner_CheckRunner(t *testing.T) {
+	task := NewTask()
 
+	runnerconfig := NewRunnerConfig()
+	stageConfig1 := NewStageConfig(5 *time.Minute, 50, 2)
+	stageConfig2 := NewStageConfig(5 *time.Minute, 100, 1)
+	runnerconfig.AppendStage(stageConfig1, stageConfig2)
+
+	runnerconfig.HatchRate = 134
+
+	base := newBaseRunner()
+	base.WithTask(task)
+	base.Config = runnerconfig
+	if err := checkRunner(base); err != nil {
+		t.Error("checkRunner error ", err)
+	}
+
+	//不能同时配置Concurrence 及 stage
+	runnerconfig.Concurrence = 1000
+	base.Config = runnerconfig
+	if err := checkRunner(base); err == nil {
+		t.Error("checkRunner error ")
+	}
 }
 
 //兼容v1
@@ -557,12 +579,12 @@ func TestBaseRunner_start(t *testing.T) {
 	//task.Add(newAttacker("b"), 20)
 	task.Add(newAttacker("c"), 3)
 
-	stageconfig := NewStageConfig(2 * time.Minute, 100, 10)
-	stageconfig2 := NewStageConfig(2 *time.Minute, 200, 100)
+	stageconfig := NewStageConfig(1 * time.Minute, 100, 10)
+	stageconfig2 := NewStageConfig(ZeroDuration, 200, 100)
 	//stageconfig3 := NewStageConfig(2 * time.Minute, 150, 10)
 	runnerconfig := NewRunnerConfig()
 	runnerconfig.AppendStage(stageconfig).AppendStage(stageconfig2)
-	runnerconfig.Requests = 2000
+	//runnerconfig.Requests = 2000
 	// .AppendStage(stageconfig3)
 
 	base := newBaseRunner()
@@ -570,6 +592,10 @@ func TestBaseRunner_start(t *testing.T) {
 	base.WithDeadLine(time.Now().Add(3 *time.Minute))
 	base.WithConfig(runnerconfig)
 	LocalRunner.baseRunner = base
+
+	Logger.Info("baserunnr: ", zap.Any("info", LocalRunner.baseRunner))
+	Logger.Info("baserunnr: ", zap.Any("info", LocalRunner.baseRunner.deadline))
+
 
 	LocalRunner.Start()
 }
