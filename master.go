@@ -164,7 +164,7 @@ func (mr *masterRunner) Start() {
 		}
 
 
-		if err := checkRunner(mr.baseRunner); err != nil {
+		if err := mr.Config.check(); err != nil {
 			Logger.Error("bad RunnerConfig", zap.Error(err))
 			continue
 		}

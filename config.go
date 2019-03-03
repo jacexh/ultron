@@ -11,7 +11,7 @@ type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
 		Duration      time.Duration    `json:"duration,omitempy"`      //v2废弃，但兼容V1
-		Requests      uint64           `json:"requests"`               //总请求数
+		Requests      uint64           `json:"requests,omitempy"`               //总请求数
 		Concurrence   int              `json:"concurrence,omitempy"`   //v2废弃，但兼容V1
 		HatchRate     int              `json:"hatch_rate,omitempy"`    //v2废弃，但兼容V1
 		MinWait       time.Duration    `json:"min_wait,omitempy"`
