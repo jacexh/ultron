@@ -397,7 +397,7 @@ func (lr *localRunner) Start() {
 		}
 	}()
 
-	timers := utils.NewTimers(lr.GetStageRunningTime())
+	timers := NewTimers(lr.GetStageRunningTime())
 	Logger.Info("start to attack")
 	lr.status = StatusBusy
 
@@ -454,7 +454,7 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 	} else {
 		for _, counts := range sc.hatchWorkerCounts() {
 			//取消协程
-			br.CancelWorkers(utils.Abs(counts))
+			br.CancelWorkers(Abs(counts))
 			hatched += counts
 			Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
 			time.Sleep(time.Second)

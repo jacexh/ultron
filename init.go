@@ -2,7 +2,6 @@ package ultron
 
 import (
 	"fmt"
-	"github.com/qastub/ultron/utils"
 	"math/rand"
 	"os"
 	"time"
@@ -43,7 +42,7 @@ func init() {
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	utils.ShowLogo()
+	ShowLogo()
 
 	LocalEventHook = newEventHook(LocalEventHookConcurrency)
 	LocalEventHook.AddReportHandleFunc(printReportToConsole)

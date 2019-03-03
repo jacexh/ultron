@@ -1,7 +1,6 @@
 package ultron
 
 import (
-	"github.com/qastub/ultron/utils"
 	"errors"
 	"go.uber.org/zap"
 	"math/rand"
@@ -167,26 +166,26 @@ func (sc *StageConfigChanged) hatchWorkerCounts() []int {
 	var ret []int
 
 	if sc.Concurrence > 0 {
-		if sc.HatchRate > 0 && sc.HatchRate < utils.Abs(sc.Concurrence) {
+		if sc.HatchRate > 0 && sc.HatchRate < Abs(sc.Concurrence) {
 			rounds = sc.Concurrence / sc.HatchRate
-			for i := 0; i < utils.Abs(rounds); i++ {
+			for i := 0; i < Abs(rounds); i++ {
 				ret = append(ret, sc.HatchRate)
 			}
 			last := sc.Concurrence % sc.HatchRate
-			if utils.Abs(last) > 0 {
+			if Abs(last) > 0 {
 				ret = append(ret, last)
 			}
 		} else {
 			ret = append(ret, sc.Concurrence)
 		}
 	} else {
-		if sc.HatchRate > 0 && sc.HatchRate < utils.Abs(sc.Concurrence) {
+		if sc.HatchRate > 0 && sc.HatchRate < Abs(sc.Concurrence) {
 			rounds = sc.Concurrence / sc.HatchRate
-			for i := 0; i < utils.Abs(rounds); i++ {
+			for i := 0; i < Abs(rounds); i++ {
 				ret = append(ret, - sc.HatchRate)
 			}
 			last := sc.Concurrence % sc.HatchRate
-			if utils.Abs(last) > 0 {
+			if Abs(last) > 0 {
 				ret = append(ret, last)
 			}
 		} else {

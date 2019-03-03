@@ -1,7 +1,6 @@
 package ultron
 
 import (
-	"github.com/qastub/ultron/utils"
 	"context"
 	"fmt"
 	"os"
@@ -173,7 +172,7 @@ func (sl *slaveRunner) getStart() {
 	go statusControl(StageRunnerStatusPipeline, pcancel, false)
 	//go CountNumbers2Stop(CounterPipeline, &sl.Config.Requests)
 
-	timers := utils.NewTimers(sl.GetStageRunningTime())
+	timers := NewTimers(sl.GetStageRunningTime())
 	Logger.Info("start to attack")
 	sl.status = StatusBusy
 
