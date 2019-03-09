@@ -580,16 +580,16 @@ func TestBaseRunner_start(t *testing.T) {
 	task.Add(newAttacker("c"), 3)
 
 	stageconfig := NewStageConfig(1 * time.Minute, 100, 10)
-	stageconfig2 := NewStageConfig(ZeroDuration, 200, 100)
-	//stageconfig3 := NewStageConfig(2 * time.Minute, 150, 10)
+	stageconfig2 := NewStageConfig(2 * time.Minute, 300, 100)
+	stageconfig3 := NewStageConfig(ZeroDuration, 150, 10)
 	runnerconfig := NewRunnerConfig()
-	runnerconfig.AppendStage(stageconfig).AppendStage(stageconfig2)
-	//runnerconfig.Requests = 2000
+	runnerconfig.AppendStage(stageconfig).AppendStage(stageconfig2, stageconfig3)
+	//runnerconfig.Requests = 8000
 	// .AppendStage(stageconfig3)
 
 	base := newBaseRunner()
 	base.WithTask(task)
-	base.WithDeadLine(time.Now().Add(3 *time.Minute))
+	//base.WithDeadLine(time.Now().Add(3 *time.Minute))
 	base.WithConfig(runnerconfig)
 	LocalRunner.baseRunner = base
 
@@ -820,8 +820,6 @@ func BenchmarkBaseRunner_AddCancelFunc(b *testing.B) {
 		br.AddCancelFunc(&cancel)
 	}
 }
-
-
 
 
 

@@ -186,7 +186,7 @@ func (sl *slaveRunner) getStart() {
 			StageRunnerStatusPipeline <- StatusStopped
 			return
 		case cc := <-timers.C:
-			if cc >= 0 && cc <= len(sl.baseRunner.Config.Stages) - 1 {
+			if cc >= 0 {
 				scc := sl.baseRunner.Config.stagesChanged[cc]
 				Logger.Info("start ", zap.Int("task：", cc))
 

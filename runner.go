@@ -412,7 +412,7 @@ func (lr *localRunner) Start() {
 			StageRunnerStatusPipeline <- StatusStopped
 			return
 		case cc := <-timers.C:
-			if cc >= 0 && cc <= len(lr.baseRunner.Config.stagesChanged) - 1 {
+			if cc >= 0 {
 				scc := lr.baseRunner.Config.stagesChanged[cc]
 				Logger.Info("start ", zap.Int("task：", cc))
 
