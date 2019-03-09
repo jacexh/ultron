@@ -138,28 +138,6 @@ func (rc *RunnerConfig) v1Runner2Stage() {
 }
 
 
-////TODO
-//// hatchWorkerCounts 根据HatchRate和Concurrence的值，计算出每秒启动的worker(goroutine)数量
-//func (rc *RunnerConfig) hatchWorkerCounts() []int {
-//	rounds := 1
-//	var ret []int
-//
-//	if rc.HatchRate > 0 && rc.HatchRate < rc.Concurrence {
-//		rounds = rc.Concurrence / rc.HatchRate
-//		for i := 0; i < rounds; i++ {
-//			ret = append(ret, rc.HatchRate)
-//		}
-//		last := rc.Concurrence % rc.HatchRate
-//		if last > 0 {
-//			ret = append(ret, last)
-//		}
-//	} else {
-//		ret = append(ret, rc.Concurrence)
-//	}
-//	return ret
-//}
-
-
 //计算出每秒启动协程的数量
 func (sc *StageConfigChanged) hatchWorkerCounts() []int {
 	rounds := 1

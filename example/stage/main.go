@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -9,8 +8,7 @@ import (
 )
 
 const (
-	//api = "http://10.0.0.30/benchmark"
-	api = "http://www.baidu.com"
+	api = "http://10.0.0.30/benchmark"
 )
 
 func main() {
@@ -23,6 +21,6 @@ func main() {
 	ultron.LocalRunner.Config.AppendStage(stage1).AppendStage(stage2)
 
 	ultron.LocalRunner.WithTask(task)
-	fmt.Println("ultron.LocalRunner", ultron.LocalRunner)
+	//fmt.Println("ultron.LocalRunner", ultron.LocalRunner)
 	ultron.LocalRunner.Start()
 }

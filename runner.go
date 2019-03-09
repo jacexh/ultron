@@ -96,7 +96,6 @@ func (br *baseRunner) GetConfig() *RunnerConfig {
 	return br.Config
 }
 
-// TODO
 func (br *baseRunner) Done() {
 	br.mu.Lock()
 	defer br.mu.Unlock()
@@ -115,7 +114,6 @@ func (br *baseRunner) GetStageRunningTime() []time.Duration{
 	return stageRunningTime
 }
 
-//TODO
 // master通过主动查询来确保结束
 func isFinished(br *baseRunner) bool {
 	if br.GetStatus() == StatusStopped {
@@ -207,48 +205,6 @@ func (lr *localRunner) log(r *Result) {
 	lr.stats.log(r)
 }
 
-
-//func CountNumbers2Stop(countPipeline countPipeline, number2Stop *uint64) {
-//	defer Logger.Info("func CountNumbers2Stop have finished")
-//	Logger.Info("set requests", zap.Uint64("requests", *number2Stop))
-//	var count uint64 = 0
-//	if *number2Stop <= 0 {
-//		for {
-//			select {
-//			case <-countPipeline:
-//				// do nothing
-//			}
-//		}
-//	} else {
-//		for {
-//			if atomic.LoadUint64(&count) < *number2Stop {
-//				select {
-//				case <-countPipeline:
-//					atomic.AddUint64(&count, 1)
-//				}
-//			} else {
-//				Logger.Info(fmt.Sprintf("have finished %d requests.STOP!", atomic.LoadUint64(&count)))
-//				StageRunnerStatusPipeline <- StatusStopped
-//			}
-//		}
-//	}
-//}
-
-//// 主控入口  for localrunner
-//func statusControlEndExit(ch chan Status, pcancel context.CancelFunc) {
-//	for {
-//		select {
-//		case status := <- ch:
-//			if status == StatusStopped {
-//				pcancel()
-//				Logger.Info("stageRunner status is stoped.STOP!")
-//				time.Sleep(2 * time.Second)
-//				os.Exit(0)
-//			}
-//		}
-//	}
-//}
-
 // 主控入口
 func statusControl(ch chan Status, pcancel context.CancelFunc, isExit bool) {
 	for {
@@ -277,14 +233,6 @@ func (br *baseRunner) CancelWorkers(num int) error{
 	if num < 0 || len(br.cancels.cancels) < num {
 		return errors.New("CancelWorkers num wrong")
 	}
-
-	//for i := 0; i < num; i++ {
-	//	//Logger.Info(fmt.Sprintf("cancel a attacks"))
-	//	index := rand.Intn(len(br.cancels))
-	//	br.cancels[index]()
-	//	br.cancels = append(br.cancels[:index], br.cancels[index+1:]...)
-	//}
-	//return nil
 
 	for k, v := range br.cancels.cancels {
 		if _, ok := br.cancels.cancels[k]; ok {
@@ -500,9 +448,6 @@ func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline) {
 				Logger.Warn("occur error: " + err.Error())
 			}
 
-			//if br.GetStatus() == StatusStopped {
-			//	return
-			//}
 			br.Config.block()
 		}
 	}

@@ -10,23 +10,6 @@ type Tis struct {
 	C chan int
 }
 
-//func timers(t *Tis) {
-//	var index = 0
-//	t.C <- index
-//	for num, d := range t.d {
-//		if num == len(t.d)-1 && d == time.Duration(0){
-//			//do nothing
-//		} else {
-//			index ++
-//			<- time.NewTimer(d).C
-//			t.C <- index
-//		}
-//	}
-//	for {
-//		time.Sleep(1 * time.Hour)
-//	}
-//}
-
 func timers(t *Tis) {
 	//var timer = time.NewTimer(time.Second)
 	var index = 0
