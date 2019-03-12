@@ -29,7 +29,7 @@ func TestAbs(t *testing.T) {
 
 	for _, td := range tds {
 		if got := Abs(td.in); td.want != got {
-			t.Errorf("Abs(): got: %s, want: %s", got, td.want)
+			t.Errorf("Abs(): got: %d, want: %d", got, td.want)
 		}
 	}
 }
