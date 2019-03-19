@@ -6,7 +6,7 @@ import (
 )
 
 func ExampleStageConfig_split() {
-		sc := NewStageConfig(10 *time.Minute, 100, 30)
+	sc := NewStage(10*time.Minute, 100, 30)
 	scs := sc.split(4)
 	for _, scc := range scs {
 		fmt.Println(scc)
@@ -18,7 +18,7 @@ func ExampleStageConfig_split() {
 }
 
 func ExampleStageConfig_split2() {
-	sc := NewStageConfig(10 *time.Minute, 100, 30)
+	sc := NewStage(10*time.Minute, 100, 30)
 	scs := sc.split(9)
 	for _, scc := range scs {
 		fmt.Println(scc)
@@ -35,7 +35,7 @@ func ExampleStageConfig_split2() {
 }
 
 func ExampleStageConfig_split3() {
-	sc := NewStageConfig(10 *time.Minute, 100, 30)
+	sc := NewStage(10*time.Minute, 100, 30)
 	scs := sc.split(1)
 	for _, scc := range scs {
 		fmt.Println(scc)
@@ -45,10 +45,10 @@ func ExampleStageConfig_split3() {
 }
 
 func ExampleRunnerConfig_split4() {
-	sc1 := NewStageConfig(10 *time.Minute, 100, 30)
-	sc2 := NewStageConfig(10 *time.Minute, 70, 18)
+	sc1 := NewStage(10*time.Minute, 100, 30)
+	sc2 := NewStage(10*time.Minute, 70, 18)
 	rc := NewRunnerConfig()
-	rc.AppendStage(sc1, sc2)
+	rc.AppendStages(sc1, sc2)
 
 	rcs := rc.split(4)
 
@@ -71,10 +71,10 @@ func ExampleRunnerConfig_split4() {
 }
 
 func ExampleRunnerConfig_split5() {
-	sc1 := NewStageConfig(10*time.Minute, 100, 0)
-	sc2 := NewStageConfig(2*time.Minute, 70, 0)
+	sc1 := NewStage(10*time.Minute, 100, 0)
+	sc2 := NewStage(2*time.Minute, 70, 0)
 	rc := NewRunnerConfig()
-	rc.AppendStage(sc1, sc2)
+	rc.AppendStages(sc1, sc2)
 
 	rcs := rc.split(3)
 
@@ -95,12 +95,11 @@ func ExampleRunnerConfig_split5() {
 
 }
 
-
 func ExampleRunnerConfig_split6() {
-	sc1 := NewStageConfig(10*time.Minute, 100, 0)
-	//sc2 := NewStageConfig(2*time.Minute, 70, 0)
+	sc1 := NewStage(10*time.Minute, 100, 0)
+	//sc2 := NewStage(2*time.Minute, 70, 0)
 	rc := NewRunnerConfig()
-	rc.AppendStage(sc1)
+	rc.AppendStages(sc1)
 	rc.Requests = 1000000
 
 	rcs := rc.split(3)
@@ -122,12 +121,11 @@ func ExampleRunnerConfig_split6() {
 	//&{10m0s 34 0}
 }
 
-
 func ExampleRunnerConfig_split7() {
-	sc1 := NewStageConfig(10*time.Minute, 100, 220)
-	//sc2 := NewStageConfig(2*time.Minute, 70, 0)
+	sc1 := NewStage(10*time.Minute, 100, 220)
+	//sc2 := NewStage(2*time.Minute, 70, 0)
 	rc := NewRunnerConfig()
-	rc.AppendStage(sc1)
+	rc.AppendStages(sc1)
 	rc.Requests = 1000000
 
 	rcs := rc.split(3)
@@ -148,7 +146,3 @@ func ExampleRunnerConfig_split7() {
 	//333334
 	//&{10m0s 34 74}
 }
-
-
-
-

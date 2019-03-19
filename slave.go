@@ -76,7 +76,7 @@ func (sl *slaveRunner) handleMsg() {
 				sl.WithConfig(baser.Config)
 				//sl.WithDeadLine(baser.Deadline)
 				Logger.Info("------------------------------------------------------------")
-				Logger.Info("baserunner", zap.Any("config:",*baser.Config))
+				Logger.Info("baserunner", zap.Any("config:", *baser.Config))
 				//Logger.Info("baserunner", zap.Time("deadline", baser.Deadline))
 			}
 
@@ -132,7 +132,6 @@ func (sl *slaveRunner) sendStream(size int) {
 	stream.CloseSend()
 }
 
-
 func (sl *slaveRunner) Start() {
 
 	if sl.gClient == nil {
@@ -155,11 +154,10 @@ func (sl *slaveRunner) Start() {
 	for {
 		sl.status = StatusIdle
 		Logger.Info("slaver: " + sl.id + " is ready")
-		<- slaveStart //开始
+		<-slaveStart //开始
 		sl.getStart()
 	}
 }
-
 
 func (sl *slaveRunner) getStart() {
 
@@ -178,11 +176,11 @@ func (sl *slaveRunner) getStart() {
 
 	for {
 		select {
-		case <- pctx.Done():
+		case <-pctx.Done():
 			sl.baseRunner.Done()
 			pcancel()
 			//localReportPipeline <- lr.stats.report(true)
-			Logger.Info("stages have be done. STOP!")
+			Logger.Info("Stages have be done. STOP!")
 			StageRunnerStatusPipeline <- StatusStopped
 			return
 		case cc := <-timers.C:

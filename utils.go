@@ -21,18 +21,17 @@ func timers(t *Tis) {
 		//index ++
 		//t.C <- index
 		if d != time.Duration(0) {
-			if num >= len(t.d) -1 {
+			if num >= len(t.d)-1 {
 				time.Sleep(d)
 				t.C <- -1
 			} else {
 				time.Sleep(d)
-				index ++
+				index++
 				t.C <- index
 			}
 		}
 	}
 }
-
 
 //TODO 使用reset()
 // 类似time包里的newtimer。只不过这个支持多个时间节点。
@@ -46,20 +45,19 @@ func NewTimers(d []time.Duration) *Tis {
 	return t
 }
 
-
-func Abs(int2 int) int {
-	if int2 < 0 {
-		return -int2
+func abs(i int) int {
+	if i < 0 {
+		return -i
 	} else {
-		return int2
+		return i
 	}
 }
 
 func ShowLogo() {
 	fmt.Println("     _  _\n" +
-		           " /\\ /\\ | || |_  _ __   ___   _ __\n" +
-				   "/ / \\ \\| || __|| '__| / _ \\ | '_ \\\n" +
-				   "\\ \\_/ /| || |_ | |   | (_) || | | |\n" +
-				   " \\___/ |_| \\__||_|    \\___/ |_| |_|\n" +
-				   "                                   \n")
+		" /\\ /\\ | || |_  _ __   ___   _ __\n" +
+		"/ / \\ \\| || __|| '__| / _ \\ | '_ \\\n" +
+		"\\ \\_/ /| || |_ | |   | (_) || | | |\n" +
+		" \\___/ |_| \\__||_|    \\___/ |_| |_|\n" +
+		"                                   \n")
 }

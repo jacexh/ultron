@@ -14,7 +14,7 @@ func ExampleShowLogo() {
 }
 
 func TestAbs(t *testing.T) {
-	type testData struct{
+	type testData struct {
 		in   int
 		want int
 	}
@@ -22,14 +22,14 @@ func TestAbs(t *testing.T) {
 	var tds = []testData{
 		{0, 0},
 		{1, 1},
-		{-1,1},
+		{-1, 1},
 		{-999, 999},
 		{999, 999},
 	}
 
 	for _, td := range tds {
-		if got := Abs(td.in); td.want != got {
-			t.Errorf("Abs(): got: %d, want: %d", got, td.want)
+		if got := abs(td.in); td.want != got {
+			t.Errorf("abs(): got: %d, want: %d", got, td.want)
 		}
 	}
 }
