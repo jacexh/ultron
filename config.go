@@ -2,33 +2,33 @@ package ultron
 
 import (
 	"errors"
-	"go.uber.org/zap"
 	"math/rand"
+	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
-		Duration      time.Duration    `json:"duration,omitempy"`      //v2废弃，但兼容V1
-		Requests      uint64           `json:"requests,omitempy"`               //总请求数
-		Concurrence   int              `json:"concurrence,omitempy"`   //v2废弃，但兼容V1
-		HatchRate     int              `json:"hatch_rate,omitempy"`    //v2废弃，但兼容V1
-		MinWait       time.Duration    `json:"min_wait,omitempy"`
-		MaxWait       time.Duration    `json:"max_wait,omitempy"`
-		Stages        []*StageConfig   `json:"stages"`
-		stagesChanged []*StageConfigChanged
+		Duration    time.Duration  `json:"duration,omitempy"`    //v2废弃，但兼容V1
+		Requests    uint64         `json:"requests,omitempy"`    //总请求数
+		Concurrence int            `json:"concurrence,omitempy"` //v2废弃，但兼容V1
+		HatchRate   int            `json:"hatch_rate,omitempy"`  //v2废弃，但兼容V1
+		MinWait     time.Duration  `json:"min_wait,omitempy"`
+		MaxWait     time.Duration  `json:"max_wait,omitempy"`
+		Stages      []*StageConfig `json:"stages"`
+		initialized sync.Once
 	}
 
+	// StageConfig 压测阶段配置参数
 	StageConfig struct {
-		Duration           time.Duration `json:"duration"`
-		//InitConcurrence    int           `json:"init_concurrence"`  //初始并发数
-		Concurrence        int           `json:"concurrence"`
-		HatchRate          int           `json:"hatch_rate"`
+		Duration    time.Duration `json:"duration"`           // 阶段持续时间，不严格控制
+		Requests    uint64        `json:"requests,omitempty"` // 阶段请求总数，不严格控制
+		Concurrence int           `json:"concurrence"`        // 阶段目标并发数
+		HatchRate   int           `json:"hatch_rate"`         // 阶段增压/降压频率，为0不表示不控制，对于降压阶段，无需使用负数来表示降压频率
 	}
-
-
-	StageConfigChanged StageConfig
 )
 
 var (
@@ -36,10 +36,10 @@ var (
 	DefaultRunnerConfig = &RunnerConfig{
 		Duration:    ZeroDuration,    // 默认不控制压测时长
 		Requests:    0,               // 请求总数，默认不控制，**而且无法严格控制**
-		Concurrence: 0,               // 并发数，默认0并发    **19/3/2修改 原：100，改为0。为了判断是否是有效的配置。**
+		Concurrence: 100,             // 并发数，默认0并发    **19/3/2修改 原：100，改为0。为了判断是否是有效的配置。**
 		HatchRate:   0,               // 加压频率，表示每秒启动多少goroutine，直到达到Concurrence的值；0 表示不控制，所有的并发goroutine在瞬间启动
-		MinWait:     time.Second * 3, // 在单独的goroutine中，两次请求之间最少等待的时间
-		MaxWait:     time.Second * 5, // 在单独的goroutine中，两次请求之间最长等待的时间
+		MinWait:     3 * time.Second, // 在单独的goroutine中，两次请求之间最少等待的时间
+		MaxWait:     5 * time.Second, // 在单独的goroutine中，两次请求之间最长等待的时间
 	}
 )
 
@@ -48,24 +48,12 @@ func NewRunnerConfig() *RunnerConfig {
 	return &RunnerConfig{
 		Duration:    ZeroDuration,    // 默认不控制压测时长
 		Requests:    0,               // 请求总数，默认不控制，**而且无法严格控制**
-		Concurrence: 0,             // 并发数，默认100并发
+		Concurrence: 100,             // 并发数，默认100并发
 		HatchRate:   0,               // 加压频率，表示每秒启动多少goroutine，直到达到Concurrence的值；0 表示不控制，所有的并发goroutine在瞬间启动
 		MinWait:     time.Second * 3, // 在单独的goroutine中，两次请求之间最少等待的时间
 		MaxWait:     time.Second * 5, // 在单独的goroutine中，两次请求之间最长等待的时间
-		Stages:      []*StageConfig{},
 	}
 }
-
-
-func NewStageConfig(Duration time.Duration, Concurrence int, HatchRate int) *StageConfig {
-	return &StageConfig{
-		Duration:         Duration,
-		//InitConcurrence:  InitConcurrence,
-		Concurrence: 	  Concurrence,
-		HatchRate:   	  HatchRate,
-	}
-}
-
 
 // block 根据配置中的MinWait、MaxWait阻塞一段时间 [MinWait, MaxWait]
 func (rc *RunnerConfig) block() {
@@ -127,6 +115,14 @@ func (rc *RunnerConfig) check() error {
 	return nil
 }
 
+func NewStageConfig(d time.Duration, Concurrence int, HatchRate int) *StageConfig {
+	return &StageConfig{
+		Duration:    d,
+		Concurrence: Concurrence,
+		HatchRate:   HatchRate,
+	}
+}
+
 // stage兼容v1版本
 func (rc *RunnerConfig) v1Runner2Stage() {
 	rc.AppendStage(&StageConfig{
@@ -136,7 +132,6 @@ func (rc *RunnerConfig) v1Runner2Stage() {
 	})
 	rc.Concurrence = 0
 }
-
 
 //计算出每秒启动协程的数量
 func (sc *StageConfigChanged) hatchWorkerCounts() []int {
@@ -160,7 +155,7 @@ func (sc *StageConfigChanged) hatchWorkerCounts() []int {
 		if sc.HatchRate > 0 && sc.HatchRate < Abs(sc.Concurrence) {
 			rounds = sc.Concurrence / sc.HatchRate
 			for i := 0; i < Abs(rounds); i++ {
-				ret = append(ret, - sc.HatchRate)
+				ret = append(ret, -sc.HatchRate)
 			}
 			last := sc.Concurrence % sc.HatchRate
 			if Abs(last) > 0 {
@@ -174,7 +169,6 @@ func (sc *StageConfigChanged) hatchWorkerCounts() []int {
 	return ret
 }
 
-
 // 每个stage，协程变更数量  Concurrence  in:[100, 50, 70, 30] out:[100, -50, 20, -40]
 func (rc *RunnerConfig) updateStageConfig() {
 	var stageConfigChangeds = []*StageConfigChanged{}
@@ -185,16 +179,15 @@ func (rc *RunnerConfig) updateStageConfig() {
 		currentConcurrence = sc.Concurrence
 
 		scc := &StageConfigChanged{
-			Duration:   	  sc.Duration,
-			Concurrence:	  concurrenceChanged,
-			HatchRate:  	  sc.HatchRate,
+			Duration:    sc.Duration,
+			Concurrence: concurrenceChanged,
+			HatchRate:   sc.HatchRate,
 		}
 
 		stageConfigChangeds = append(stageConfigChangeds, scc)
 	}
 	rc.stagesChanged = stageConfigChangeds
 }
-
 
 func split(total uint64, n uint64) []uint64 {
 	if n <= 1 {
@@ -231,11 +224,11 @@ func (rc *RunnerConfig) split(n int) []*RunnerConfig {
 
 	for i := 0; i < n; i++ {
 		r := &RunnerConfig{
-			Duration:   rc.Duration,
-			Concurrence:rc.Concurrence,
-			HatchRate:  rc.HatchRate,
-			MinWait:    rc.MinWait,
-			MaxWait:    rc.MaxWait,
+			Duration:    rc.Duration,
+			Concurrence: rc.Concurrence,
+			HatchRate:   rc.HatchRate,
+			MinWait:     rc.MinWait,
+			MaxWait:     rc.MaxWait,
 		}
 		r.Requests = req[i]
 		r.Stages = stageconfig[i]
@@ -270,10 +263,7 @@ func (sc *StageConfig) split(n int) []*StageConfig {
 	return ret
 }
 
-
 func (rc *RunnerConfig) AppendStage(sc ...*StageConfig) *RunnerConfig {
 	rc.Stages = append(rc.Stages, sc...)
 	return rc
 }
-
-
