@@ -12,25 +12,27 @@ import (
 type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
-		Duration     time.Duration `json:"duration,omitempty"`    //v2废弃，但兼容V1
-		Requests     uint64        `json:"requests,omitempty"`    //v2废弃，但兼容v1
-		Concurrence  int           `json:"concurrence,omitempty"` //v2废弃，但兼容V1
-		HatchRate    int           `json:"hatch_rate,omitempty"`  //v2废弃，但兼容V1
-		MinWait      time.Duration `json:"min_wait,omitempty"`
-		MaxWait      time.Duration `json:"max_wait,omitempty"`
-		Stages       []*Stage      `json:"stages,omitempty"`
-		currentStage int
-		initialized  sync.Once
-		mu           sync.RWMutex
+		Duration          time.Duration `json:"duration,omitempty"`    //v2废弃，但兼容V1
+		Requests          uint64        `json:"requests,omitempty"`    //v2废弃，但兼容v1
+		Concurrence       int           `json:"concurrence,omitempty"` //v2废弃，但兼容V1
+		HatchRate         int           `json:"hatch_rate,omitempty"`  //v2废弃，但兼容V1
+		MinWait           time.Duration `json:"min_wait,omitempty"`
+		MaxWait           time.Duration `json:"max_wait,omitempty"`
+		Stages            []*Stage      `json:"stages,omitempty"`
+		currentStageIndex int
+		initialized       sync.Once
+		mu                sync.RWMutex
 	}
 
 	// Stage 压测阶段配置参数
 	Stage struct {
-		Duration            time.Duration `json:"duration,omitempty"`   // 阶段持续时间，不严格控制
-		Requests            uint64        `json:"requests,omitempty"`   // 阶段请求总数，不严格控制
+		Duration            time.Duration `json:"duration,omitempty"`   // 阶段期望持续时间，不严格控制
+		Requests            uint64        `json:"requests,omitempty"`   // 阶段期望请求总数，不严格控制
 		Concurrence         int           `json:"concurrence"`          // 阶段目标并发数
 		previousConcurrence int           `json:"-"`                    // 前一阶段并发数
 		HatchRate           int           `json:"hatch_rate,omitempty"` // 阶段增压/降压频率，为0不表示不控制，对于降压阶段，无需使用负数来表示降压频率
+		deadline            time.Time     `json:"-"`                    // 该阶段结束时间
+		counts              uint64        `json:"-"`                    // 该阶段实际请求总数
 	}
 )
 
@@ -161,22 +163,22 @@ func (rc *RunnerConfig) AppendStages(sc ...*Stage) *RunnerConfig {
 	return rc
 }
 
-// FinishStage 通知完成当前Stage，如果已经是最后一个stage，返回error
-func (rc *RunnerConfig) FinishStage(s int) (int, *Stage, bool) {
+// finishCurrentStage 通知完成当前Stage，如果已经是最后一个stage，返回error
+func (rc *RunnerConfig) finishCurrentStage(s int) (int, *Stage, bool) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
-	if rc.currentStage == len(rc.Stages)-1 {
-		return 0, nil, true
+	if rc.currentStageIndex == len(rc.Stages)-1 {
+		return rc.currentStageIndex, nil, true
 	}
 
 	switch {
-	case s == rc.currentStage:
-		rc.currentStage++
-		return rc.currentStage, rc.Stages[rc.currentStage], false
+	case s == rc.currentStageIndex:
+		rc.currentStageIndex++
+		return rc.currentStageIndex, rc.Stages[rc.currentStageIndex], false
 
-	default: //   s 小于或者大于 rc.currentStage  无视
-		return rc.currentStage, rc.Stages[rc.currentStage], false
+	default: //   s 小于或者大于 rc.currentStageIndex  无视
+		return rc.currentStageIndex, rc.Stages[rc.currentStageIndex], false
 	}
 }
 
@@ -184,7 +186,18 @@ func (rc *RunnerConfig) FinishStage(s int) (int, *Stage, bool) {
 func (rc *RunnerConfig) CurrentStage() (int, *Stage) {
 	rc.mu.RLock()
 	defer rc.mu.RUnlock()
-	return rc.currentStage, rc.Stages[rc.currentStage]
+	return rc.currentStageIndex, rc.Stages[rc.currentStageIndex]
+}
+
+// findMaxConcurrence 找出最大并发数
+func (rc *RunnerConfig) findMaxConcurrence() int {
+	var m int
+	for _, stage := range rc.Stages {
+		if stage.Concurrence > m {
+			m = stage.Concurrence
+		}
+	}
+	return m
 }
 
 // hatchWorkerCounts 计算出每秒启动/关闭的goroutine数量
@@ -252,11 +265,11 @@ func (rc *RunnerConfig) split(n int) []*RunnerConfig {
 }
 
 // NewStage 实例化Stage
-func NewStage(c int) *Stage {
+func NewStage() *Stage {
 	return &Stage{
 		Duration:    DefaultDuration,
 		Requests:    DefaultRequests,
-		Concurrence: c,
+		Concurrence: DefaultConcurrence,
 		HatchRate:   DefaultHatchRate,
 	}
 }

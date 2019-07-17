@@ -28,10 +28,7 @@ var (
 	LocalRunner *localRunner
 
 	// SlaveRunner 分布式执行，节点执行入口
-	SlaveRunner *slaveRunner
-
-	// context的父节点，主控入口持有
-	_parentCtx, _parentCancel = context.WithCancel(context.Background())
+	//SlaveRunner *slaveRunner
 )
 
 type (
@@ -45,18 +42,14 @@ type (
 		Done()
 	}
 
-	BaseRunner baseRunner
-
 	// Status Runner状态
 	Status int
 
 	baseRunner struct {
-		Config   *RunnerConfig `json:"Config"`
+		Config   *RunnerConfig
 		task     *Task
 		status   Status
-		counts   uint64
-		deadline time.Time //`json:"deadline,omitempy"`        //总体停止时间
-		cancels  cancelMap
+		cancelCh chan context.CancelFunc // worker的cancelFunc队列，用于通知结束工作
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
 	}
@@ -66,19 +59,10 @@ type (
 		once  sync.Once
 		*baseRunner
 	}
-
-	cancelMap struct {
-		index   uint8
-		cancels map[uint8]context.CancelFunc
-	}
 )
 
-func newCancelMap() cancelMap {
-	return cancelMap{cancels: make(map[uint8]context.CancelFunc)}
-}
-
 func newBaseRunner() *baseRunner {
-	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig, cancels: newCancelMap()}
+	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig}
 }
 
 func (br *baseRunner) WithConfig(rc *RunnerConfig) {
@@ -87,10 +71,6 @@ func (br *baseRunner) WithConfig(rc *RunnerConfig) {
 
 func (br *baseRunner) WithTask(t *Task) {
 	br.task = t
-}
-
-func (br *baseRunner) WithDeadLine(deadline time.Time) {
-	br.deadline = deadline
 }
 
 func (br *baseRunner) GetConfig() *RunnerConfig {
@@ -103,69 +83,10 @@ func (br *baseRunner) Done() {
 	br.status = StatusStopped
 }
 
-// 把阶段运行时间组成一个列表
-func (br *baseRunner) GetStageRunningTime() []time.Duration {
-	br.mu.RLock()
-	defer br.mu.RUnlock()
-	var stageRunningTime []time.Duration
-
-	for _, StageConfig := range br.Config.Stages {
-		stageRunningTime = append(stageRunningTime, StageConfig.Duration)
-	}
-	return stageRunningTime
-}
-
-// master通过主动查询来确保结束
-func isFinished(br *baseRunner) bool {
-	if br.GetStatus() == StatusStopped {
-		Logger.Debug("StatusStopped RUNNER IS FINISHED")
-		return true
-	}
-
-	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
-		br.Done()
-		Logger.Debug("counts RUNNER IS FINISHED")
-		return true
-	}
-
-	br.mu.RLock()
-	if !br.deadline.IsZero() && time.Now().After(br.deadline) {
-		br.mu.RUnlock()
-		br.Done()
-		Logger.Debug("Deadline RUNNER IS FINISHED")
-		return true
-	}
-	br.mu.RUnlock()
-
-	return false
-}
-
-//for slave
-func isOverAmount(br *baseRunner) bool {
-
-	if br.GetStatus() == StatusStopped {
-		Logger.Info("StatusStopped RUNNER IS FINISHED")
-		return true
-	}
-
-	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
-		br.Done()
-		Logger.Info("requests is over. RUNNER FINISHED")
-		return true
-	}
-	return false
-}
-
 func (br *baseRunner) GetStatus() Status {
 	br.mu.RLock()
 	defer br.mu.RUnlock()
 	return br.status
-}
-
-func (br *baseRunner) getStageConfig() []*Stage {
-	br.mu.RLock()
-	defer br.mu.RUnlock()
-	return br.Config.Stages
 }
 
 func newLocalRunner(ss *summaryStats) *localRunner {
@@ -184,117 +105,28 @@ func checkRunner(br *baseRunner) error {
 	if err := br.Config.check(); err != nil {
 		return err
 	}
-
-	br.activeBaseRunner()
 	return nil
 }
 
-// 将stage配置及deadline 更新 为 Machine friendly
-// 需要在压测开始前运行
-func (br *baseRunner) activeBaseRunner() {
-
-	br.Config.updateStageConfig()
-	br.updateDeadline()
-}
-
-func (lr *localRunner) log(r *Result) {
-	lr.stats.log(r)
-}
-
-// 主控入口
-func statusControl(ch chan Status, pcancel context.CancelFunc, isExit bool) {
-	for {
-		select {
-		case status := <-ch:
-			if status == StatusStopped {
-				Logger.Info("pcancel()")
-				pcancel()
-				Logger.Info("stageRunner status is stoped.STOP!")
-				//是否在最后 退出整个程序
-				if isExit {
-					time.Sleep(2 * time.Second)
-					os.Exit(0)
-				}
-			}
-		}
-	}
-}
-
-// 随机取消运行中的协程
-func (br *baseRunner) CancelWorkers(num int) error {
-	br.mu.Lock()
-	defer br.mu.Unlock()
-	Logger.Info(fmt.Sprintf("cancel %d workers", num))
-
-	if num < 0 || len(br.cancels.cancels) < num {
-		return errors.New("CancelWorkers num wrong")
-	}
-
-	for k, v := range br.cancels.cancels {
-		if _, ok := br.cancels.cancels[k]; ok {
-			v()
-			delete(br.cancels.cancels, k)
-		} else {
-			Logger.Warn("wrong cancelFunc")
-		}
-	}
-	return nil
-}
-
-func (br *baseRunner) AddCancelFunc(cancel *context.CancelFunc) {
-	br.mu.Lock()
-
-	br.cancels.cancels[br.cancels.index] = *cancel
-	br.cancels.index++
-
-	br.mu.Unlock()
-}
-
-//更新deadline
-func (br *baseRunner) updateDeadline() {
-	br.mu.Lock()
-	defer br.mu.Unlock()
-	var d = time.Now()
-
-	//配置过deadline的，不更新deadline
-	if !br.deadline.Equal(time.Time{}) {
-		return
-	}
-
-	for _, sc := range br.Config.stagesChanged {
-		if sc.Duration <= ZeroDuration {
-			br.WithDeadLine(time.Time{})
-			return
-		} else {
-			d = d.Add(sc.Duration)
-		}
-	}
-
-	br.WithDeadLine(d)
-	return
-}
-
-func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Context, context.CancelFunc) {
-	if br.deadline.IsZero() {
-		Logger.Info("create WithCancel context")
-		return context.WithCancel(parentctx)
-	} else {
-		Logger.Info("create WithDeadline context. dead at ", zap.Time("deadline", br.deadline))
-		return context.WithDeadline(parentctx, br.deadline)
-	}
+func (lr *localRunner) record(r *Result) {
+	lr.stats.record(r)
 }
 
 func (lr *localRunner) Start() {
-	Logger.Info("deadline info", zap.Time("deadline", lr.baseRunner.deadline))
-	Logger.Info("baseRunner info", zap.Any("baseRunner", lr.baseRunner))
 	if err := checkRunner(lr.baseRunner); err != nil {
 		panic(err)
 	}
 
+	// 初始化取消函数队列，size大小为最大并发数
+	lr.cancelCh = make(chan context.CancelFunc, lr.Config.findMaxConcurrence())
+
+	Logger.Info("start to attack")
+	lr.status = StatusBusy
+
 	lr.once.Do(func() {
 		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
 		localResultPipeline = newResultPipeline(LocalResultPipelineBufferSize)
-		LocalEventHook.AddResultHandleFunc(lr.stats.log)
+		LocalEventHook.AddResultHandleFunc(lr.stats.record)
 		LocalEventHook.listen(localResultPipeline, localReportPipeline)
 
 		// ctrl+c退出,输出信号
@@ -302,15 +134,14 @@ func (lr *localRunner) Start() {
 		signal.Notify(signalCh, os.Interrupt)
 		go func() {
 			<-signalCh
-			Logger.Error("capatured interrupt signal")
+			Logger.Error("captured interrupt signal")
 			printReportToConsole(lr.stats.report(true))
 			os.Exit(1)
 		}()
 	})
 	lr.stats.reset()
 
-	Logger.Info("Stages start")
-
+	// 定时输出压测数据
 	feedTicker := time.NewTicker(StatsReportInterval)
 	go func() {
 		for range feedTicker.C {
@@ -318,125 +149,181 @@ func (lr *localRunner) Start() {
 		}
 	}()
 
-	//go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
-
-	pctx, pcancel := createCancelFunc(lr.baseRunner, _parentCtx)
-
-	go statusControl(StageRunnerStatusPipeline, pcancel, true)
-
+	nextStage := make(chan struct{}, 1)
 	go func() {
 		t := time.NewTicker(200 * time.Millisecond)
 		for range t.C {
-			if isOverAmount(lr.baseRunner) {
+			sf, tf := lr.isFinishedCurrentStage()
+			if tf {
 				t.Stop()
-				StageRunnerStatusPipeline <- StatusStopped
+				break
+			}
+			if sf {
+				nextStage <- struct{}{} // 发送信号，开启下一阶段
 			}
 		}
 	}()
 
-	timers := NewTimers(lr.GetStageRunningTime())
-	Logger.Info("start to attack")
-	lr.status = StatusBusy
+	for _, stage := range lr.Config.Stages {
+		Logger.Info("current stage info", zap.Any("stage", stage))
+		lr.hatchWorkersOnStage(stage, localResultPipeline)
+		<-nextStage // 阻塞，直到当前stage结束
+	}
 
-	for {
+	// 等待所有worker的goroutine退出
+	lr.wg.Wait()
+
+	feedTicker.Stop()
+	localReportPipeline <- lr.stats.report(true)
+
+	Logger.Info("task done")
+	time.Sleep(1 * time.Second)
+	os.Exit(0)
+}
+
+// hatchWorkersOnStage 每阶段增压、减压逻辑
+func (br *baseRunner) hatchWorkersOnStage(s *Stage, ch resultPipeline) {
+	var hatched int32
+	var batch int
+	var wg sync.WaitGroup
+
+	ticker := time.NewTicker(time.Second) // 不适用time.Sleep的原因，是因为cancelFunc存储于channel中，会存在阻塞的可能
+	batches := s.hatchWorkerCounts()
+	Logger.Info("will hatch many workers", zap.Ints("batches", batches))
+
+	if batch == 0 {
+		go func(b int) {
+			wg.Add(1)
+			defer wg.Done()
+			br.hatchOrKillWorker(batches[b], ch)
+			atomic.AddInt32(&hatched, int32(batches[b]))
+			Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadInt32(&hatched)))
+		}(batch)
+		batch++
+	}
+
+	for batch < len(batches)-1 {
 		select {
-		case <-pctx.Done():
-
-			lr.baseRunner.Done()
-			feedTicker.Stop()
-
-			printReportToConsole(lr.stats.report(true))
-			Logger.Info("Stages have be done. STOP!")
-			StageRunnerStatusPipeline <- StatusStopped
-			return
-		case cc := <-timers.C:
-			if cc >= 0 {
-				scc := lr.baseRunner.Config.stagesChanged[cc]
-				Logger.Info("start ", zap.Int("task：", cc))
-
-				func() {
-
-					if scc.Concurrence == 0 {
-						// do nothing
-						Logger.Info("keep Concurrence")
-					} else {
-						hatchWorkersCancelable(pctx, lr.baseRunner, scc, localResultPipeline)
-					}
-				}()
-			} else {
-				Logger.Info("pcancel()")
-				pcancel()
-				StageRunnerStatusPipeline <- StatusStopped
+		case <-ticker.C:
+			if batch >= len(batches)-1 {
+				break
 			}
+			go func(b int) {
+				wg.Add(1)
+				defer wg.Done()
+				br.hatchOrKillWorker(batches[b], ch)
+				atomic.AddInt32(&hatched, int32(batches[b]))
+				Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadInt32(&hatched)))
+			}(batch)
+			batch++
+
+		default:
+		}
+	}
+
+	ticker.Stop()
+	wg.Wait()
+
+	if s.Duration > ZeroDuration {
+		s.deadline = time.Now().Add(s.Duration)
+		Logger.Info(fmt.Sprintf("current stage will retire at %s", s.deadline.String()))
+	}
+}
+
+// hatchOrKillWorker 增压、减压的具体实现
+func (br *baseRunner) hatchOrKillWorker(n int, ch resultPipeline) {
+	if n > 0 { // 该阶段加压
+		for i := 0; i < n; i++ {
+			go br.doCancelableWork(ch)
+		}
+	} else if n < 0 { // 降压阶段
+		for i := 0; i > n; i-- {
+			cancel := <-br.cancelCh
+			cancel()
 		}
 	}
 }
 
-// countPipeline需要有消费者，否则超过buffer会阻塞
-func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *StageConfigChanged, ch resultPipeline) {
-
-	var hatched int
-	if sc.Concurrence > 0 {
-		for _, counts := range sc.hatchWorkerCounts() {
-			for i := 0; i < counts; i++ {
-				ctx, cancel := context.WithCancel(parentctx)
-				br.AddCancelFunc(&cancel) // append cancel
-				go attackCancelAble(ctx, br, ch)
-			}
-			hatched += counts
-			Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
-			time.Sleep(time.Second)
-		}
-	} else {
-		for _, counts := range sc.hatchWorkerCounts() {
-			//取消协程
-			br.CancelWorkers(abs(counts))
-			hatched += counts
-			Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
-			time.Sleep(time.Second)
-		}
-	}
-
-}
-
-func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline) {
-	//defer sr.wg.Done()
-	//defer ctx.Done()
+// doCancelableWork 生成一个goroutine，执行Attacker.Fire
+func (br *baseRunner) doCancelableWork(ch resultPipeline) {
+	br.wg.Add(1)
 	defer func() {
 		if rec := recover(); rec != nil {
-			// Todo:
 			debug.PrintStack()
-			Logger.Error("recovered")
+			Logger.Error("recovered", zap.Any("recover", rec))
 		}
+		br.wg.Done()
 	}()
 
 	if ch == nil {
-		panic("invalid resultPipeline")
+		panic("invalid result pipeline")
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	br.cancelCh <- cancel
 
 	for {
+		q := br.task.pickUp()
+		start := time.Now()
+		if br.GetStatus() == StatusStopped {
+			return
+		}
+
 		select {
 		case <-ctx.Done():
+			Logger.Info("this work was canceled")
 			return
 		default:
-			q := br.task.pickUp()
-			start := time.Now()
-			if br.GetStatus() == StatusStopped {
-				return
-			}
-			err := q.Fire()
-			//Logger.Info("fire")
-			duration := time.Since(start)
-
-			atomic.AddUint64(&br.counts, 1)
-			ret := newResult(q.Name(), duration, err)
-			ch <- ret
-
-			if err != nil {
-				Logger.Warn("occur error: " + err.Error())
-			}
-
-			br.Config.block()
 		}
+
+		err := q.Fire()
+		duration := time.Since(start)
+		_, stage := br.Config.CurrentStage()
+		atomic.AddUint64(&stage.counts, 1)
+		ret := newResult(q.Name(), duration, err)
+		ch <- ret
+
+		if err != nil {
+			Logger.Warn("occur error: " + err.Error())
+		}
+
+		if br.GetStatus() == StatusStopped {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			Logger.Info("this work was canceled")
+			return
+		default:
+		}
+
+		br.Config.block()
 	}
+}
+
+// isFinishedCurrentStage 判断当前stage是否满足退出条件，第一个返回值表示当前stage是否结束，第二个返回标识全局任务是否结束
+func (br *baseRunner) isFinishedCurrentStage() (bool, bool) {
+	if br.GetStatus() == StatusStopped {
+		return true, true
+	}
+
+	index, stage := br.Config.CurrentStage()
+	if stage.Requests > 0 && atomic.LoadUint64(&stage.counts) >= stage.Requests {
+		_, _, f := br.Config.finishCurrentStage(index)
+		if f {
+			br.Done()
+			return true, true
+		}
+		return true, false
+	}
+
+	if stage.Duration > ZeroDuration && !stage.deadline.IsZero() && time.Now().After(stage.deadline) {
+		_, _, f := br.Config.finishCurrentStage(index)
+		if f {
+			br.Done()
+			return true, true
+		}
+		return true, false
+	}
+	return false, false
 }
