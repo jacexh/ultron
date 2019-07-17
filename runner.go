@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -50,11 +51,11 @@ type (
 	Status int
 
 	baseRunner struct {
-		Config   *RunnerConfig			`json:"Config"`
+		Config   *RunnerConfig `json:"Config"`
 		task     *Task
 		status   Status
 		counts   uint64
-		deadline time.Time               //`json:"deadline,omitempy"`        //总体停止时间
+		deadline time.Time //`json:"deadline,omitempy"`        //总体停止时间
 		cancels  cancelMap
 		mu       sync.RWMutex
 		wg       sync.WaitGroup
@@ -103,7 +104,7 @@ func (br *baseRunner) Done() {
 }
 
 // 把阶段运行时间组成一个列表
-func (br *baseRunner) GetStageRunningTime() []time.Duration{
+func (br *baseRunner) GetStageRunningTime() []time.Duration {
 	br.mu.RLock()
 	defer br.mu.RUnlock()
 	var stageRunningTime []time.Duration
@@ -139,7 +140,6 @@ func isFinished(br *baseRunner) bool {
 	return false
 }
 
-
 //for slave
 func isOverAmount(br *baseRunner) bool {
 
@@ -162,8 +162,7 @@ func (br *baseRunner) GetStatus() Status {
 	return br.status
 }
 
-
-func (br *baseRunner) getStageConfig() []*StageConfig{
+func (br *baseRunner) getStageConfig() []*Stage {
 	br.mu.RLock()
 	defer br.mu.RUnlock()
 	return br.Config.Stages
@@ -172,7 +171,6 @@ func (br *baseRunner) getStageConfig() []*StageConfig{
 func newLocalRunner(ss *summaryStats) *localRunner {
 	return &localRunner{stats: ss, baseRunner: newBaseRunner()}
 }
-
 
 func checkRunner(br *baseRunner) error {
 	if br.task == nil {
@@ -191,7 +189,6 @@ func checkRunner(br *baseRunner) error {
 	return nil
 }
 
-
 // 将stage配置及deadline 更新 为 Machine friendly
 // 需要在压测开始前运行
 func (br *baseRunner) activeBaseRunner() {
@@ -199,7 +196,6 @@ func (br *baseRunner) activeBaseRunner() {
 	br.Config.updateStageConfig()
 	br.updateDeadline()
 }
-
 
 func (lr *localRunner) log(r *Result) {
 	lr.stats.log(r)
@@ -209,7 +205,7 @@ func (lr *localRunner) log(r *Result) {
 func statusControl(ch chan Status, pcancel context.CancelFunc, isExit bool) {
 	for {
 		select {
-		case status := <- ch:
+		case status := <-ch:
 			if status == StatusStopped {
 				Logger.Info("pcancel()")
 				pcancel()
@@ -225,7 +221,7 @@ func statusControl(ch chan Status, pcancel context.CancelFunc, isExit bool) {
 }
 
 // 随机取消运行中的协程
-func (br *baseRunner) CancelWorkers(num int) error{
+func (br *baseRunner) CancelWorkers(num int) error {
 	br.mu.Lock()
 	defer br.mu.Unlock()
 	Logger.Info(fmt.Sprintf("cancel %d workers", num))
@@ -245,16 +241,14 @@ func (br *baseRunner) CancelWorkers(num int) error{
 	return nil
 }
 
-
 func (br *baseRunner) AddCancelFunc(cancel *context.CancelFunc) {
 	br.mu.Lock()
 
 	br.cancels.cancels[br.cancels.index] = *cancel
-	br.cancels.index ++
+	br.cancels.index++
 
 	br.mu.Unlock()
 }
-
 
 //更新deadline
 func (br *baseRunner) updateDeadline() {
@@ -280,7 +274,6 @@ func (br *baseRunner) updateDeadline() {
 	return
 }
 
-
 func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Context, context.CancelFunc) {
 	if br.deadline.IsZero() {
 		Logger.Info("create WithCancel context")
@@ -290,7 +283,6 @@ func createCancelFunc(br *baseRunner, parentctx context.Context) (context.Contex
 		return context.WithDeadline(parentctx, br.deadline)
 	}
 }
-
 
 func (lr *localRunner) Start() {
 	Logger.Info("deadline info", zap.Time("deadline", lr.baseRunner.deadline))
@@ -317,16 +309,14 @@ func (lr *localRunner) Start() {
 	})
 	lr.stats.reset()
 
-	Logger.Info("stages start")
-
+	Logger.Info("Stages start")
 
 	feedTicker := time.NewTicker(StatsReportInterval)
 	go func() {
 		for range feedTicker.C {
-			localReportPipeline <- lr.stats.report(false)  // 管道传输统计结果
+			localReportPipeline <- lr.stats.report(false) // 管道传输统计结果
 		}
 	}()
-
 
 	//go CountNumbers2Stop(CounterPipeline, &lr.Config.Requests)
 
@@ -350,13 +340,13 @@ func (lr *localRunner) Start() {
 
 	for {
 		select {
-		case <- pctx.Done():
+		case <-pctx.Done():
 
 			lr.baseRunner.Done()
 			feedTicker.Stop()
 
 			printReportToConsole(lr.stats.report(true))
-			Logger.Info("stages have be done. STOP!")
+			Logger.Info("Stages have be done. STOP!")
 			StageRunnerStatusPipeline <- StatusStopped
 			return
 		case cc := <-timers.C:
@@ -382,7 +372,6 @@ func (lr *localRunner) Start() {
 	}
 }
 
-
 // countPipeline需要有消费者，否则超过buffer会阻塞
 func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *StageConfigChanged, ch resultPipeline) {
 
@@ -401,7 +390,7 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 	} else {
 		for _, counts := range sc.hatchWorkerCounts() {
 			//取消协程
-			br.CancelWorkers(Abs(counts))
+			br.CancelWorkers(abs(counts))
 			hatched += counts
 			Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
 			time.Sleep(time.Second)
@@ -409,7 +398,6 @@ func hatchWorkersCancelable(parentctx context.Context, br *baseRunner, sc *Stage
 	}
 
 }
-
 
 func attackCancelAble(ctx context.Context, br *baseRunner, ch resultPipeline) {
 	//defer sr.wg.Done()
