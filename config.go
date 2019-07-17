@@ -13,7 +13,7 @@ type (
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
 		Duration     time.Duration `json:"duration,omitempty"`    //v2废弃，但兼容V1
-		Requests     uint64        `json:"requests,omitempty"`    //总请求数
+		Requests     uint64        `json:"requests,omitempty"`    //v2废弃，但兼容v1
 		Concurrence  int           `json:"concurrence,omitempty"` //v2废弃，但兼容V1
 		HatchRate    int           `json:"hatch_rate,omitempty"`  //v2废弃，但兼容V1
 		MinWait      time.Duration `json:"min_wait,omitempty"`
@@ -26,10 +26,10 @@ type (
 
 	// Stage 压测阶段配置参数
 	Stage struct {
-		Duration            time.Duration `json:"duration,omitempty"` // 阶段持续时间，不严格控制
-		Requests            uint64        `json:"requests,omitempty"` // 阶段请求总数，不严格控制
-		Concurrence         int           `json:"concurrence"`        // 阶段目标并发数
-		previousConcurrence int           `json:"-"`
+		Duration            time.Duration `json:"duration,omitempty"`   // 阶段持续时间，不严格控制
+		Requests            uint64        `json:"requests,omitempty"`   // 阶段请求总数，不严格控制
+		Concurrence         int           `json:"concurrence"`          // 阶段目标并发数
+		previousConcurrence int           `json:"-"`                    // 前一阶段并发数
 		HatchRate           int           `json:"hatch_rate,omitempty"` // 阶段增压/降压频率，为0不表示不控制，对于降压阶段，无需使用负数来表示降压频率
 	}
 )
@@ -110,29 +110,28 @@ func (rc *RunnerConfig) check() error {
 	rc.initialized.Do(rc.initialization)
 
 	if (rc.Stages == nil || len(rc.Stages) == 0) && rc.Concurrence <= 0 {
-		Logger.Error("invalid runnerConfig, something wrong ", zap.Any("runnerConfig", rc))
-		return errors.New("invalid runnerConfig")
+		Logger.Error("invalid RunnerConfig value", zap.Any("runnerConfig", rc))
+		return errors.New("invalid RunnerConfig")
 	}
 
 	for num, sc := range rc.Stages {
 		if sc.Concurrence <= 0 {
-			Logger.Error("invalid Stage Concurrence value, it should be greater than 0 or InitConcurrence", zap.Int("Concurrence", sc.Concurrence))
-			return errors.New("invalid Concurrency value")
+			Logger.Error("invalid Stage.Concurrence value, it should be greater than 0 or InitConcurrence", zap.Any("stage", sc))
+			return errors.New("invalid Stage.Concurrency")
 		}
 		if sc.HatchRate < 0 {
-			Logger.Error("invalid Stage HatchRate value, it should be litter than 0 ", zap.Int("HatchRate", sc.HatchRate))
-			return errors.New("invalid HatchRate value")
+			Logger.Error("invalid Stage.HatchRate value, it should be equal or greater than 0 ", zap.Any("stage", sc))
+			return errors.New("invalid Stage.HatchRate")
+		}
+		if sc.Requests < 0 {
+			Logger.Error("invalid Stage.Requests value, it should be equal or greater than 0", zap.Any("stage", sc))
+			return errors.New("invalid Stage.Requests")
 		}
 		// 只有最后一阶段可以不控制压测时长
 		if num < len(rc.Stages)-1 {
-			if sc.Duration <= ZeroDuration {
-				Logger.Error("invalid Stage Duration value, it should be greater than 0", zap.Duration("Duration", sc.Duration))
-				return errors.New("invalid Concurrency value")
-			}
-		} else {
-			if sc.Duration < ZeroDuration {
-				Logger.Error("invalid Stage Duration value, last stage's Duration should be greater than 0 or equal to 0", zap.Duration("Duration", sc.Duration))
-				return errors.New("invalid Concurrency value")
+			if sc.Duration == ZeroDuration && sc.Requests == 0 {
+				Logger.Error("invalid Stage.Duration/Requests value of stage, it should be equal or greater than 0", zap.Any("stage", sc))
+				return errors.New("invalid concurrency/requests value")
 			}
 		}
 	}
@@ -145,7 +144,11 @@ func (rc *RunnerConfig) AppendStage(sc *Stage) *RunnerConfig {
 	if rc.Stages == nil {
 		rc.Stages = []*Stage{}
 	}
-	sc.previousConcurrence = rc.Stages[len(rc.Stages)-1].Concurrence
+	pre := 0
+	if len(rc.Stages) >= 1 {
+		pre = rc.Stages[len(rc.Stages)-1].Concurrence
+	}
+	sc.previousConcurrence = pre
 	rc.Stages = append(rc.Stages, sc)
 	return rc
 }
@@ -159,23 +162,22 @@ func (rc *RunnerConfig) AppendStages(sc ...*Stage) *RunnerConfig {
 }
 
 // FinishStage 通知完成当前Stage，如果已经是最后一个stage，返回error
-func (rc *RunnerConfig) FinishStage(s int) (int, *Stage, error) {
+func (rc *RunnerConfig) FinishStage(s int) (int, *Stage, bool) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
 	if rc.currentStage == len(rc.Stages)-1 {
-		return 0, nil, errors.New("reached the end of stages")
+		return 0, nil, true
 	}
 
 	switch {
 	case s == rc.currentStage:
 		rc.currentStage++
-		return rc.currentStage, rc.Stages[rc.currentStage], nil
+		return rc.currentStage, rc.Stages[rc.currentStage], false
 
 	default: //   s 小于或者大于 rc.currentStage  无视
-		return rc.currentStage, rc.Stages[rc.currentStage], nil
+		return rc.currentStage, rc.Stages[rc.currentStage], false
 	}
-
 }
 
 // CurrentStage 获取当前Stage
@@ -213,6 +215,7 @@ func (sc *Stage) hatchWorkerCounts() []int {
 	return ret
 }
 
+// split todo: 如此切割各个node的的请求数不够均衡，应当按stage来切割
 func (rc *RunnerConfig) split(n int) []*RunnerConfig {
 	rc.initialized.Do(rc.initialization)
 
@@ -263,6 +266,7 @@ func (sc *Stage) split(n int) []*Stage {
 	var ret []*Stage
 	c := split(uint64(sc.Concurrence), uint64(n))
 	h := split(uint64(sc.HatchRate), uint64(n))
+	r := split(uint64(sc.Requests), uint64(n))
 
 	for i := 0; i < n; i++ {
 		s := &Stage{
@@ -278,6 +282,11 @@ func (sc *Stage) split(n int) []*Stage {
 			s.HatchRate = 0
 		} else {
 			s.HatchRate = int(h[i])
+		}
+		if sc.Requests == 0 {
+			s.Requests = 0
+		} else {
+			s.Requests = r[i]
 		}
 		ret = append(ret, s)
 	}

@@ -71,10 +71,10 @@ var (
 	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPAttacker
 	DefaultFastHTTPClient = &fasthttp.Client{
 		Name:                "ultron",
-		MaxConnsPerHost:     2000,
-		MaxIdleConnDuration: 90 * time.Second,
-		ReadTimeout:         90 * time.Second,
-		WriteTimeout:        60 * time.Second,
+		MaxConnsPerHost:     1000,
+		MaxIdleConnDuration: 30 * time.Second,
+		ReadTimeout:         30 * time.Second,
+		WriteTimeout:        30 * time.Second,
 	}
 )
 
