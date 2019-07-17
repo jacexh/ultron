@@ -46,12 +46,13 @@ type (
 	Status int
 
 	baseRunner struct {
-		Config   *RunnerConfig
-		task     *Task
-		status   Status
-		cancelCh chan context.CancelFunc // worker的cancelFunc队列，用于通知结束工作
-		mu       sync.RWMutex
-		wg       sync.WaitGroup
+		Config      *RunnerConfig
+		task        *Task
+		status      Status
+		workerCount uint32
+		cancelCh    chan context.CancelFunc // worker的cancelFunc队列，用于通知结束工作
+		mu          sync.RWMutex
+		wg          sync.WaitGroup
 	}
 
 	localRunner struct {
@@ -154,12 +155,13 @@ func (lr *localRunner) Start() {
 		t := time.NewTicker(200 * time.Millisecond)
 		for range t.C {
 			sf, tf := lr.isFinishedCurrentStage()
+			if sf {
+				nextStage <- struct{}{} // 发送信号，开启下一阶段
+			}
+
 			if tf {
 				t.Stop()
 				break
-			}
-			if sf {
-				nextStage <- struct{}{} // 发送信号，开启下一阶段
 			}
 		}
 	}()
@@ -183,7 +185,6 @@ func (lr *localRunner) Start() {
 
 // hatchWorkersOnStage 每阶段增压、减压逻辑
 func (br *baseRunner) hatchWorkersOnStage(s *Stage, ch resultPipeline) {
-	var hatched int32
 	var batch int
 	var wg sync.WaitGroup
 
@@ -196,24 +197,24 @@ func (br *baseRunner) hatchWorkersOnStage(s *Stage, ch resultPipeline) {
 			wg.Add(1)
 			defer wg.Done()
 			br.hatchOrKillWorker(batches[b], ch)
-			atomic.AddInt32(&hatched, int32(batches[b]))
-			Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadInt32(&hatched)))
+			atomic.AddUint32(&br.workerCount, uint32(batches[b]))
+			Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadUint32(&br.workerCount)))
 		}(batch)
 		batch++
 	}
 
-	for batch < len(batches)-1 {
+	for batch < len(batches) {
 		select {
 		case <-ticker.C:
-			if batch >= len(batches)-1 {
+			if batch >= len(batches) {
 				break
 			}
 			go func(b int) {
 				wg.Add(1)
 				defer wg.Done()
 				br.hatchOrKillWorker(batches[b], ch)
-				atomic.AddInt32(&hatched, int32(batches[b]))
-				Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadInt32(&hatched)))
+				atomic.AddUint32(&br.workerCount, uint32(batches[b]))
+				Logger.Info(fmt.Sprintf("hatched %d workers", atomic.LoadUint32(&br.workerCount)))
 			}(batch)
 			batch++
 
@@ -308,17 +309,10 @@ func (br *baseRunner) isFinishedCurrentStage() (bool, bool) {
 	}
 
 	index, stage := br.Config.CurrentStage()
-	if stage.Requests > 0 && atomic.LoadUint64(&stage.counts) >= stage.Requests {
+	if (stage.Requests > 0 && atomic.LoadUint64(&stage.counts) >= stage.Requests) ||
+		(stage.Duration > ZeroDuration && !stage.deadline.IsZero() && time.Now().After(stage.deadline)) {
 		_, _, f := br.Config.finishCurrentStage(index)
-		if f {
-			br.Done()
-			return true, true
-		}
-		return true, false
-	}
-
-	if stage.Duration > ZeroDuration && !stage.deadline.IsZero() && time.Now().After(stage.deadline) {
-		_, _, f := br.Config.finishCurrentStage(index)
+		Logger.Info("current stage is finished")
 		if f {
 			br.Done()
 			return true, true
