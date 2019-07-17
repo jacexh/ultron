@@ -26,9 +26,10 @@ func main() {
 
 	ultron.LocalEventHook.Concurrency = 200
 	ultron.LocalRunner.WithTask(task)
-	ultron.LocalRunner.Config.Concurrence = 1000
-	ultron.LocalRunner.Config.HatchRate = 200
-	ultron.LocalRunner.Config.Duration = 1 * time.Minute
+	ultron.LocalRunner.Config.AppendStages(
+		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 1000, HatchRate: 200},
+		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 500, HatchRate: 100},
+	)
 	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
 	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
 

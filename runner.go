@@ -272,7 +272,7 @@ func (br *baseRunner) doCancelableWork(ch resultPipeline) {
 
 		select {
 		case <-ctx.Done():
-			Logger.Info("this work was canceled")
+			//Logger.Info("this work was canceled")
 			return
 		default:
 		}
@@ -293,7 +293,7 @@ func (br *baseRunner) doCancelableWork(ch resultPipeline) {
 		}
 		select {
 		case <-ctx.Done():
-			Logger.Info("this work was canceled")
+			//Logger.Info("this work was canceled")
 			return
 		default:
 		}
