@@ -140,7 +140,7 @@ func printReportToConsole(report Report) {
 				f.WriteString(op)
 			}
 		} else {
-			Logger.Error("marshel report object failed", zap.Error(err))
+			Logger.Error("marshal report object failed", zap.Error(err))
 		}
 	}
 }
