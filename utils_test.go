@@ -2,17 +2,6 @@ package ultron
 
 import "testing"
 
-func ExampleShowLogo() {
-	ShowLogo()
-	//Output:
-	//      _  _
-	//  /\ /\ | || |_  _ __   ___   _ __
-	/// / \ \| || __|| '__| / _ \ | '_ \
-	//\ \_/ /| || |_ | |   | (_) || | | |
-	//  \___/ |_| \__||_|    \___/ |_| |_|
-
-}
-
 func TestAbs(t *testing.T) {
 	type testData struct {
 		in   int
