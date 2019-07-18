@@ -34,7 +34,7 @@ type (
 
 	// FastHTTPAttacker a http attacker base on fasthttp: https://github.com/valyala/fasthttp
 	FastHTTPAttacker struct {
-		Client     *fasthttp.Client
+		Client     CommonFastHTTPClient
 		Prepare    FastHTTPPrepareFunc
 		name       string
 		CheckChain []FastHTTPResponseCheck
@@ -45,6 +45,12 @@ type (
 
 	// FastHTTPResponseCheck check fasthttp.Response
 	FastHTTPResponseCheck func(*fasthttp.Response) error
+
+	CommonFastHTTPClient interface {
+		Do(*fasthttp.Request, *fasthttp.Response) error
+		DoDeadline(*fasthttp.Request, *fasthttp.Response, time.Time) error
+		DoTimeout(*fasthttp.Request, *fasthttp.Response, time.Duration) error
+	}
 )
 
 var (
@@ -71,10 +77,10 @@ var (
 	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPAttacker
 	DefaultFastHTTPClient = &fasthttp.Client{
 		Name:                "ultron",
-		MaxConnsPerHost:     2000,
-		MaxIdleConnDuration: 90 * time.Second,
-		ReadTimeout:         90 * time.Second,
-		WriteTimeout:        60 * time.Second,
+		MaxConnsPerHost:     1000,
+		MaxIdleConnDuration: 30 * time.Second,
+		ReadTimeout:         30 * time.Second,
+		WriteTimeout:        30 * time.Second,
 	}
 )
 
@@ -145,20 +151,23 @@ func CheckHTTPStatusCode(resp *http.Response, body []byte) error {
 
 // CheckFastHTTPStatusCode check if status code >= 400
 func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
-	if code := resp.StatusCode(); code >= http.StatusBadRequest {
+	if code := resp.StatusCode(); code >= fasthttp.StatusBadRequest {
 		return fmt.Errorf("bad status code: %d", code)
 	}
 	return nil
 }
 
 // NewFastHTTPAttacker return a new instance of FastHTTPAttacker
-func NewFastHTTPAttacker(n string, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
-	return &FastHTTPAttacker{
-		Client:     DefaultFastHTTPClient,
+func NewFastHTTPAttacker(n string, client CommonFastHTTPClient, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
+	a := &FastHTTPAttacker{
 		name:       n,
 		Prepare:    p,
 		CheckChain: check,
 	}
+	if client == nil {
+		a.Client = DefaultFastHTTPClient
+	}
+	return a
 }
 
 // Name return attacker's name

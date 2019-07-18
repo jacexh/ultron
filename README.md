@@ -3,7 +3,11 @@ a http load testing tool in go
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/qastub/ultron)](https://goreportcard.com/report/github.com/qastub/ultron) [![Build Status](https://travis-ci.org/qastub/ultron.svg?branch=master)](https://travis-ci.org/qastub/ultron) [![codecov](https://codecov.io/gh/qastub/ultron/branch/master/graph/badge.svg)](https://codecov.io/gh/qastub/ultron)  [![GoDoc](https://godoc.org/github.com/qastub/ultron?status.svg)](https://godoc.org/github.com/qastub/ultron)
 
-## Example:
+## Requirements
+
+Go 1.12+
+
+## Example
 
 ### **Script**
 

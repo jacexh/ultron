@@ -6,7 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -42,6 +43,7 @@ func init() {
 	}
 
 	rand.Seed(time.Now().UnixNano())
+	ShowLogo()
 
 	LocalEventHook = newEventHook(LocalEventHookConcurrency)
 	LocalEventHook.AddReportHandleFunc(printReportToConsole)
@@ -52,6 +54,6 @@ func init() {
 	MasterEventHook.AddReportHandleFunc(printReportToConsole)
 
 	LocalRunner = newLocalRunner(newSummaryStats())
-	MasterRunner = newMasterRunner(MasterListenAddr, newSummaryStats())
-	SlaveRunner = newSlaveRunner()
+	//MasterRunner = newMasterRunner(MasterListenAddr, newSummaryStats())
+	//SlaveRunner = newSlaveRunner()
 }

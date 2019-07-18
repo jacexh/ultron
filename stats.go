@@ -16,7 +16,7 @@ const (
 	// ZeroDuration 0，用于一些特殊判断
 	ZeroDuration = time.Duration(0)
 	// StatsReportInterval 统计报表输出间隔
-	StatsReportInterval = time.Second * 5
+	StatsReportInterval = 5 * time.Second
 )
 
 type (
@@ -43,7 +43,7 @@ type (
 
 	limitedSizeMap struct {
 		content map[int64]int64
-		size int64
+		size    int64
 	}
 
 	// AttackerReport Attacker级别的报告
@@ -92,7 +92,7 @@ func timeDurationToMillisecond(t time.Duration) int64 {
 func newLimitedSizeMap(s int64) *limitedSizeMap {
 	return &limitedSizeMap{
 		content: map[int64]int64{},
-		size: s,
+		size:    s,
 	}
 }
 
@@ -101,8 +101,8 @@ func (ls *limitedSizeMap) accumulate(k, v int64) {
 	if _, ok := ls.content[k]; ok {
 		ls.content[k] += v
 	} else {
-		for key, _ := range ls.content {
-			if (k - key)  > ls.size {
+		for key := range ls.content {
+			if (k - key) > ls.size {
 				delete(ls.content, key)
 			}
 		}
@@ -306,7 +306,7 @@ func newSummaryStats() *summaryStats {
 	return &summaryStats{}
 }
 
-func (ss *summaryStats) log(ret *Result) {
+func (ss *summaryStats) record(ret *Result) {
 	val, _ := ss.nodes.LoadOrStore(ret.Name, newAttackerStats(ret.Name))
 	val.(*attackerStats).log(ret)
 }

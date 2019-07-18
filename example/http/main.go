@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	api = "http://10.0.0.30/benchmark"
+	//api = "http://10.0.0.30/benchmark"
+	api = "http://www.baidu.com"
 )
 
 func main() {

@@ -23,8 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-vendor/
 .idea/
 .vscode/
 .env
-go.sum
+vendor/
