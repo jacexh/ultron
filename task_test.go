@@ -51,3 +51,12 @@ func TestTask_NoAttacker(t *testing.T) {
 	task.Del(attacker)
 	assert.Panics(t, func() { task.pickUp() })
 }
+
+func TestTask_BadWeight(t *testing.T) {
+	task := NewTask()
+	attacker := newAttacker("hello")
+	task.Add(attacker, -1)
+	assert.Panics(t, func() {
+		task.pickUp()
+	})
+}
