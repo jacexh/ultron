@@ -139,10 +139,10 @@ func (rc *RunnerConfig) check() error {
 			Logger.Error("invalid Stage.HatchRate value, it should be equal or greater than 0 ", zap.Any("stage", sc))
 			return errors.New("invalid Stage.HatchRate")
 		}
-		if sc.Requests < 0 {
-			Logger.Error("invalid Stage.Requests value, it should be equal or greater than 0", zap.Any("stage", sc))
-			return errors.New("invalid Stage.Requests")
-		}
+		//if sc.Requests < 0 {
+		//	Logger.Error("invalid Stage.Requests value, it should be equal or greater than 0", zap.Any("stage", sc))
+		//	return errors.New("invalid Stage.Requests")
+		//}
 		// 只有最后一阶段可以不控制压测时长
 		if num < len(rc.Stages)-1 {
 			if sc.Duration == ZeroDuration && sc.Requests == 0 {
