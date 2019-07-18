@@ -29,6 +29,7 @@ func main() {
 	ultron.LocalRunner.Config.AppendStages(
 		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 1000, HatchRate: 200},
 		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 500, HatchRate: 100},
+		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 2000, HatchRate: 300},
 	)
 	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
 	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration

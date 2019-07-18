@@ -152,7 +152,7 @@ package ultron
 //	})
 //
 //	for {
-//		sl.status = StatusIdle
+//		sl.expired = StatusIdle
 //		Logger.Info("slaver: " + sl.id + " is ready")
 //		<-slaveStart //开始
 //		sl.getStart()
@@ -172,7 +172,7 @@ package ultron
 //
 //	timers := NewTimers(sl.GetStageRunningTime())
 //	Logger.Info("start to attack")
-//	sl.status = StatusBusy
+//	sl.expired = StatusBusy
 //
 //	for {
 //		select {

@@ -42,8 +42,7 @@ type (
 		Done()
 	}
 
-	// Status Runner状态
-	Status int
+	Status = uint32
 
 	baseRunner struct {
 		Config      *RunnerConfig
@@ -51,7 +50,6 @@ type (
 		status      Status
 		workerCount uint32
 		cancelCh    chan context.CancelFunc // worker的cancelFunc队列，用于通知结束工作
-		mu          sync.RWMutex
 		wg          sync.WaitGroup
 	}
 
@@ -79,15 +77,11 @@ func (br *baseRunner) GetConfig() *RunnerConfig {
 }
 
 func (br *baseRunner) Done() {
-	br.mu.Lock()
-	defer br.mu.Unlock()
-	br.status = StatusStopped
+	atomic.StoreUint32(&br.status, StatusStopped)
 }
 
 func (br *baseRunner) GetStatus() Status {
-	br.mu.RLock()
-	defer br.mu.RUnlock()
-	return br.status
+	return atomic.LoadUint32(&br.status)
 }
 
 func newLocalRunner(ss *summaryStats) *localRunner {
@@ -122,7 +116,7 @@ func (lr *localRunner) Start() {
 	lr.cancelCh = make(chan context.CancelFunc, lr.Config.findMaxConcurrence())
 
 	Logger.Info("start to attack")
-	lr.status = StatusBusy
+	atomic.StoreUint32(&lr.status, StatusBusy)
 
 	lr.once.Do(func() {
 		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
@@ -226,8 +220,13 @@ func (br *baseRunner) hatchWorkersOnStage(s *Stage, ch resultPipeline) {
 	wg.Wait()
 
 	if s.Duration > ZeroDuration {
-		s.deadline = time.Now().Add(s.Duration)
-		Logger.Info(fmt.Sprintf("current stage will retire at %s", s.deadline.String()))
+		go func(s *Stage) {
+			Logger.Info(fmt.Sprintf("current stage will expried at %s", time.Now().Add(s.Duration).String()))
+			t := time.NewTimer(s.Duration)
+			<-t.C
+			atomic.StoreUint32(&s.expired, StageExpired)
+			t.Stop()
+		}(s)
 	}
 }
 
@@ -310,7 +309,7 @@ func (br *baseRunner) isFinishedCurrentStage() (bool, bool) {
 
 	index, stage := br.Config.CurrentStage()
 	if (stage.Requests > 0 && atomic.LoadUint64(&stage.counts) >= stage.Requests) ||
-		(stage.Duration > ZeroDuration && !stage.deadline.IsZero() && time.Now().After(stage.deadline)) {
+		(atomic.LoadUint32(&stage.expired) == StageExpired) {
 		_, _, f := br.Config.finishCurrentStage(index)
 		Logger.Info("current stage is finished")
 		if f {

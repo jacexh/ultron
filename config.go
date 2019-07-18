@@ -9,7 +9,17 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// StageReady stage初始化已完成，尚未开始
+	StageReady StageStatus = iota
+	// StageExpired stage已经退出
+	StageExpired
+)
+
 type (
+	// StageStatus Stage状态
+	StageStatus = uint32
+
 	// RunnerConfig runner配置参数
 	RunnerConfig struct {
 		Duration          time.Duration `json:"duration,omitempty"`    //v2废弃，但兼容V1
@@ -31,8 +41,8 @@ type (
 		Concurrence         int           `json:"concurrence"`          // 阶段目标并发数
 		previousConcurrence int           `json:"-"`                    // 前一阶段并发数
 		HatchRate           int           `json:"hatch_rate,omitempty"` // 阶段增压/降压频率，为0不表示不控制，对于降压阶段，无需使用负数来表示降压频率
-		deadline            time.Time     `json:"-"`                    // 该阶段结束时间
 		counts              uint64        `json:"-"`                    // 该阶段实际请求总数
+		expired             StageStatus   `json:"-"`                    // 该阶段是否已经结束，根据Duration来判断
 	}
 )
 

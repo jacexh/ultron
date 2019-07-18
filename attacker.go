@@ -138,15 +138,15 @@ func (ha *HTTPAttacker) Fire() error {
 // CheckHTTPStatusCode 检查状态码是否>=400, 如果是则视为请求失败
 func CheckHTTPStatusCode(resp *http.Response, body []byte) error {
 	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("bad status code: %d", resp.StatusCode)
+		return fmt.Errorf("bad expired code: %d", resp.StatusCode)
 	}
 	return nil
 }
 
-// CheckFastHTTPStatusCode check if status code >= 400
+// CheckFastHTTPStatusCode check if expired code >= 400
 func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
 	if code := resp.StatusCode(); code >= http.StatusBadRequest {
-		return fmt.Errorf("bad status code: %d", code)
+		return fmt.Errorf("bad expired code: %d", code)
 	}
 	return nil
 }
