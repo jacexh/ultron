@@ -243,41 +243,41 @@ func (sc *Stage) hatchWorkerCounts() []int {
 	return ret
 }
 
-// split todo: 如此切割各个node的的请求数不够均衡，应当按stage来切割
-func (rc *RunnerConfig) split(n int) []*RunnerConfig {
-	rc.initialized.Do(rc.initialization)
-
-	var ret []*RunnerConfig
-	var stageconfig [][]*Stage
-
-	//err := rc.check()
-	//if err != nil {
-	//	Logger.Error("bad RunnerConfig", zap.Error(err))
-	//}
-	req := split(rc.Requests, uint64(n))
-
-	for _, stage := range rc.Stages {
-		stp := stage.split(n)
-		for i := range stp {
-			stageconfig = append(stageconfig, []*Stage{})
-			stageconfig[i] = append(stageconfig[i], stp[i])
-		}
-	}
-
-	for i := 0; i < n; i++ {
-		r := &RunnerConfig{
-			Duration:    rc.Duration,
-			Concurrence: rc.Concurrence,
-			HatchRate:   rc.HatchRate,
-			MinWait:     rc.MinWait,
-			MaxWait:     rc.MaxWait,
-		}
-		r.Requests = req[i]
-		r.Stages = stageconfig[i]
-		ret = append(ret, r)
-	}
-	return ret
-}
+//// split todo: 如此切割各个node的的请求数不够均衡，应当按stage来切割
+//func (rc *RunnerConfig) split(n int) []*RunnerConfig {
+//	rc.initialized.Do(rc.initialization)
+//
+//	var ret []*RunnerConfig
+//	var stageconfig [][]*Stage
+//
+//	//err := rc.check()
+//	//if err != nil {
+//	//	Logger.Error("bad RunnerConfig", zap.Error(err))
+//	//}
+//	req := split(rc.Requests, uint64(n))
+//
+//	for _, stage := range rc.Stages {
+//		stp := stage.split(n)
+//		for i := range stp {
+//			stageconfig = append(stageconfig, []*Stage{})
+//			stageconfig[i] = append(stageconfig[i], stp[i])
+//		}
+//	}
+//
+//	for i := 0; i < n; i++ {
+//		r := &RunnerConfig{
+//			Duration:    rc.Duration,
+//			Concurrence: rc.Concurrence,
+//			HatchRate:   rc.HatchRate,
+//			MinWait:     rc.MinWait,
+//			MaxWait:     rc.MaxWait,
+//		}
+//		r.Requests = req[i]
+//		r.Stages = stageconfig[i]
+//		ret = append(ret, r)
+//	}
+//	return ret
+//}
 
 // NewStage 实例化Stage
 func NewStage() *Stage {
@@ -289,48 +289,48 @@ func NewStage() *Stage {
 	}
 }
 
-func (sc *Stage) split(n int) []*Stage {
-	//n <= 0时，会返回空[]*Stage
-	var ret []*Stage
-	c := split(uint64(sc.Concurrence), uint64(n))
-	h := split(uint64(sc.HatchRate), uint64(n))
-	r := split(uint64(sc.Requests), uint64(n))
+//func (sc *Stage) split(n int) []*Stage {
+//	//n <= 0时，会返回空[]*Stage
+//	var ret []*Stage
+//	c := split(uint64(sc.Concurrence), uint64(n))
+//	h := split(uint64(sc.HatchRate), uint64(n))
+//	r := split(uint64(sc.Requests), uint64(n))
+//
+//	for i := 0; i < n; i++ {
+//		s := &Stage{
+//			Duration: sc.Duration,
+//		}
+//		if sc.Concurrence == 0 {
+//			s.Concurrence = 0
+//		} else {
+//			s.Concurrence = int(c[i])
+//		}
+//
+//		if sc.HatchRate == 0 {
+//			s.HatchRate = 0
+//		} else {
+//			s.HatchRate = int(h[i])
+//		}
+//		if sc.Requests == 0 {
+//			s.Requests = 0
+//		} else {
+//			s.Requests = r[i]
+//		}
+//		ret = append(ret, s)
+//	}
+//	return ret
+//}
 
-	for i := 0; i < n; i++ {
-		s := &Stage{
-			Duration: sc.Duration,
-		}
-		if sc.Concurrence == 0 {
-			s.Concurrence = 0
-		} else {
-			s.Concurrence = int(c[i])
-		}
-
-		if sc.HatchRate == 0 {
-			s.HatchRate = 0
-		} else {
-			s.HatchRate = int(h[i])
-		}
-		if sc.Requests == 0 {
-			s.Requests = 0
-		} else {
-			s.Requests = r[i]
-		}
-		ret = append(ret, s)
-	}
-	return ret
-}
-
-func split(total uint64, n uint64) []uint64 {
-	if n <= 1 {
-		return []uint64{total}
-	}
-
-	var ret []uint64
-	size := total / n
-	for k := uint64(0); k < n; k++ {
-		ret = append(ret, size)
-	}
-	ret[n-1] += total % n
-	return ret
-}
+//func split(total uint64, n uint64) []uint64 {
+//	if n <= 1 {
+//		return []uint64{total}
+//	}
+//
+//	var ret []uint64
+//	size := total / n
+//	for k := uint64(0); k < n; k++ {
+//		ret = append(ret, size)
+//	}
+//	ret[n-1] += total % n
+//	return ret
+//}

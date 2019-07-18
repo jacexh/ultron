@@ -257,3 +257,19 @@ func TestHTTPAttacker_CheckError(t *testing.T) {
 	attacker.Client = client
 	assert.EqualError(t, attacker.Fire(), "check failure")
 }
+
+func TestHTTPAttacker_CheckNil(t *testing.T) {
+	p := new(mockPrepareFunc)
+	p.On("httpPrepare").Return(&http.Request{}, nil)
+
+	res, _ := http.Get("https://www.baidu.com")
+
+	client := new(mockHTTPClient)
+	client.On("Do", &http.Request{}).Return(res, nil)
+	attacker := NewHTTPAttacker(
+		"foobar",
+		p.httpPrepare,
+		nil)
+	attacker.Client = client
+	assert.Nil(t, attacker.Fire())
+}
