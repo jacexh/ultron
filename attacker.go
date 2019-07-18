@@ -160,6 +160,7 @@ func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
 // NewFastHTTPAttacker return a new instance of FastHTTPAttacker
 func NewFastHTTPAttacker(n string, client CommonFastHTTPClient, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
 	a := &FastHTTPAttacker{
+		Client:     client,
 		name:       n,
 		Prepare:    p,
 		CheckChain: check,
