@@ -26,7 +26,7 @@ type (
 
 	// HTTPAttacker http协议的Attacker实现
 	HTTPAttacker struct {
-		Client     *http.Client
+		Client     CommonHTTPClient
 		Prepare    HTTPPrepareFunc
 		name       string
 		CheckChain []HTTPResponseCheck
@@ -50,6 +50,10 @@ type (
 		Do(*fasthttp.Request, *fasthttp.Response) error
 		DoDeadline(*fasthttp.Request, *fasthttp.Response, time.Time) error
 		DoTimeout(*fasthttp.Request, *fasthttp.Response, time.Duration) error
+	}
+
+	CommonHTTPClient interface {
+		Do(r *http.Request) (*http.Response, error)
 	}
 )
 
@@ -158,15 +162,12 @@ func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
 }
 
 // NewFastHTTPAttacker return a new instance of FastHTTPAttacker
-func NewFastHTTPAttacker(n string, client CommonFastHTTPClient, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
+func NewFastHTTPAttacker(n string, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
 	a := &FastHTTPAttacker{
-		Client:     client,
+		Client:     DefaultFastHTTPClient,
 		name:       n,
 		Prepare:    p,
 		CheckChain: check,
-	}
-	if client == nil {
-		a.Client = DefaultFastHTTPClient
 	}
 	return a
 }
@@ -196,6 +197,9 @@ func (fa *FastHTTPAttacker) Fire() error {
 	}
 
 	for _, c := range fa.CheckChain {
+		if c == nil {
+			continue
+		}
 		if err := c(resp); err != nil {
 			return err
 		}
