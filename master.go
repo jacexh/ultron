@@ -169,7 +169,7 @@ package ultron
 //		}
 //
 //		Logger.Info("attack")
-//		mr.expired = StatusBusy
+//		mr.status = StatusBusy
 //		mr.counts = 0
 //		//mr.Deadline = time.Time{}
 //
