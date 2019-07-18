@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -69,4 +70,25 @@ func TestAttackerStatistics_logSuccess(t *testing.T) {
 	assert.EqualValues(t, stats.totalResponseTime, 30*time.Millisecond)
 	assert.EqualValues(t, stats.numRequests, 2)
 	assert.EqualValues(t, 2, len(stats.trendSuccess.content))
+
+	ret = &Result{Name: name, Duration: int64(5 * time.Millisecond)}
+	stats.log(ret)
+	assert.True(t, stats.lastRequestTime.After(stats.startTime))
+	assert.EqualValues(t, stats.minResponseTime, 5*time.Millisecond)
+	assert.EqualValues(t, stats.totalResponseTime, 35*time.Millisecond)
+	assert.EqualValues(t, stats.numRequests, 3)
+}
+
+func TestAttackerStatistics_logFailure(t *testing.T) {
+	name := "foobar"
+	stats := newAttackerStatistics(name)
+
+	ret := &Result{Name: name, Duration: int64(10 * time.Millisecond), Error: newAttackerError(name, errors.New("error"))}
+	stats.log(ret)
+	assert.False(t, stats.startTime.IsZero())
+	assert.Equal(t, stats.startTime, stats.lastRequestTime)
+	assert.EqualValues(t, 1, stats.numFailures)
+	assert.EqualValues(t, 0, stats.numRequests)
+	assert.EqualValues(t, 1, stats.failuresTimes["error"])
+	assert.EqualValues(t, 1, len(stats.trendFailures.content))
 }
