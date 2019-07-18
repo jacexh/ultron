@@ -90,8 +90,7 @@ func (rc *RunnerConfig) block() {
 	if rc.MinWait == ZeroDuration && rc.MaxWait == ZeroDuration {
 		return
 	}
-
-	time.Sleep(rc.MinWait + time.Duration(rand.Int63n(int64(rc.MaxWait-rc.MinWait))+1))
+	time.Sleep(rc.MinWait + time.Duration(rand.Int63n(int64(rc.MaxWait-rc.MinWait)+1)))
 }
 
 // initialization 负责将默认的RunnerConfig转换成StageConfig
@@ -148,7 +147,7 @@ func (rc *RunnerConfig) check() error {
 		if num < len(rc.Stages)-1 {
 			if sc.Duration == ZeroDuration && sc.Requests == 0 {
 				Logger.Error("invalid Stage.Duration/Requests value of stage, it should be equal or greater than 0", zap.Any("stage", sc))
-				return errors.New("invalid concurrency/requests value")
+				return errors.New("cannot break current stage")
 			}
 		}
 	}
