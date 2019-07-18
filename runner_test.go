@@ -15,10 +15,10 @@ func Test_newBaseRunner(t *testing.T) {
 	baserunner := newBaseRunner()
 	fmt.Println(baserunner)
 
-	stageConfig1 := NewStage(5*time.Minute, 1000, 225)
-	stageConfig2 := NewStage(1*time.Hour, 12300, 500)
+	stageConfig1 := NewStage()
+	stageConfig2 := NewStage()
 	runnerConfig := NewRunnerConfig()
-	runnerConfig.AppendStages(stageConfig1).AppendStages(stageConfig2)
+	runnerConfig.AppendStage(stageConfig1).AppendStage(stageConfig2)
 
 	if err := runnerConfig.check(); err != nil {
 		t.Error(err)

@@ -100,6 +100,7 @@ func checkRunner(br *baseRunner) error {
 	if err := br.Config.check(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

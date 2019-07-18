@@ -29,7 +29,7 @@ func (ep *mockPrepareFunc) httpPrepare() (*http.Request, error) {
 }
 
 func TestNewFastHTTPAttacker(t *testing.T) {
-	attacker := NewFastHTTPAttacker("hello", nil)
+	attacker := NewFastHTTPAttacker("hello", nil, nil)
 	assert.NotNil(t, attacker)
 	assert.Equal(t, attacker.Name(), "hello")
 	assert.Nil(t, attacker.CheckChain)
@@ -38,20 +38,20 @@ func TestNewFastHTTPAttacker(t *testing.T) {
 
 func TestFastHTTPAttacker_Name(t *testing.T) {
 	name := "hello"
-	attacker := NewFastHTTPAttacker(name, nil)
+	attacker := NewFastHTTPAttacker(name, nil, nil)
 	assert.Equal(t, attacker.Name(), name)
 }
 
 func TestFastHTTPAttacker_Fire_NoPrepare(t *testing.T) {
 	assert.Panics(t,
-		func() { NewFastHTTPAttacker("hello", nil).Fire() },
+		func() { NewFastHTTPAttacker("hello", nil, nil).Fire() },
 	)
 }
 
 func TestFastHTTPAttacker_Fire_PrepareError(t *testing.T) {
 	p := new(mockPrepareFunc)
 	p.On("fastHTTPPrepare", fasthttp.AcquireRequest()).Return(errors.New("bad prepare func"))
-	attacker := NewFastHTTPAttacker("hello", p.fastHTTPPrepare)
+	attacker := NewFastHTTPAttacker("hello", nil, p.fastHTTPPrepare)
 
 	assert.EqualError(t, attacker.Fire(), "bad prepare func")
 }

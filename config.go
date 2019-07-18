@@ -121,9 +121,14 @@ func (rc *RunnerConfig) check() error {
 	// 兼容原配置文件，自动填充StageConfig
 	rc.initialized.Do(rc.initialization)
 
-	if (rc.Stages == nil || len(rc.Stages) == 0) && rc.Concurrence <= 0 {
-		Logger.Error("invalid RunnerConfig value", zap.Any("runnerConfig", rc))
-		return errors.New("invalid RunnerConfig")
+	if rc.MinWait < ZeroDuration || rc.MaxWait < ZeroDuration || rc.MinWait > rc.MaxWait {
+		Logger.Error("bad RunnerConfig.MinWait or RunnerConfig.MaxWait", zap.Any("runnerConfig", rc))
+		return errors.New("invalid RunnerConfig.MinWait/MaxWait")
+	}
+
+	if rc.Stages == nil || len(rc.Stages) == 0 {
+		Logger.Error("invalid RunnerConfig.Stages value", zap.Any("runnerConfig", rc))
+		return errors.New("invalid RunnerConfig.Stages")
 	}
 
 	for num, sc := range rc.Stages {
