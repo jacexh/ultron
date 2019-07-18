@@ -15,7 +15,7 @@ func (b benchmark) Name() string {
 }
 
 func (b benchmark) Fire() error {
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(10 * time.Millisecond)
 	return nil
 }
 
