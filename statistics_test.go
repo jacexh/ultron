@@ -166,7 +166,7 @@ func TestAttackerStatistics_failRation(t *testing.T) {
 func TestAttackerStatistics_report(t *testing.T) {
 	stats := newAttackerStatistics("foobar")
 	stats.log(newResult("foobar", 1*time.Millisecond, nil))
-	rep := stats.report(true)
+	rep := stats.report(false)
 	assert.NotNil(t, rep)
 }
 
