@@ -134,7 +134,7 @@ func TestAttackerStatistics_max(t *testing.T) {
 	stats.log(newResult("foobar", 100*time.Second, nil))
 	stats.log(newResult("foobar", 10*time.Millisecond, nil))
 	stats.log(newResult("foobar", 101*time.Second, errors.New("bad")))
-	assert.Equal(t, stats.min(), 100*time.Second)
+	assert.Equal(t, stats.max(), 100*time.Second)
 }
 
 func TestAttackerStatistics_avg(t *testing.T) {
@@ -168,4 +168,46 @@ func TestAttackerStatistics_report(t *testing.T) {
 	stats.log(newResult("foobar", 1*time.Millisecond, nil))
 	rep := stats.report(true)
 	assert.NotNil(t, rep)
+}
+
+func TestSummaryStatistics_record(t *testing.T) {
+	ss := newSummaryStats()
+	ss.record(newResult("foobar", 10*time.Millisecond, nil))
+	var exists bool
+	ss.nodes.Range(func(key, value interface{}) bool {
+		if key.(string) == "foobar" {
+			exists = true
+			return false
+		}
+		return true
+	})
+
+	assert.True(t, exists)
+}
+
+func TestSummaryStatistics_report(t *testing.T) {
+	ss := newSummaryStats()
+	ss.record(newResult("foobar", 10*time.Millisecond, nil))
+	rep := ss.report(true)
+	_, ok := rep["foobar"]
+	assert.True(t, ok)
+}
+
+func TestSummaryStatistics_rest(t *testing.T) {
+	ss := newSummaryStats()
+	ss.record(newResult("foobar", 10*time.Millisecond, nil))
+	var counts int
+	ss.nodes.Range(func(key, value interface{}) bool {
+		counts++
+		return true
+	})
+	assert.EqualValues(t, counts, 1)
+
+	counts = 0
+	ss.reset()
+	ss.nodes.Range(func(key, value interface{}) bool {
+		counts++
+		return true
+	})
+	assert.EqualValues(t, counts, 0)
 }
