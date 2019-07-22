@@ -92,3 +92,80 @@ func TestAttackerStatistics_logFailure(t *testing.T) {
 	assert.EqualValues(t, 1, stats.failuresTimes["error"])
 	assert.EqualValues(t, 1, len(stats.trendFailures.content))
 }
+
+func TestAttackerStatistics_totalQPS(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.logSuccess(newResult("foobar", 100*time.Millisecond, nil))
+	stats.logSuccess(newResult("foobar", 100*time.Millisecond, nil))
+	assert.True(t, stats.totalQPS() > 0)
+}
+
+func TestAttackerStatistics_totalQPSNoSucceed(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.logFailure(newResult("foobar", 100*time.Millisecond, newAttackerError("foobar", errors.New("bad"))))
+	stats.logFailure(newResult("foobar", 100*time.Millisecond, newAttackerError("foobar", errors.New("bad"))))
+	assert.EqualValues(t, 0, stats.totalQPS())
+}
+
+func TestAttackerStatistics_currentQPSNoRequests(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	assert.EqualValues(t, 0, stats.currentQPS())
+}
+
+func TestAttackerStatistics_currentQPSToLastSecond(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 100*time.Millisecond, nil))
+	time.Sleep(1 * time.Second)
+	stats.log(newResult("foobar", 100*time.Millisecond, nil))
+	assert.EqualValues(t, 1, stats.currentQPS())
+
+}
+
+func TestAttackerStatistics_min(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 100*time.Second, nil))
+	stats.log(newResult("foobar", 10*time.Millisecond, nil))
+	stats.log(newResult("foobar", time.Millisecond, errors.New("bad")))
+	assert.Equal(t, stats.min(), 10*time.Millisecond)
+}
+
+func TestAttackerStatistics_max(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 100*time.Second, nil))
+	stats.log(newResult("foobar", 10*time.Millisecond, nil))
+	stats.log(newResult("foobar", 101*time.Second, errors.New("bad")))
+	assert.Equal(t, stats.min(), 100*time.Second)
+}
+
+func TestAttackerStatistics_avg(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	assert.EqualValues(t, 0, stats.average())
+
+	stats.log(newResult("foobar", 1*time.Millisecond, nil))
+	stats.log(newResult("foobar", 3*time.Millisecond, nil))
+	assert.Equal(t, stats.average(), 2*time.Millisecond)
+}
+
+func TestAttackerStatistics_median(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 1*time.Millisecond, nil))
+	stats.log(newResult("foobar", 2*time.Millisecond, nil))
+	stats.log(newResult("foobar", 5*time.Millisecond, nil))
+	assert.Equal(t, stats.median(), 2*time.Millisecond)
+}
+
+func TestAttackerStatistics_failRation(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 1*time.Millisecond, nil))
+	assert.EqualValues(t, stats.failRatio(), 0)
+
+	stats.log(newResult("foobar", 1*time.Millisecond, errors.New("bad")))
+	assert.EqualValues(t, stats.failRatio(), 0.5)
+}
+
+func TestAttackerStatistics_report(t *testing.T) {
+	stats := newAttackerStatistics("foobar")
+	stats.log(newResult("foobar", 1*time.Millisecond, nil))
+	rep := stats.report(true)
+	assert.NotNil(t, rep)
+}
