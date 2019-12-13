@@ -1,6 +1,8 @@
 package ultron
 
 import (
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -9,7 +11,8 @@ import (
 
 type (
 	toTestAttacker struct {
-		name string
+		name   string
+		counts uint32
 	}
 )
 
@@ -23,17 +26,29 @@ func (t *toTestAttacker) Name() string {
 
 func (t *toTestAttacker) Fire() error {
 	time.Sleep(time.Millisecond)
+	atomic.AddUint32(&t.counts, 1)
 	return nil
 }
 
 func BenchmarkPickUp(b *testing.B) {
 	task := NewTask()
-	task.Add(newAttacker("a"), 10)
-	task.Add(newAttacker("b"), 20)
-	task.Add(newAttacker("c"), 3)
+	a := newAttacker("a")
+	d := newAttacker("d")
+	c := newAttacker("c")
+	task.Add(a, 10)
+	task.Add(d, 20)
+	task.Add(c, 3)
 	for i := 0; i < b.N; i++ {
-		task.pickUp()
+		switch task.pickUp() {
+		case a:
+			atomic.AddUint32(&a.counts, 1)
+		case d:
+			atomic.AddUint32(&d.counts, 1)
+		case c:
+			atomic.AddUint32(&c.counts, 1)
+		}
 	}
+	fmt.Printf("%d - %d - %d\n", a.counts, d.counts, c.counts)
 }
 
 func TestTask_Add(t *testing.T) {
