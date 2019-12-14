@@ -1,0 +1,6 @@
+ignore:
+  - "err.go"
+  - "event.go"
+  - "grpc.pb.go"
+  - "init.go"
+  - "pipeline.go"

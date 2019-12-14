@@ -54,7 +54,7 @@ type (
 	}
 
 	localRunner struct {
-		stats *summaryStats
+		stats *summaryStatistics
 		once  sync.Once
 		*baseRunner
 	}
@@ -84,7 +84,7 @@ func (br *baseRunner) GetStatus() Status {
 	return atomic.LoadUint32(&br.status)
 }
 
-func newLocalRunner(ss *summaryStats) *localRunner {
+func newLocalRunner(ss *summaryStatistics) *localRunner {
 	return &localRunner{stats: ss, baseRunner: newBaseRunner()}
 }
 

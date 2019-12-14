@@ -20,7 +20,7 @@ const (
 )
 
 type (
-	attackerStats struct {
+	attackerStatistics struct {
 		name              string                       // 统计对象名称
 		numRequests       int64                        // 成功请求次数
 		numFailures       int64                        // 失败次数
@@ -37,7 +37,7 @@ type (
 		lock              sync.RWMutex
 	}
 
-	summaryStats struct {
+	summaryStatistics struct {
 		nodes sync.Map
 	}
 
@@ -110,8 +110,8 @@ func (ls *limitedSizeMap) accumulate(k, v int64) {
 	}
 }
 
-func newAttackerStats(n string) *attackerStats {
-	return &attackerStats{
+func newAttackerStatistics(n string) *attackerStatistics {
+	return &attackerStatistics{
 		name:          n,
 		trendSuccess:  newLimitedSizeMap(20),
 		trendFailures: newLimitedSizeMap(20),
@@ -121,7 +121,7 @@ func newAttackerStats(n string) *attackerStats {
 	}
 }
 
-func (as *attackerStats) logSuccess(ret *Result) {
+func (as *attackerStatistics) logSuccess(ret *Result) {
 	as.lock.Lock()
 	defer as.lock.Unlock()
 
@@ -148,7 +148,7 @@ func (as *attackerStats) logSuccess(ret *Result) {
 	as.responseTimes[timeDurationToRoundedMillisecond(t)]++
 }
 
-func (as *attackerStats) log(ret *Result) {
+func (as *attackerStatistics) log(ret *Result) {
 	if ret.Error == nil {
 		as.logSuccess(ret) // 请求成功
 		return
@@ -156,7 +156,7 @@ func (as *attackerStats) log(ret *Result) {
 	as.logFailure(ret) // 请求失败
 }
 
-func (as *attackerStats) logFailure(ret *Result) {
+func (as *attackerStatistics) logFailure(ret *Result) {
 	as.lock.Lock()
 	defer as.lock.Unlock()
 
@@ -169,17 +169,16 @@ func (as *attackerStats) logFailure(ret *Result) {
 
 	atomic.AddInt64(&as.numFailures, 1)
 	as.failuresTimes[ret.Error.Error()]++
-	//as.trendFailures[now.Unix()]++
 	as.trendFailures.accumulate(now.Unix(), 1)
 }
 
 // totalQPS 获取总的QPS
-func (as *attackerStats) totalQPS() float64 {
+func (as *attackerStatistics) totalQPS() float64 {
 	return float64(as.numRequests) / as.lastRequestTime.Sub(as.startTime).Seconds()
 }
 
 // currentQPS 最近12秒的QPS
-func (as *attackerStats) currentQPS() float64 {
+func (as *attackerStatistics) currentQPS() float64 {
 	if as.startTime.IsZero() || as.lastRequestTime.IsZero() {
 		return 0
 	}
@@ -206,7 +205,7 @@ func (as *attackerStats) currentQPS() float64 {
 }
 
 // percentile 获取x%的响应时间
-func (as *attackerStats) percentile(f float64) time.Duration {
+func (as *attackerStatistics) percentile(f float64) time.Duration {
 	if f <= 0.0 {
 		return as.minResponseTime
 	}
@@ -240,17 +239,17 @@ func (as *attackerStats) percentile(f float64) time.Duration {
 }
 
 // min 最快响应时间
-func (as *attackerStats) min() time.Duration {
+func (as *attackerStatistics) min() time.Duration {
 	return as.minResponseTime
 }
 
 // max 最慢响应时间
-func (as *attackerStats) max() time.Duration {
+func (as *attackerStatistics) max() time.Duration {
 	return as.maxResponseTime
 }
 
 // average 平均响应时间
-func (as *attackerStats) average() time.Duration {
+func (as *attackerStatistics) average() time.Duration {
 	if as.numRequests == 0 {
 		return ZeroDuration
 	}
@@ -258,12 +257,12 @@ func (as *attackerStats) average() time.Duration {
 }
 
 // median 响应时间中位数
-func (as *attackerStats) median() time.Duration {
+func (as *attackerStatistics) median() time.Duration {
 	return as.percentile(.5)
 }
 
 // failRatio 错误率
-func (as *attackerStats) failRatio() float64 {
+func (as *attackerStatistics) failRatio() float64 {
 	total := as.numFailures + as.numRequests
 	if total == 0 {
 		return 0.0
@@ -272,7 +271,7 @@ func (as *attackerStats) failRatio() float64 {
 }
 
 // report 打印统计结果
-func (as *attackerStats) report(full bool) *AttackerReport {
+func (as *attackerStatistics) report(full bool) *AttackerReport {
 	as.lock.RLock()
 	defer as.lock.RUnlock()
 
@@ -302,28 +301,28 @@ func (as *attackerStats) report(full bool) *AttackerReport {
 	return r
 }
 
-func newSummaryStats() *summaryStats {
-	return &summaryStats{}
+func newSummaryStats() *summaryStatistics {
+	return &summaryStatistics{}
 }
 
-func (ss *summaryStats) record(ret *Result) {
-	val, _ := ss.nodes.LoadOrStore(ret.Name, newAttackerStats(ret.Name))
-	val.(*attackerStats).log(ret)
+func (ss *summaryStatistics) record(ret *Result) {
+	val, _ := ss.nodes.LoadOrStore(ret.Name, newAttackerStatistics(ret.Name))
+	val.(*attackerStatistics).log(ret)
 }
 
-func (ss *summaryStats) report(full bool) Report {
+func (ss *summaryStatistics) report(full bool) Report {
 	rep := map[string]*AttackerReport{}
 
 	ss.nodes.Range(func(key, value interface{}) bool {
-		rep[key.(string)] = value.(*attackerStats).report(full)
+		rep[key.(string)] = value.(*attackerStatistics).report(full)
 		return true
 	})
 
 	return rep
 }
 
-// summaryStats 重置所有统计
-func (ss *summaryStats) reset() {
+// summaryStatistics 重置所有统计
+func (ss *summaryStatistics) reset() {
 	ss.nodes.Range(func(key, value interface{}) bool {
 		ss.nodes.Delete(key)
 		return true
