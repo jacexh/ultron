@@ -3,14 +3,17 @@ package ultron
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 type (
 	// Task Attacker集合
 	Task struct {
 		attackers   []*smoothAttack
-		totalWeight int
-		mu          sync.RWMutex
+		totalWeight uint64
+		once        sync.Once
+		counts      uint64
+		preempted   []Attacker
 	}
 
 	// smoothAttack 平滑的加权请求
@@ -33,7 +36,7 @@ func (t *Task) Add(a Attacker, weight int) {
 		return
 	}
 
-	t.totalWeight += weight
+	t.totalWeight += uint64(weight)
 	sa := &smoothAttack{attacker: a, weight: weight}
 	t.attackers = append(t.attackers, sa)
 }
@@ -50,17 +53,15 @@ func (t *Task) Del(a Attacker) {
 			default:
 				t.attackers = append(t.attackers[:i], t.attackers[i+1:]...)
 			}
-			t.totalWeight -= attacker.weight
+			t.totalWeight -= uint64(attacker.weight)
 			return
 		}
 	}
 }
 
-// pickUp 按照权重获取attacker
-func (t *Task) pickUp() Attacker {
+func (t *Task) smoothWeigh() Attacker {
 	maxIndex := 0
 	maxWeight := 0
-	t.mu.Lock()
 	for i, attacker := range t.attackers {
 		attacker.currentWeight += attacker.weight
 		if attacker.currentWeight > maxWeight {
@@ -69,7 +70,19 @@ func (t *Task) pickUp() Attacker {
 		}
 	}
 	sa := t.attackers[maxIndex]
-	sa.currentWeight -= t.totalWeight
-	t.mu.Unlock()
+	sa.currentWeight -= int(t.totalWeight)
 	return sa.attacker
+}
+
+// pickUp 按照权重获取attacker
+func (t *Task) pickUp() Attacker {
+	t.once.Do(func() {
+		t.preempted = make([]Attacker, int(t.totalWeight))
+		for i := 0; i < int(t.totalWeight); i++ {
+			t.preempted[i] = t.smoothWeigh()
+		}
+	})
+	attacker := t.preempted[atomic.LoadUint64(&t.counts)%t.totalWeight]
+	atomic.AddUint64(&t.counts, 1)
+	return attacker
 }

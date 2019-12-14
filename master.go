@@ -22,7 +22,7 @@ package ultron
 //		Listener net.Listener
 //		serv     *grpc.Server
 //		once     sync.Once
-//		stats    *summaryStats
+//		stats    *summaryStatistics
 //		*baseRunner
 //	}
 //
@@ -59,7 +59,7 @@ package ultron
 //	}
 //}
 //
-//func newMasterRunner(addr string, ss *summaryStats) *masterRunner {
+//func newMasterRunner(addr string, ss *summaryStatistics) *masterRunner {
 //	return &masterRunner{
 //		addr:       addr,
 //		stats:      ss,
