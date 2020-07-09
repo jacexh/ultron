@@ -3,8 +3,7 @@ on:
     branches:
     - master
     tags:
-    - 1.*
-    - 2.*
+    - v*
   pull_request:
     branches:
     - master
