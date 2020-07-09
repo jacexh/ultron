@@ -2,8 +2,8 @@
 a http load testing tool in go
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/wosai/ultron)](https://goreportcard.com/report/github.com/wosai/ultron) 
-[![Build Status](https://travis-ci.org/qastub/ultron.svg?branch=master)](https://travis-ci.org/qastub/ultron) 
-[![codecov](https://codecov.io/gh/wosai/ultron/branch/master/graph/badge.svg)](https://codecov.io/gh/wosai/ultron)  
+![.github/workflows/ci.yml](https://github.com/WoSai/ultron/workflows/.github/workflows/ci.yml/badge.svg)
+[![codecov](https://codecov.io/gh/wosai/ultron/branch/master/graph/badge.svg)](https://codecov.io/gh/wosai/ultron) 
 [![GoDoc](https://godoc.org/github.com/wosai/ultron?status.svg)](https://godoc.org/github.com/wosai/ultron)
 
 ## Requirements
