@@ -1,4 +1,4 @@
-on: [pull_request, pull]
+on: [pull_request, push]
 
 jobs:
   build:
