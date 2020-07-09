@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/qastub/ultron"
+	"github.com/wosai/ultron"
 	"go.uber.org/zap"
 )
 

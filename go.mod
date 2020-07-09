@@ -1,4 +1,4 @@
-module github.com/qastub/ultron
+module github.com/wosai/ultron
 
 require (
 	github.com/golang/protobuf v1.2.0

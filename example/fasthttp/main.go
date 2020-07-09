@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/qastub/ultron"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/ultron"
 )
 
 const (

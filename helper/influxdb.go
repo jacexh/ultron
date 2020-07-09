@@ -5,7 +5,7 @@ import (
 	"time"
 
 	influx "github.com/influxdata/influxdb1-client/v2"
-	"github.com/qastub/ultron"
+	"github.com/wosai/ultron"
 )
 
 type (

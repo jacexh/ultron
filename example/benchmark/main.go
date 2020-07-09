@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/qastub/ultron"
+	"github.com/wosai/ultron"
 )
 
 type (
