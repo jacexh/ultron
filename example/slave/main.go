@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/qastub/ultron"
+	"github.com/wosai/ultron"
 	"google.golang.org/grpc"
 )
 
