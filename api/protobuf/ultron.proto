@@ -1,0 +1,53 @@
+syntax = "proto3";
+package service;
+option go_package = "github.com/wosai/ultron/pkg/service";
+
+service UltronService {
+    rpc Subscribe(SlaveInfo) returns (stream Event) {}
+    rpc SendUp(Report) returns (ReportResult) {}
+}
+
+message SlaveInfo {
+    string id = 1;
+    string version = 2;
+}
+
+message Event {
+    enum Type {
+        PING = 0;
+        CONNECTED = 1;
+        DISCONNECTED = 2;
+
+        JOB_STARTED = 10;
+        JOB_FINISHED = 11;
+
+        REFRESH_CONFIG = 20;
+    }
+    Type type = 1;
+    oneof data {
+        StageConfig stage_config = 2;
+    };
+}
+
+message StageConfig {
+    string job_id = 1;
+    uint32 concurrence = 2;
+    int32 hatch_rate = 3;
+}
+
+message Report {
+    string job_id = 1;
+    string batch_id = 2;
+}
+
+message ReportResult {
+    enum Result {
+        ACCEPTED = 0;
+        BATCH_EXPIRED = 1;
+        UNKNOWN_JOB = 2;
+        UNKNOWN_BATCH = 3;
+    }
+    string job_id = 1;
+    string batch_id = 2;
+    Result result = 3;
+}
