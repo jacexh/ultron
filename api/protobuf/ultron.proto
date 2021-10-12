@@ -5,13 +5,12 @@ package wosai.ultron;
 option go_package = "github.com/wosai/ultron/pkg/rpc";
 
 service UltronService {
-    rpc Subscribe(SlaveInfo) returns (stream Event) {}
-    rpc SendUp(Report) returns (ReportResult) {}
+    rpc Subscribe(Session) returns (stream Event) {}
+    rpc SendUp(StatisticalReport) returns (Feedback) {}
 }
 
-message SlaveInfo {
-    string id = 1;
-    string version = 2;
+message Session {
+    string slave_id = 1;
 }
 
 message Event {
@@ -37,12 +36,12 @@ message StageConfig {
     int32 hatch_rate = 3;
 }
 
-message Report {
+message StatisticalReport {
     string job_id = 1;
     string batch_id = 2;
 }
 
-message ReportResult {
+message Feedback {
     enum Result {
         ACCEPTED = 0;
         BATCH_EXPIRED = 1;

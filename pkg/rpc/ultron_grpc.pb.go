@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UltronServiceClient interface {
-	Subscribe(ctx context.Context, in *SlaveInfo, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
-	SendUp(ctx context.Context, in *Report, opts ...grpc.CallOption) (*ReportResult, error)
+	Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
+	SendUp(ctx context.Context, in *StatisticalReport, opts ...grpc.CallOption) (*Feedback, error)
 }
 
 type ultronServiceClient struct {
@@ -30,7 +30,7 @@ func NewUltronServiceClient(cc grpc.ClientConnInterface) UltronServiceClient {
 	return &ultronServiceClient{cc}
 }
 
-func (c *ultronServiceClient) Subscribe(ctx context.Context, in *SlaveInfo, opts ...grpc.CallOption) (UltronService_SubscribeClient, error) {
+func (c *ultronServiceClient) Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error) {
 	stream, err := c.cc.NewStream(ctx, &UltronService_ServiceDesc.Streams[0], "/wosai.ultron.UltronService/Subscribe", opts...)
 	if err != nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (x *ultronServiceSubscribeClient) Recv() (*Event, error) {
 	return m, nil
 }
 
-func (c *ultronServiceClient) SendUp(ctx context.Context, in *Report, opts ...grpc.CallOption) (*ReportResult, error) {
-	out := new(ReportResult)
+func (c *ultronServiceClient) SendUp(ctx context.Context, in *StatisticalReport, opts ...grpc.CallOption) (*Feedback, error) {
+	out := new(Feedback)
 	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronService/SendUp", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -75,18 +75,18 @@ func (c *ultronServiceClient) SendUp(ctx context.Context, in *Report, opts ...gr
 // All implementations should embed UnimplementedUltronServiceServer
 // for forward compatibility
 type UltronServiceServer interface {
-	Subscribe(*SlaveInfo, UltronService_SubscribeServer) error
-	SendUp(context.Context, *Report) (*ReportResult, error)
+	Subscribe(*Session, UltronService_SubscribeServer) error
+	SendUp(context.Context, *StatisticalReport) (*Feedback, error)
 }
 
 // UnimplementedUltronServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedUltronServiceServer struct {
 }
 
-func (UnimplementedUltronServiceServer) Subscribe(*SlaveInfo, UltronService_SubscribeServer) error {
+func (UnimplementedUltronServiceServer) Subscribe(*Session, UltronService_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
-func (UnimplementedUltronServiceServer) SendUp(context.Context, *Report) (*ReportResult, error) {
+func (UnimplementedUltronServiceServer) SendUp(context.Context, *StatisticalReport) (*Feedback, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendUp not implemented")
 }
 
@@ -102,7 +102,7 @@ func RegisterUltronServiceServer(s grpc.ServiceRegistrar, srv UltronServiceServe
 }
 
 func _UltronService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SlaveInfo)
+	m := new(Session)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (x *ultronServiceSubscribeServer) Send(m *Event) error {
 }
 
 func _UltronService_SendUp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Report)
+	in := new(StatisticalReport)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func _UltronService_SendUp_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/wosai.ultron.UltronService/SendUp",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UltronServiceServer).SendUp(ctx, req.(*Report))
+		return srv.(UltronServiceServer).SendUp(ctx, req.(*StatisticalReport))
 	}
 	return interceptor(ctx, in, info, handler)
 }
