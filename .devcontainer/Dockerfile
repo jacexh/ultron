@@ -13,11 +13,13 @@ RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "source /usr/local/shar
 # RUN set -e \
 #     && sed -i "s/deb.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list \
 #     && sed -i "s/security.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends curl git wget
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends protobuf-compiler
 
 # [Optional] Uncomment the next line to use go get to install anything else you need
-# RUN go get -x <your-dependency-or-tool>
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26 \
+    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1 \
+    && go get golang.org/x/tools/cmd/goimports
 
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1

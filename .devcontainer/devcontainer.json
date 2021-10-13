@@ -27,7 +27,14 @@
 	
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"golang.Go"
+		"golang.Go",
+		"eamodio.gitlens",
+		"mohsen1.prettify-json",
+		"zxh404.vscode-proto3",
+		"bierner.markdown-preview-github-styles",
+		"cschleiden.vscode-github-actions",
+		"redhat.vscode-yaml",
+		"carlos-algms.make-task-provider"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -54,5 +61,5 @@
 	"postCreateCommand": "go mod download",
 
 	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vscode"
+	// "remoteUser": "vscode"
 }

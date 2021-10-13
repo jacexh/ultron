@@ -2,15 +2,6 @@
 fmt:
 	goimports -l -w .
 
-#.PHONY: goproxy
-#goproxy:
-#	export GOPROXY=https://goproxy.cn,direct
-
-#.PHONY: pb-tool
-#pb-tool: goproxy
-#	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
-#	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
-
 .PHONY: proto
 proto:
 	@protoc --proto_path=api/protobuf/ api/protobuf/ultron.proto \
