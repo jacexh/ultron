@@ -1,0 +1,58 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.163.1/containers/go
+{
+	"name": "Go",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Update the VARIANT arg to pick a version of Go: 1, 1.16, 1.15
+			"VARIANT": "1.17",
+			// Options
+			"INSTALL_NODE": "true",
+			"NODE_VERSION": "lts/*",
+            "UPGRADE_PACKAGES": "true"
+		}
+	},
+	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+
+	// Set *default* container specific settings.json values on container create.
+	"settings": { 
+		"terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.defaultProfile.osx": "zsh",
+        "terminal.integrated.defaultProfile.windows": "zsh",
+		"go.toolsManagement.checkForUpdates": "local",
+		"go.gopath": "/go",
+		"go.useLanguageServer": true
+	},
+	
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"golang.Go"
+	],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [9000],
+
+	// Use 'portsAttributes' to set default properties for specific forwarded ports. More info: https://code.visualstudio.com/docs/remote/devcontainerjson-reference.
+	"portsAttributes": {
+		"2017": {
+			"label": "HTTP API",
+			"onAutoForward": "openBrowserOnce",
+		},
+        "2021": {
+            "label": "gRPC API",
+            "onAutoForward": "notify",
+        }
+	},
+
+	// Use 'otherPortsAttributes' to configure any ports that aren't configured using 'portsAttributes'.
+	// "otherPortsAttributes": {
+	// 		"onAutoForward": "silent"
+	// },
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "go mod download",
+
+	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+}
