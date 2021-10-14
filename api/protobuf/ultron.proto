@@ -52,3 +52,12 @@ message Feedback {
     string batch_id = 2;
     Result result = 3;
 }
+
+message StageOption {
+    int32 duration = 1;
+    uint64 requests = 2;
+    uint32 concurrence = 3;
+    int32 hatch_rate = 4;
+    int64 min_wait = 5;
+    int64 max_wait = 6;
+}

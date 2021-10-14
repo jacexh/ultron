@@ -1,7 +1,3 @@
-.PHONY: fmt
-fmt:
-	goimports -l -w .
-
 .PHONY: proto
 proto:
 	@protoc --proto_path=api/protobuf/ api/protobuf/ultron.proto \

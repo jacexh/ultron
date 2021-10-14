@@ -1,6 +1,7 @@
 module github.com/wosai/ultron
 
 require (
+	github.com/go-chi/chi/v5 v5.0.4 // indirect
 	github.com/golang/protobuf v1.2.0
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc
 	github.com/json-iterator/go v1.1.6
