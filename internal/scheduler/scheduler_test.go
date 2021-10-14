@@ -5,38 +5,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/ultron/types"
 )
 
-func TestPlan_AddStages(t *testing.T) {
-	type fields struct {
-		stageCount int
-		status     Status
-		stages     []*stage
-	}
-	type args struct {
-		cs []StageConfiguration
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := &Plan{
-				stageCount: tt.fields.stageCount,
-				status:     tt.fields.status,
-				stages:     tt.fields.stages,
-			}
-			p.AddStages(tt.args.cs...)
-		})
-	}
-}
-
 func TestStageConfigruration_SplitOne(t *testing.T) {
-	conf := StageConfiguration{
+	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
 		Concurrence: 1000,
@@ -45,12 +18,12 @@ func TestStageConfigruration_SplitOne(t *testing.T) {
 		MaxWait:     3 * time.Second,
 	}
 
-	sub := conf.Split(1)
+	sub := SplitStageConfiguration(conf, 1)
 	assert.EqualValues(t, conf, sub[0])
 }
 
 func TestStageConfigruration_SplitTwo(t *testing.T) {
-	conf := StageConfiguration{
+	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
 		Concurrence: 1000,
@@ -59,8 +32,8 @@ func TestStageConfigruration_SplitTwo(t *testing.T) {
 		MaxWait:     3 * time.Second,
 	}
 
-	subs := conf.Split(2)
-	expected := StageConfiguration{
+	subs := SplitStageConfiguration(conf, 2)
+	expected := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    20000000,
 		Concurrence: 500,
@@ -73,7 +46,7 @@ func TestStageConfigruration_SplitTwo(t *testing.T) {
 }
 
 func TestStageConfigruration_SplitThree(t *testing.T) {
-	conf := StageConfiguration{
+	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    2000,
 		Concurrence: 1000,
@@ -82,8 +55,8 @@ func TestStageConfigruration_SplitThree(t *testing.T) {
 		MaxWait:     3 * time.Second,
 	}
 
-	subs := conf.Split(3)
-	expected := StageConfiguration{
+	subs := SplitStageConfiguration(conf, 3)
+	expected := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    666,
 		Concurrence: 333,
@@ -92,7 +65,7 @@ func TestStageConfigruration_SplitThree(t *testing.T) {
 		MaxWait:     3 * time.Second,
 	}
 	assert.EqualValues(t, expected, subs[2])
-	assert.EqualValues(t, subs[0], StageConfiguration{
+	assert.EqualValues(t, subs[0], types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    667,
 		Concurrence: 334,
