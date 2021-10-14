@@ -35,13 +35,13 @@ func SplitStageConfiguration(sc types.StageConfig, n int) []types.StageConfig {
 	}
 
 	if remainder := sc.Concurrence % n; remainder > 0 {
-		for i := 0; i < int(remainder); i++ {
+		for i := 0; i < remainder; i++ {
 			ret[i].Concurrence++
 		}
 	}
 
 	if remainder := sc.HatchRate % n; remainder > 0 {
-		for i := 0; i < int(remainder); i++ {
+		for i := 0; i < remainder; i++ {
 			ret[i].HatchRate++
 		}
 	}

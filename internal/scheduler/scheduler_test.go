@@ -8,7 +8,7 @@ import (
 	"github.com/wosai/ultron/types"
 )
 
-func TestStageConfigruration_SplitOne(t *testing.T) {
+func TestStageConfiguration_SplitOne(t *testing.T) {
 	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
@@ -22,7 +22,7 @@ func TestStageConfigruration_SplitOne(t *testing.T) {
 	assert.EqualValues(t, conf, sub[0])
 }
 
-func TestStageConfigruration_SplitTwo(t *testing.T) {
+func TestStageConfiguration_SplitTwo(t *testing.T) {
 	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
@@ -45,7 +45,7 @@ func TestStageConfigruration_SplitTwo(t *testing.T) {
 	assert.EqualValues(t, subs[0], subs[1])
 }
 
-func TestStageConfigruration_SplitThree(t *testing.T) {
+func TestStageConfiguration_SplitThree(t *testing.T) {
 	conf := types.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    2000,
