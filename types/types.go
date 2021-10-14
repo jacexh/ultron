@@ -17,7 +17,7 @@ type (
 		PickUp() Attacker
 	}
 
-	// Stage 测试阶段的描述
+	// StageConfig 测试阶段的描述
 	StageConfig struct {
 		Duration    time.Duration `json:"duration,omitempty"`   // 阶段持续时间
 		Requests    uint64        `json:"requests,omitempty"`   // 阶段请求总数
@@ -29,9 +29,6 @@ type (
 
 	Plan interface {
 		AddStages(...StageConfig)
-		startNextStage() (bool, int, StageConfig)
-		finishStage(int) error
-		check() error
 	}
 
 	MasterRunner interface {

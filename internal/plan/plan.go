@@ -11,6 +11,7 @@ type (
 	Plan struct {
 		current int
 		stages  []types.StageConfig
+		status  Status
 		mu      sync.Mutex
 	}
 
@@ -19,8 +20,8 @@ type (
 
 const (
 	StatusReady       = "ready"
-	StatueRunning     = "running"
-	StatueFinished    = "finished"
+	StatusRunning     = "running"
+	StatusFinished    = "finished"
 	StatusInterrupted = "interrupted"
 )
 
@@ -30,14 +31,16 @@ func NewPlan() *Plan {
 	return &Plan{
 		current: -1,
 		stages:  make([]types.StageConfig, 0),
+		status:  StatusReady,
 	}
 }
 
 func (p *Plan) addStage(conf types.StageConfig) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
-	p.stages = append(p.stages, conf)
+	if p.status == StatusReady {
+		p.stages = append(p.stages, conf)
+	}
 }
 
 func (p *Plan) AddStages(sc ...types.StageConfig) {
@@ -47,6 +50,10 @@ func (p *Plan) AddStages(sc ...types.StageConfig) {
 }
 
 func (p *Plan) check() error {
+	if len(p.stages) == 0 {
+		return errors.New("empty stage")
+	}
+
 	for index, stage := range p.stages {
 		if stage.Concurrence == 0 {
 			return errors.New("bad concurrence")
@@ -59,36 +66,46 @@ func (p *Plan) check() error {
 		// 非最后阶段
 		if index < len(p.stages)-1 {
 			if stage.Duration == 0 && stage.Requests == 0 {
-				return errors.New("cannot break currest stage")
+				return errors.New("cannot break out this stage")
 			}
 		}
 	}
 	return nil
 }
 
-func (p *Plan) startNextStage() (bool, int, types.StageConfig) {
+func (p *Plan) finishAndStartNextStage(n int) (int, types.StageConfig, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.current < len(p.stages)-1 {
-		p.current++
-		return true, p.current, p.stages[p.current]
+	if p.status == StatusInterrupted || p.status == StatusFinished {
+		return n, types.StageConfig{}, errors.New("plan was finished or interrupted")
 	}
-	return false, p.current, p.stages[p.current]
+
+	if p.status == StatusRunning {
+		if p.current != n {
+			return n, types.StageConfig{}, errors.New("failed to finish stage because invalid stage id was provided")
+		}
+
+		if p.current >= len(p.stages)-1 { // 最后一个阶段
+			p.status = StatusFinished
+			return n, types.StageConfig{}, errors.New("the plan is finished")
+		}
+
+		p.current++
+		return p.current, p.stages[p.current], nil
+	}
+
+	if p.status == StatusReady && p.current == -1 {
+		p.status = StatusRunning
+		p.current++
+		return p.current, p.stages[p.current], nil
+	}
+	return n, types.StageConfig{}, errors.New("failed to finish stage and start next stage")
 }
 
-func (p *Plan) finishStage(n int) error {
+func (p *Plan) Status() Status {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	switch {
-	case n < p.current:
-		return errors.New("stage was already finished")
-
-	case n > p.current:
-		return errors.New("unknown stage")
-
-	default:
-		return nil
-	}
+	return p.status
 }
