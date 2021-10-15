@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package wosai.ultron;
 
-option go_package = "github.com/wosai/ultron/pkg/rpc";
+option go_package = "github.com/wosai/ultron/pkg/proto";
 
 service UltronService {
     rpc Subscribe(Session) returns (stream Event) {}
