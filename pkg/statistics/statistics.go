@@ -312,24 +312,25 @@ func (ara *AttackResultAggregator) merge(other *AttackResultAggregator) error {
 		ara.recentFailureBucket.accumulate(k, v)
 	}
 	for k, v := range other.responseBucket {
-		if _, ok := ara.responseBucket[k]; ok {
-			ara.responseBucket[k] += v
-		} else {
-			ara.responseBucket[k] = v
-		}
+		ara.responseBucket[k] += v
 	}
 	for k, v := range other.failureBucket {
-		if _, ok := ara.failureBucket[k]; ok {
-			ara.failureBucket[k] += v
-		} else {
-			ara.failureBucket[k] = v
-		}
+		ara.failureBucket[k] += v
 	}
 	if other.firstAttack.Before(ara.firstAttack) {
 		ara.firstAttack = other.firstAttack
 	}
 	if ara.lastAttack.Before(other.lastAttack) {
 		ara.lastAttack = other.lastAttack
+	}
+	return nil
+}
+
+func (ara *AttackResultAggregator) BatchMerge(others ...*AttackResultAggregator) error {
+	for _, other := range others {
+		if err := ara.merge(other); err != nil {
+			return err
+		}
 	}
 	return nil
 }
