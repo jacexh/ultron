@@ -27,8 +27,14 @@ type (
 		MaxWait     time.Duration `json:"max_wait,omitempty"`   // Attacker之间最长等待时间
 	}
 
+	Status int
+
 	Plan interface {
 		AddStages(...StageConfig)
+		Stages() []StageConfig
+		Status() Status
+		Check() error
+		FinishAndStartNextStage(int) (int, StageConfig, error)
 	}
 
 	MasterRunner interface {
@@ -60,4 +66,11 @@ type (
 		Interrupt() error
 		Finish() error
 	}
+)
+
+const (
+	StatusReady Status = iota
+	StatusRunning
+	StatusFinished
+	StatusInterrupted
 )
