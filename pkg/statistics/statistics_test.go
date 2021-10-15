@@ -1,10 +1,14 @@
 package statistics
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -94,4 +98,79 @@ func TestAttackResultAggregator_merge(t *testing.T) {
 	assert.EqualValues(t, report.Average, 9500*time.Microsecond)
 	assert.EqualValues(t, report.Median, 9*time.Millisecond)
 	assert.EqualValues(t, report.Requests, 20)
+}
+
+func TestAttackResultAggregator_Report(t *testing.T) {
+	a1 := NewAttackResultAggregator("/api/foobar")
+	for i := 0; i < 400*400; i++ {
+		a1.Record(&AttackResut{Name: "/api/foobar", Duration: time.Duration(rand.Int63n(1200)+1) * time.Millisecond})
+	}
+	report := a1.Report(true)
+	data := [][]string{
+		{
+			report.Name,
+			report.Min.String(),
+			report.Max.String(),
+			report.Distributions["0.50"].String(),
+			report.Distributions["0.60"].String(),
+			report.Distributions["0.70"].String(),
+			report.Distributions["0.80"].String(),
+			report.Distributions["0.90"].String(),
+			report.Distributions["0.95"].String(),
+			report.Distributions["0.97"].String(),
+			report.Distributions["0.98"].String(),
+			report.Distributions["0.99"].String(),
+			report.Average.String(),
+			strconv.FormatUint(report.Requests, 10),
+			strconv.FormatUint(report.Failures, 10),
+			strconv.FormatFloat(report.TPS, 'f', 2, 64)},
+	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Attacker", "Min", "Max", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Avg", "Requests", "Failures", "TPS"})
+	table.SetHeaderColor(
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.BgMagentaColor},
+	)
+
+	footer := make([]string, 16)
+	footer[12] = "Total"
+	table.SetFooter(footer)
+	table.SetFooterColor(
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+		tablewriter.Colors{},
+	)
+	table.SetBorder(false)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.AppendBulk(data)
+	table.Render()
+
+	fmt.Fprint(os.Stdout, "\n")
 }

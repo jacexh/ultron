@@ -88,9 +88,9 @@ func findReponseBucket(t time.Duration) time.Duration {
 		return t
 	}
 	if t <= 1000*time.Millisecond {
-		return t / 1e7 * 1e7
+		return (t + 5*time.Millisecond) / 1e7 * 1e7
 	}
-	return t / 1e8 * 1e8
+	return (t + 50*time.Millisecond) / 1e8 * 1e8
 }
 
 func NewAttackResultAggregator(name string) *AttackResultAggregator {
@@ -287,14 +287,17 @@ func (ara *AttackResultAggregator) Report(full bool) AggregatedReport {
 }
 
 func (ara *AttackResultAggregator) merge(other *AttackResultAggregator) error {
+	if other == nil {
+		return nil
+	}
 	if ara.name != other.name {
 		return errors.New("cannot merge two different types report")
 	}
 
 	ara.mu.Lock()
-	other.mu.Lock()
 	defer ara.mu.Unlock()
-	defer other.mu.Unlock()
+	other.mu.RLock()
+	defer other.mu.RUnlock()
 
 	ara.requests += other.requests
 	ara.failures += other.failures
