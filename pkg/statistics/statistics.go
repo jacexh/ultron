@@ -59,8 +59,9 @@ type (
 	}
 
 	SummaryReport struct {
-		PlanID  string
-		Reports map[string]*AttackReport
+		FullHistory bool
+		Reports     map[string]*AttackReport
+		Extras      map[string]string
 	}
 
 	timeRangeContainer struct {
@@ -69,10 +70,17 @@ type (
 	}
 
 	StatisticianGroup struct {
-		planID    string
+		tags      map[string]Tag
 		container map[string]*AttackStatistician // 优于sync.Map
 		mu        sync.Mutex                     // 写多读少场景，互斥锁更好
 	}
+
+	Tag struct {
+		Key   string
+		Value string
+	}
+
+	Tags map[string]Tag
 )
 
 func newTimeRangeContainer(n int64) *timeRangeContainer {
@@ -178,11 +186,11 @@ func (ara *AttackStatistician) recordFailure(ret *AttackResut) {
 }
 
 func (ara *AttackStatistician) Record(ret *AttackResut) {
-	if ret.Error == nil {
-		ara.recordSuccess(ret)
+	if ret.IsFailure() {
+		ara.recordFailure(ret)
 		return
 	}
-	ara.recordFailure(ret)
+	ara.recordSuccess(ret)
 }
 
 // TotalTPS 全程TPS
@@ -350,6 +358,7 @@ func (ara *AttackStatistician) merge(other *AttackStatistician) error {
 	return nil
 }
 
+// BatchMerge 合并多个AttackStatistician对象
 func (ara *AttackStatistician) BatchMerge(others ...*AttackStatistician) error {
 	for _, other := range others {
 		if err := ara.merge(other); err != nil {
@@ -359,13 +368,17 @@ func (ara *AttackStatistician) BatchMerge(others ...*AttackStatistician) error {
 	return nil
 }
 
-func NewStatistician() *StatisticianGroup {
-	return &StatisticianGroup{container: make(map[string]*AttackStatistician)}
+func NewStatisticianGroup() *StatisticianGroup {
+	return &StatisticianGroup{
+		container: make(map[string]*AttackStatistician),
+		tags:      make(map[string]Tag),
+	}
 }
 
+// Report 输出统计报表
 func (s *StatisticianGroup) Report(full bool) *SummaryReport {
-	sr := &SummaryReport{PlanID: s.planID, Reports: make(map[string]*AttackReport)}
-	sr.Reports[Total] = &AttackReport{Name: Total}
+	sr := &SummaryReport{Reports: make(map[string]*AttackReport)}
+	sr.Reports[Total] = &AttackReport{Name: Total, FullHistory: full}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -379,6 +392,7 @@ func (s *StatisticianGroup) Report(full bool) *SummaryReport {
 	return sr
 }
 
+// Record 记录一次请求结果
 func (s *StatisticianGroup) Record(result *AttackResut) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -392,6 +406,7 @@ func (s *StatisticianGroup) Record(result *AttackResut) {
 	}
 }
 
+// Reset 重置统计组状态
 func (s *StatisticianGroup) Reset() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -399,8 +414,13 @@ func (s *StatisticianGroup) Reset() {
 	for key := range s.container {
 		delete(s.container, key)
 	}
+
+	for key := range s.tags {
+		delete(s.tags, key)
+	}
 }
 
+// ReplaceStatistician 替换某个事务的Statistician
 func (s *StatisticianGroup) ReplaceStatistician(agg *AttackStatistician) error {
 	if agg == nil {
 		return errors.New("cannot replace with nil pointer")
@@ -410,4 +430,18 @@ func (s *StatisticianGroup) ReplaceStatistician(agg *AttackStatistician) error {
 
 	s.container[agg.name] = agg
 	return nil
+}
+
+// Attach 附加tag
+func (s *StatisticianGroup) Attach(tag Tag) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tags[tag.Key] = tag
+}
+
+// Tags 返回当前统计组的所有tag
+func (s *StatisticianGroup) Tags() Tags {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.tags
 }

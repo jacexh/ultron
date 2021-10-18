@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -26,6 +27,23 @@ func TestFindResponseBucket(t *testing.T) {
 	assert.NotEqualValues(t, 3300*time.Microsecond, findReponseBucket(t4))
 }
 
+func TestAttackStatistician_Record(t *testing.T) {
+	as := NewAttackStatistician("foobar")
+	as.Record(&AttackResut{
+		Name:     "foobar",
+		Duration: 200 * time.Millisecond,
+	})
+	as.Record(&AttackResut{
+		Name:     "foobar",
+		Duration: 300 * time.Millisecond,
+		Error:    errors.New("fxxk"),
+	})
+	report := as.Report(false)
+	assert.EqualValues(t, report.Requests, 1)
+	assert.EqualValues(t, report.Failures, 1)
+	assert.EqualValues(t, report.FailRation, .5)
+}
+
 func BenchmarkAttackResultAggregator_RecordSuccess(b *testing.B) {
 	agg := NewAttackStatistician("benchmark")
 	b.RunParallel(func(pb *testing.PB) {
@@ -39,7 +57,7 @@ func BenchmarkAttackResultAggregator_RecordSuccess(b *testing.B) {
 }
 
 func BenchmarkStatistician_SyncRecord(b *testing.B) {
-	s := NewStatistician()
+	s := NewStatisticianGroup()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			s.Record(&AttackResut{
@@ -113,7 +131,7 @@ func TestAttackResultAggregator_merge(t *testing.T) {
 }
 
 func TestAttackResultAggregator_Report(t *testing.T) {
-	s := NewStatistician()
+	s := NewStatisticianGroup()
 	for i := 0; i < 400*400; i++ {
 		s.Record(&AttackResut{Name: "/api/foobar", Duration: time.Duration(rand.Int63n(1200)+1) * time.Millisecond})
 	}
@@ -138,7 +156,11 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 			strconv.FormatFloat(report.Reports["/api/foobar"].TPS, 'f', 2, 64)},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"})
+	header := []string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "Current TPS"}
+	if report.FullHistory {
+		header[len(header)-1] = "Total TPS"
+	}
+	table.SetHeader(header)
 	table.SetHeaderColor(
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
