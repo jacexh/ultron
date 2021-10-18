@@ -18,13 +18,16 @@ jobs:
       with:
         version: "3.18.1"
     - name: Generate Protocol Buff Files
-      run: |
+      run: |   
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
         make proto
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
-        git commit -am 'Automated generate protobuf files' && git push
+        if [ `git commit -am 'Automated generate protobuf files'` -eq 0 ]
+        then 
+          git push
+        fi
     - name: Run Unittest Cases
       run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
     - uses: codecov/codecov-action@v2
