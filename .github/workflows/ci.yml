@@ -27,8 +27,7 @@ jobs:
         make proto
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
-        git commit -am 'Automated generate protobuf files'
-        git push
+        git commit -am 'Automated generate protobuf files' || git push
     - name: Run Unittest Cases
       run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
     - uses: codecov/codecov-action@v2
