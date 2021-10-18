@@ -4,6 +4,7 @@ package proto
 
 import (
 	context "context"
+	proto "github.com/wosai/ultron/pkg/statistics/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UltronServiceClient interface {
 	Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
-	SendUp(ctx context.Context, in *StatisticalReport, opts ...grpc.CallOption) (*Feedback, error)
+	SendUp(ctx context.Context, in *proto.AttackStatisticsDTO, opts ...grpc.CallOption) (*Feedback, error)
 }
 
 type ultronServiceClient struct {
@@ -62,7 +63,7 @@ func (x *ultronServiceSubscribeClient) Recv() (*Event, error) {
 	return m, nil
 }
 
-func (c *ultronServiceClient) SendUp(ctx context.Context, in *StatisticalReport, opts ...grpc.CallOption) (*Feedback, error) {
+func (c *ultronServiceClient) SendUp(ctx context.Context, in *proto.AttackStatisticsDTO, opts ...grpc.CallOption) (*Feedback, error) {
 	out := new(Feedback)
 	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronService/SendUp", in, out, opts...)
 	if err != nil {
@@ -76,7 +77,7 @@ func (c *ultronServiceClient) SendUp(ctx context.Context, in *StatisticalReport,
 // for forward compatibility
 type UltronServiceServer interface {
 	Subscribe(*Session, UltronService_SubscribeServer) error
-	SendUp(context.Context, *StatisticalReport) (*Feedback, error)
+	SendUp(context.Context, *proto.AttackStatisticsDTO) (*Feedback, error)
 }
 
 // UnimplementedUltronServiceServer should be embedded to have forward compatible implementations.
@@ -86,7 +87,7 @@ type UnimplementedUltronServiceServer struct {
 func (UnimplementedUltronServiceServer) Subscribe(*Session, UltronService_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
-func (UnimplementedUltronServiceServer) SendUp(context.Context, *StatisticalReport) (*Feedback, error) {
+func (UnimplementedUltronServiceServer) SendUp(context.Context, *proto.AttackStatisticsDTO) (*Feedback, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendUp not implemented")
 }
 
@@ -123,7 +124,7 @@ func (x *ultronServiceSubscribeServer) Send(m *Event) error {
 }
 
 func _UltronService_SendUp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatisticalReport)
+	in := new(proto.AttackStatisticsDTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func _UltronService_SendUp_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/wosai.ultron.UltronService/SendUp",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UltronServiceServer).SendUp(ctx, req.(*StatisticalReport))
+		return srv.(UltronServiceServer).SendUp(ctx, req.(*proto.AttackStatisticsDTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }

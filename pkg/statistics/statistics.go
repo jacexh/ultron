@@ -39,7 +39,7 @@ type (
 		firstAttack         time.Time                // 请求开始时间
 		lastAttack          time.Time                // 最后一次收到响应结果的时间
 		interval            time.Duration            // 统计CurrentTPS（）的时间区间
-		mu                  sync.RWMutex
+		mu                  sync.Mutex
 	}
 
 	// AttackReport 聚合报告
@@ -91,17 +91,16 @@ func newTimeRangeContainer(n int64) *timeRangeContainer {
 }
 
 func (ls *timeRangeContainer) accumulate(k, v int64) {
-	if _, ok := ls.container[k]; ok {
-		ls.container[k] += v
-		return
-	}
+	_, ok := ls.container[k]
+	ls.container[k] += v
 
-	for key := range ls.container {
-		if (k - key) > ls.timeRange {
-			delete(ls.container, key)
+	if !ok {
+		for key := range ls.container {
+			if (k - key) > ls.timeRange {
+				delete(ls.container, key)
+			}
 		}
 	}
-	ls.container[k] = v
 }
 
 func findReponseBucket(t time.Duration) time.Duration {
@@ -287,8 +286,8 @@ func (ara *AttackStatistician) failRatio() float64 {
 }
 
 func (ara *AttackStatistician) Report(full bool) *AttackReport {
-	ara.mu.RLock()
-	defer ara.mu.RUnlock()
+	ara.mu.Lock()
+	defer ara.mu.Unlock()
 
 	report := &AttackReport{
 		Name:           ara.name,
@@ -325,8 +324,8 @@ func (ara *AttackStatistician) merge(other *AttackStatistician) error {
 
 	ara.mu.Lock()
 	defer ara.mu.Unlock()
-	other.mu.RLock()
-	defer other.mu.RUnlock()
+	other.mu.Lock()
+	defer other.mu.Unlock()
 
 	ara.requests += other.requests
 	ara.failures += other.failures
