@@ -24,7 +24,8 @@ jobs:
         make proto
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
-        if [ `git commit -am 'Automated generate protobuf files'` -eq 0 ]
+        git commit -am 'Automated generate protobuf files'
+        if [ $? == 0 ]
         then 
           git push
         fi
