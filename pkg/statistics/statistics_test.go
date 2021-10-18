@@ -113,29 +113,29 @@ func TestAttackResultAggregator_merge(t *testing.T) {
 }
 
 func TestAttackResultAggregator_Report(t *testing.T) {
-	a1 := NewAttackResultAggregator("/api/foobar")
+	s := NewStatistician()
 	for i := 0; i < 400*400; i++ {
-		a1.Record(&AttackResut{Name: "/api/foobar", Duration: time.Duration(rand.Int63n(1200)+1) * time.Millisecond})
+		s.Record(&AttackResut{Name: "/api/foobar", Duration: time.Duration(rand.Int63n(1200)+1) * time.Millisecond})
 	}
-	report := a1.Report(true)
+	report := s.Report(true)
 	data := [][]string{
 		{
-			report.Name,
-			report.Min.String(),
-			report.Distributions["0.50"].String(),
-			report.Distributions["0.60"].String(),
-			report.Distributions["0.70"].String(),
-			report.Distributions["0.80"].String(),
-			report.Distributions["0.90"].String(),
-			report.Distributions["0.95"].String(),
-			report.Distributions["0.97"].String(),
-			report.Distributions["0.98"].String(),
-			report.Distributions["0.99"].String(),
-			report.Max.String(),
-			report.Average.String(),
-			strconv.FormatUint(report.Requests, 10),
-			strconv.FormatUint(report.Failures, 10),
-			strconv.FormatFloat(report.TPS, 'f', 2, 64)},
+			report.Reports["/api/foobar"].Name,
+			report.Reports["/api/foobar"].Min.String(),
+			report.Reports["/api/foobar"].Distributions["0.50"].String(),
+			report.Reports["/api/foobar"].Distributions["0.60"].String(),
+			report.Reports["/api/foobar"].Distributions["0.70"].String(),
+			report.Reports["/api/foobar"].Distributions["0.80"].String(),
+			report.Reports["/api/foobar"].Distributions["0.90"].String(),
+			report.Reports["/api/foobar"].Distributions["0.95"].String(),
+			report.Reports["/api/foobar"].Distributions["0.97"].String(),
+			report.Reports["/api/foobar"].Distributions["0.98"].String(),
+			report.Reports["/api/foobar"].Distributions["0.99"].String(),
+			report.Reports["/api/foobar"].Max.String(),
+			report.Reports["/api/foobar"].Average.String(),
+			strconv.FormatUint(report.Reports["/api/foobar"].Requests, 10),
+			strconv.FormatUint(report.Reports["/api/foobar"].Failures, 10),
+			strconv.FormatFloat(report.Reports["/api/foobar"].TPS, 'f', 2, 64)},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"})
@@ -159,7 +159,11 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 	)
 
 	footer := make([]string, 16)
-	footer[12] = "Total"
+	footer[12] = report.Reports[Total].Name
+	footer[13] = strconv.FormatUint(report.Reports[Total].Requests, 10)
+	footer[14] = strconv.FormatUint(report.Reports[Total].Failures, 10)
+	footer[15] = strconv.FormatFloat(report.Reports[Total].TPS, 'f', 2, 64)
+
 	table.SetFooter(footer)
 	table.SetFooterColor(
 		tablewriter.Colors{},

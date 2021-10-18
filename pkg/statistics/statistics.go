@@ -13,7 +13,8 @@ var (
 )
 
 const (
-	currentTPSTimeRange = 12 * time.Second
+	CurrentTPSTimeRange = 12 * time.Second
+	Total               = "[TOTAL]"
 )
 
 type (
@@ -58,7 +59,7 @@ type (
 
 	SummaryReport struct {
 		PlanID  string
-		reports map[string]AttackReport
+		Reports map[string]*AttackReport
 	}
 
 	timeRangeContainer struct {
@@ -105,13 +106,16 @@ func findReponseBucket(t time.Duration) time.Duration {
 }
 
 func NewAttackResultAggregator(name string) *AttackResultAggregator {
+	if name == Total {
+		panic("attacker name conflicts with build-in name")
+	}
 	return &AttackResultAggregator{
 		name:                name,
 		recentSuccessBucket: newTimeRangeContainer(20),
 		recentFailureBucket: newTimeRangeContainer(20),
 		responseBucket:      make(map[time.Duration]uint64),
 		failureBucket:       make(map[string]uint64),
-		interval:            currentTPSTimeRange,
+		interval:            CurrentTPSTimeRange,
 	}
 }
 
@@ -268,11 +272,11 @@ func (ara *AttackResultAggregator) failRatio() float64 {
 	return float64(ara.failures) / total
 }
 
-func (ara *AttackResultAggregator) Report(full bool) AttackReport {
+func (ara *AttackResultAggregator) Report(full bool) *AttackReport {
 	ara.mu.RLock()
 	defer ara.mu.RUnlock()
 
-	report := AttackReport{
+	report := &AttackReport{
 		Name:           ara.name,
 		Requests:       ara.requests,
 		Failures:       ara.failures,
@@ -353,13 +357,18 @@ func NewStatistician() *Statistician {
 	return &Statistician{container: make(map[string]*AttackResultAggregator)}
 }
 
-func (s *Statistician) Report(full bool) SummaryReport {
-	sr := SummaryReport{PlanID: s.planID}
+func (s *Statistician) Report(full bool) *SummaryReport {
+	sr := &SummaryReport{PlanID: s.planID, Reports: make(map[string]*AttackReport)}
+	sr.Reports[Total] = &AttackReport{Name: Total}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for key, value := range s.container {
-		sr.reports[key] = value.Report(full)
+		sr.Reports[key] = value.Report(full)
+		sr.Reports[Total].Requests += sr.Reports[key].Requests
+		sr.Reports[Total].Failures += sr.Reports[key].Failures
+		sr.Reports[Total].TPS += sr.Reports[key].TPS
 	}
 	return sr
 }
