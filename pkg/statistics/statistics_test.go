@@ -38,6 +38,18 @@ func BenchmarkAttackResultAggregator_RecordSuccess(b *testing.B) {
 	})
 }
 
+func BenchmarkStatistician_SyncRecord(b *testing.B) {
+	s := NewStatistician()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			s.Record(&AttackResut{
+				Name:     "benchmar",
+				Duration: 111 * time.Millisecond,
+			})
+		}
+	})
+}
+
 func BenchmarkAttackResultAggregator_Percent(b *testing.B) {
 	agg := NewAttackResultAggregator("benchmark")
 	for i := 0; i < 1000*1000; i++ {
@@ -110,7 +122,6 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 		{
 			report.Name,
 			report.Min.String(),
-			report.Max.String(),
 			report.Distributions["0.50"].String(),
 			report.Distributions["0.60"].String(),
 			report.Distributions["0.70"].String(),
@@ -120,27 +131,28 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 			report.Distributions["0.97"].String(),
 			report.Distributions["0.98"].String(),
 			report.Distributions["0.99"].String(),
+			report.Max.String(),
 			report.Average.String(),
 			strconv.FormatUint(report.Requests, 10),
 			strconv.FormatUint(report.Failures, 10),
 			strconv.FormatFloat(report.TPS, 'f', 2, 64)},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Attacker", "Min", "Max", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Avg", "Requests", "Failures", "TPS"})
+	table.SetHeader([]string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"})
 	table.SetHeaderColor(
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.FgYellowColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgMagentaColor},
@@ -162,7 +174,7 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 		tablewriter.Colors{},
 		tablewriter.Colors{},
 		tablewriter.Colors{},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlueColor},
 		tablewriter.Colors{},
 		tablewriter.Colors{},
 		tablewriter.Colors{},

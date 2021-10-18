@@ -40,8 +40,8 @@ type (
 		mu                  sync.RWMutex
 	}
 
-	// AggregatedReport 聚合报告
-	AggregatedReport struct {
+	// AttackReport 聚合报告
+	AttackReport struct {
 		Name           string                   // 事务名称
 		Requests       uint64                   // 成功请求总数
 		Failures       uint64                   // 失败请求总数
@@ -56,9 +56,20 @@ type (
 		FullHistory    bool                     // 是否是该阶段完整的报告
 	}
 
+	SummaryReport struct {
+		PlanID  string
+		reports map[string]AttackReport
+	}
+
 	timeRangeContainer struct {
 		container map[int64]int64
 		timeRange int64
+	}
+
+	Statistician struct {
+		planID    string
+		container map[string]*AttackResultAggregator // 优于sync.Map
+		mu        sync.Mutex                         // 写多读少场景，互斥锁更好
 	}
 )
 
@@ -257,11 +268,11 @@ func (ara *AttackResultAggregator) failRatio() float64 {
 	return float64(ara.failures) / total
 }
 
-func (ara *AttackResultAggregator) Report(full bool) AggregatedReport {
+func (ara *AttackResultAggregator) Report(full bool) AttackReport {
 	ara.mu.RLock()
 	defer ara.mu.RUnlock()
 
-	report := AggregatedReport{
+	report := AttackReport{
 		Name:           ara.name,
 		Requests:       ara.requests,
 		Failures:       ara.failures,
@@ -335,5 +346,53 @@ func (ara *AttackResultAggregator) BatchMerge(others ...*AttackResultAggregator)
 			return err
 		}
 	}
+	return nil
+}
+
+func NewStatistician() *Statistician {
+	return &Statistician{container: make(map[string]*AttackResultAggregator)}
+}
+
+func (s *Statistician) Report(full bool) SummaryReport {
+	sr := SummaryReport{PlanID: s.planID}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key, value := range s.container {
+		sr.reports[key] = value.Report(full)
+	}
+	return sr
+}
+
+func (s *Statistician) Record(result *AttackResut) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if agg, ok := s.container[result.Name]; !ok {
+		agg = NewAttackResultAggregator(result.Name)
+		agg.Record(result)
+		s.container[result.Name] = agg
+	} else {
+		agg.Record(result)
+	}
+}
+
+func (s *Statistician) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key := range s.container {
+		delete(s.container, key)
+	}
+}
+
+func (s *Statistician) PutAggregator(agg *AttackResultAggregator) error {
+	if agg == nil {
+		return errors.New("cannot replace with nil pointer")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.container[agg.name] = agg
 	return nil
 }
