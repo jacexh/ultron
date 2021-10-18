@@ -27,7 +27,7 @@ func TestFindResponseBucket(t *testing.T) {
 }
 
 func BenchmarkAttackResultAggregator_RecordSuccess(b *testing.B) {
-	agg := NewAttackResultAggregator("benchmark")
+	agg := NewAttackStatistician("benchmark")
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			agg.recordSuccess(&AttackResut{
@@ -51,7 +51,7 @@ func BenchmarkStatistician_SyncRecord(b *testing.B) {
 }
 
 func BenchmarkAttackResultAggregator_Percent(b *testing.B) {
-	agg := NewAttackResultAggregator("benchmark")
+	agg := NewAttackStatistician("benchmark")
 	for i := 0; i < 1000*1000; i++ {
 		agg.Record(&AttackResut{
 			Name:     "benchmark",
@@ -65,7 +65,7 @@ func BenchmarkAttackResultAggregator_Percent(b *testing.B) {
 }
 
 func BenchmarkAttackResultAggregator_Percent2(b *testing.B) {
-	agg := NewAttackResultAggregator("benchmark")
+	agg := NewAttackStatistician("benchmark")
 	for i := 0; i < 1000*1000; i++ {
 		agg.Record(&AttackResut{
 			Name:     "benchmark",
@@ -79,7 +79,7 @@ func BenchmarkAttackResultAggregator_Percent2(b *testing.B) {
 }
 
 func TestAttackResultAggregator_Percent(t *testing.T) {
-	agg := NewAttackResultAggregator("benchmark")
+	agg := NewAttackStatistician("benchmark")
 	for i := 1; i <= 11; i++ {
 		agg.Record(&AttackResut{
 			Name:     "benchmark",
@@ -95,11 +95,11 @@ func TestAttackResultAggregator_Percent(t *testing.T) {
 }
 
 func TestAttackResultAggregator_merge(t *testing.T) {
-	a1 := NewAttackResultAggregator("test")
+	a1 := NewAttackStatistician("test")
 	for i := 0; i < 10; i++ {
 		a1.Record(&AttackResut{Name: "test", Duration: time.Duration(i) * time.Millisecond})
 	}
-	a2 := NewAttackResultAggregator("test")
+	a2 := NewAttackStatistician("test")
 	for j := 10; j < 20; j++ {
 		a2.Record(&AttackResut{Name: "test", Duration: time.Duration(j) * time.Millisecond})
 	}

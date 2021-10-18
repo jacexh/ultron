@@ -18,13 +18,14 @@ const (
 )
 
 type (
+	// AttackResut 事务执行结果
 	AttackResut struct {
 		Name     string
 		Duration time.Duration
 		Error    error
 	}
 
-	AttackResultAggregator struct {
+	AttackStatistician struct {
 		name                string                   // 事务名称
 		requests            uint64                   // 成功请求数
 		failures            uint64                   // 失败请求数
@@ -67,10 +68,10 @@ type (
 		timeRange int64
 	}
 
-	Statistician struct {
+	StatisticianGroup struct {
 		planID    string
-		container map[string]*AttackResultAggregator // 优于sync.Map
-		mu        sync.Mutex                         // 写多读少场景，互斥锁更好
+		container map[string]*AttackStatistician // 优于sync.Map
+		mu        sync.Mutex                     // 写多读少场景，互斥锁更好
 	}
 )
 
@@ -105,11 +106,16 @@ func findReponseBucket(t time.Duration) time.Duration {
 	return (t + 50*time.Millisecond) / 1e8 * 1e8
 }
 
-func NewAttackResultAggregator(name string) *AttackResultAggregator {
+// IsFailure 事务是否执行失败
+func (ar *AttackResut) IsFailure() bool {
+	return ar.Error != nil
+}
+
+func NewAttackStatistician(name string) *AttackStatistician {
 	if name == Total {
 		panic("attacker name conflicts with build-in name")
 	}
-	return &AttackResultAggregator{
+	return &AttackStatistician{
 		name:                name,
 		recentSuccessBucket: newTimeRangeContainer(20),
 		recentFailureBucket: newTimeRangeContainer(20),
@@ -119,7 +125,7 @@ func NewAttackResultAggregator(name string) *AttackResultAggregator {
 	}
 }
 
-func (ara *AttackResultAggregator) recordSuccess(ret *AttackResut) {
+func (ara *AttackStatistician) recordSuccess(ret *AttackResut) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -151,7 +157,7 @@ func (ara *AttackResultAggregator) recordSuccess(ret *AttackResut) {
 	ara.responseBucket[findReponseBucket(ret.Duration)]++
 }
 
-func (ara *AttackResultAggregator) recordFailure(ret *AttackResut) {
+func (ara *AttackStatistician) recordFailure(ret *AttackResut) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -171,7 +177,7 @@ func (ara *AttackResultAggregator) recordFailure(ret *AttackResut) {
 	ara.recentFailureBucket.accumulate(now.Unix(), 1)
 }
 
-func (ara *AttackResultAggregator) Record(ret *AttackResut) {
+func (ara *AttackStatistician) Record(ret *AttackResut) {
 	if ret.Error == nil {
 		ara.recordSuccess(ret)
 		return
@@ -180,7 +186,7 @@ func (ara *AttackResultAggregator) Record(ret *AttackResut) {
 }
 
 // TotalTPS 全程TPS
-func (ara *AttackResultAggregator) totalTPS() float64 {
+func (ara *AttackStatistician) totalTPS() float64 {
 	if ara.lastAttack == ara.firstAttack {
 		return 0
 	}
@@ -188,7 +194,7 @@ func (ara *AttackResultAggregator) totalTPS() float64 {
 }
 
 // CurrentTPS 最近12秒的TPS
-func (ara *AttackResultAggregator) currentTPS() float64 {
+func (ara *AttackStatistician) currentTPS() float64 {
 	if ara.lastAttack == ara.firstAttack {
 		return 0
 	}
@@ -214,7 +220,7 @@ func (ara *AttackResultAggregator) currentTPS() float64 {
 	return float64(count) / float64(end.Unix()-start.Unix()+1)
 }
 
-func (ara *AttackResultAggregator) percentile(ps ...float64) []time.Duration {
+func (ara *AttackStatistician) percentile(ps ...float64) []time.Duration {
 	var bucketKeys []time.Duration
 	for k := range ara.responseBucket {
 		bucketKeys = append(bucketKeys, k)
@@ -249,22 +255,22 @@ percent:
 	return results
 }
 
-func (ara *AttackResultAggregator) min() time.Duration {
+func (ara *AttackStatistician) min() time.Duration {
 	return ara.minResponseTime
 }
 
-func (ara *AttackResultAggregator) max() time.Duration {
+func (ara *AttackStatistician) max() time.Duration {
 	return ara.maxResponseTime
 }
 
-func (ara *AttackResultAggregator) average() time.Duration {
+func (ara *AttackStatistician) average() time.Duration {
 	if ara.requests == 0 {
 		return 0
 	}
 	return time.Duration(ara.totalResponseTime / time.Duration(ara.requests))
 }
 
-func (ara *AttackResultAggregator) failRatio() float64 {
+func (ara *AttackStatistician) failRatio() float64 {
 	total := float64(ara.requests) + float64(ara.failures)
 	if total == 0 {
 		return 0.0
@@ -272,7 +278,7 @@ func (ara *AttackResultAggregator) failRatio() float64 {
 	return float64(ara.failures) / total
 }
 
-func (ara *AttackResultAggregator) Report(full bool) *AttackReport {
+func (ara *AttackStatistician) Report(full bool) *AttackReport {
 	ara.mu.RLock()
 	defer ara.mu.RUnlock()
 
@@ -301,7 +307,7 @@ func (ara *AttackResultAggregator) Report(full bool) *AttackReport {
 	return report
 }
 
-func (ara *AttackResultAggregator) merge(other *AttackResultAggregator) error {
+func (ara *AttackStatistician) merge(other *AttackStatistician) error {
 	if other == nil {
 		return nil
 	}
@@ -344,7 +350,7 @@ func (ara *AttackResultAggregator) merge(other *AttackResultAggregator) error {
 	return nil
 }
 
-func (ara *AttackResultAggregator) BatchMerge(others ...*AttackResultAggregator) error {
+func (ara *AttackStatistician) BatchMerge(others ...*AttackStatistician) error {
 	for _, other := range others {
 		if err := ara.merge(other); err != nil {
 			return err
@@ -353,11 +359,11 @@ func (ara *AttackResultAggregator) BatchMerge(others ...*AttackResultAggregator)
 	return nil
 }
 
-func NewStatistician() *Statistician {
-	return &Statistician{container: make(map[string]*AttackResultAggregator)}
+func NewStatistician() *StatisticianGroup {
+	return &StatisticianGroup{container: make(map[string]*AttackStatistician)}
 }
 
-func (s *Statistician) Report(full bool) *SummaryReport {
+func (s *StatisticianGroup) Report(full bool) *SummaryReport {
 	sr := &SummaryReport{PlanID: s.planID, Reports: make(map[string]*AttackReport)}
 	sr.Reports[Total] = &AttackReport{Name: Total}
 
@@ -373,12 +379,12 @@ func (s *Statistician) Report(full bool) *SummaryReport {
 	return sr
 }
 
-func (s *Statistician) Record(result *AttackResut) {
+func (s *StatisticianGroup) Record(result *AttackResut) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if agg, ok := s.container[result.Name]; !ok {
-		agg = NewAttackResultAggregator(result.Name)
+		agg = NewAttackStatistician(result.Name)
 		agg.Record(result)
 		s.container[result.Name] = agg
 	} else {
@@ -386,7 +392,7 @@ func (s *Statistician) Record(result *AttackResut) {
 	}
 }
 
-func (s *Statistician) Reset() {
+func (s *StatisticianGroup) Reset() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -395,7 +401,7 @@ func (s *Statistician) Reset() {
 	}
 }
 
-func (s *Statistician) PutAggregator(agg *AttackResultAggregator) error {
+func (s *StatisticianGroup) ReplaceStatistician(agg *AttackStatistician) error {
 	if agg == nil {
 		return errors.New("cannot replace with nil pointer")
 	}

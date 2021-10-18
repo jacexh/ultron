@@ -1,14 +1,24 @@
 package scheduler
 
 import (
+	"context"
 	"errors"
 
+	"github.com/wosai/ultron/pkg/statistics"
 	"github.com/wosai/ultron/types"
 )
 
 type (
 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期
 	Scheduler struct{}
+
+	Stats interface {
+		Record(*statistics.AttackResut)
+		Report(bool) *statistics.SummaryReport
+		Start(context.Context, string)
+		NexStage(string, int)
+		Upload(string, int, int, *statistics.AttackStatistician)
+	}
 )
 
 func SplitStageConfiguration(sc types.StageConfig, n int) []types.StageConfig {
