@@ -57,11 +57,12 @@ func TestHTTPAttacker_Fire(t *testing.T) {
 		WithPrepareFunc(func() (*http.Request, error) {
 			return http.NewRequest(http.MethodGet, "https://httpbin.org/user-agent", nil)
 		}),
-		WithCheckFuncs(CheckHTTPStatusCode),
-		WithCheckFuncs(func(r *http.Response, b []byte) error {
-			log.Println(string(b))
-			return nil
-		}),
+		WithCheckFuncs(
+			CheckHTTPStatusCode,
+			func(r *http.Response, b []byte) error {
+				log.Println(string(b))
+				return nil
+			}),
 	)
 	err := attacker.Fire(context.Background())
 	assert.Nil(t, err)
