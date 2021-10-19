@@ -35,8 +35,8 @@ func TestPlan_startNextStage(t *testing.T) {
 
 	// 尚未超时
 	stopped, i, conf, err = plan.StopCurrentAndStartNext(i, &statistics.SummaryReport{
-		FinishedAt: time.Now(),
-		StartedAt:  time.Now().Add(-30 * time.Minute),
+		LastAttack:  time.Now(),
+		FirstAttack: time.Now().Add(-30 * time.Minute),
 		Reports: map[string]*statistics.AttackReport{
 			statistics.Total: {Requests: 10000},
 		},
@@ -46,8 +46,8 @@ func TestPlan_startNextStage(t *testing.T) {
 
 	// 已经超时
 	stopped, i, conf, err = plan.StopCurrentAndStartNext(i, &statistics.SummaryReport{
-		FinishedAt: time.Now(),
-		StartedAt:  time.Now().Add(-61 * time.Minute),
+		LastAttack:  time.Now(),
+		FirstAttack: time.Now().Add(-61 * time.Minute),
 		Reports: map[string]*statistics.AttackReport{
 			statistics.Total: {Requests: 10000},
 		},
@@ -59,8 +59,8 @@ func TestPlan_startNextStage(t *testing.T) {
 
 	// 第二阶段累计请求数
 	stopped, i, conf, err = plan.StopCurrentAndStartNext(1, &statistics.SummaryReport{
-		FinishedAt: time.Now(),
-		StartedAt:  time.Now().Add(-10 * time.Minute),
+		LastAttack:  time.Now(),
+		FirstAttack: time.Now().Add(-10 * time.Minute),
 		Reports: map[string]*statistics.AttackReport{
 			statistics.Total: {Requests: 10000 + 1024*1024 - 1},
 		},
@@ -69,8 +69,8 @@ func TestPlan_startNextStage(t *testing.T) {
 	assert.Nil(t, err)
 
 	stopped, i, conf, err = plan.StopCurrentAndStartNext(1, &statistics.SummaryReport{
-		FinishedAt: time.Now(),
-		StartedAt:  time.Now().Add(-10 * time.Minute),
+		LastAttack:  time.Now(),
+		FirstAttack: time.Now().Add(-10 * time.Minute),
 		Reports: map[string]*statistics.AttackReport{
 			statistics.Total: {Requests: 10000 + 1024*1024},
 		},
