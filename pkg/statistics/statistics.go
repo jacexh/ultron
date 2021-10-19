@@ -56,9 +56,13 @@ type (
 		FailRation     float64                  // 错误率
 		FailureDetails map[string]int32         // 错误详情分布
 		FullHistory    bool                     // 是否是该阶段完整的报告
+		StartedAt      time.Time                // 第一请求发生时间
+		FinishedAt     time.Time                // 最后一次请求结束时间
 	}
 
 	SummaryReport struct {
+		StartedAt   time.Time
+		FinishedAt  time.Time
 		FullHistory bool
 		Reports     map[string]*AttackReport
 		Extras      map[string]string
@@ -300,6 +304,8 @@ func (ara *AttackStatistician) Report(full bool) *AttackReport {
 		FailRation:     ara.failRatio(),
 		FailureDetails: make(map[string]int32),
 		FullHistory:    full,
+		StartedAt:      ara.firstAttack,
+		FinishedAt:     ara.lastAttack,
 	}
 	if full {
 		report.TPS = ara.totalTPS()
@@ -387,6 +393,19 @@ func (s *StatisticianGroup) Report(full bool) *SummaryReport {
 		sr.Reports[Total].Requests += sr.Reports[key].Requests
 		sr.Reports[Total].Failures += sr.Reports[key].Failures
 		sr.Reports[Total].TPS += sr.Reports[key].TPS
+
+		if sr.StartedAt.IsZero() && !sr.Reports[key].StartedAt.IsZero() {
+			sr.StartedAt = sr.Reports[key].StartedAt
+		}
+		if sr.FinishedAt.IsZero() && !sr.Reports[key].FinishedAt.IsZero() {
+			sr.FinishedAt = sr.Reports[key].FinishedAt
+		}
+		if s := sr.Reports[key].StartedAt; !s.IsZero() && s.Before(sr.StartedAt) {
+			sr.StartedAt = s
+		}
+		if !sr.FinishedAt.IsZero() && sr.FinishedAt.Before(sr.Reports[key].FinishedAt) {
+			sr.FinishedAt = sr.Reports[key].FinishedAt
+		}
 	}
 	return sr
 }

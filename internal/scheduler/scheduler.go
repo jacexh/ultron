@@ -12,12 +12,23 @@ type (
 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期
 	Scheduler struct{}
 
-	Stats interface {
-		Record(*statistics.AttackResut)
+	StatsAggregator interface {
+		Aggregate(ctx context.Context, c chan<- *statistics.SummaryReport)
+		Start(...StatsProvider)
+		Stop(ctx context.Context, c chan<- *statistics.SummaryReport)
+	}
+
+	StatsProvider interface {
+		ID() string
+		Provide(stage int, batch int) *statistics.StatisticianGroup
+	}
+
+	StatsReporter interface {
 		Report(bool) *statistics.SummaryReport
-		Start(context.Context, string)
-		NexStage(string, int)
-		Upload(string, int, int, *statistics.AttackStatistician)
+	}
+
+	StatsRecorder interface {
+		Record(*statistics.AttackResut)
 	}
 )
 

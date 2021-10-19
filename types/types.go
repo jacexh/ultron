@@ -2,7 +2,10 @@ package types
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"github.com/wosai/ultron/pkg/statistics"
 )
 
 type (
@@ -30,11 +33,11 @@ type (
 	Status int
 
 	Plan interface {
-		AddStages(...StageConfig)
+		AddStages(...StageConfig) error
 		Stages() []StageConfig
 		Status() Status
 		Check() error
-		FinishAndStartNextStage(int) (int, StageConfig, error)
+		StopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, StageConfig, error)
 	}
 
 	MasterRunner interface {
@@ -66,6 +69,8 @@ type (
 		Interrupt() error
 		Finish() error
 	}
+
+	ReportHandleFunc func(context.Context, *statistics.SummaryReport, statistics.Tags)
 )
 
 const (
@@ -73,4 +78,8 @@ const (
 	StatusRunning
 	StatusFinished
 	StatusInterrupted
+)
+
+var (
+	ErrPlanClosed = errors.New("plan was finished or interrupted")
 )
