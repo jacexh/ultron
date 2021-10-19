@@ -35,6 +35,10 @@ type (
 	HTTPAttackerOption func(*HTTPAttacker)
 )
 
+const (
+	defaultUserAgent = "github.com/wosai/ultron"
+)
+
 var (
 	// defaultHTTPClient 默认http.Client
 	// http://tleyden.github.io/blog/2016/11/21/tuning-the-go-http-client-library-for-load-testing/
@@ -48,7 +52,7 @@ var (
 				DualStack: true,
 			}).DialContext,
 			DisableKeepAlives:     false,
-			MaxIdleConns:          2000,
+			MaxIdleConns:          1000,
 			MaxIdleConnsPerHost:   1000,
 			IdleConnTimeout:       30 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
@@ -81,6 +85,11 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 		return err
 	}
 	req = req.WithContext(ctx)
+	// change user agent
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", defaultUserAgent)
+	}
+
 	res, err := ha.client.Do(req)
 	if err != nil {
 		return err
@@ -88,8 +97,7 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 
 	if len(ha.checkFuncs) == 0 {
 		io.Copy(ioutil.Discard, res.Body) // no checker defined, discard body
-		res.Body.Close()
-		return nil
+		return res.Body.Close()
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -97,6 +105,12 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 	}
 
 	res.Body.Close()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	for _, check := range ha.checkFuncs {
 		if err = check(res, body); err != nil {
