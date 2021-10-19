@@ -3,14 +3,23 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"sync"
 
+	"github.com/wosai/ultron/pkg/proto"
 	"github.com/wosai/ultron/pkg/statistics"
 	"github.com/wosai/ultron/types"
 )
 
 type (
 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期
-	Scheduler struct{}
+	Scheduler struct {
+		batch uint32
+		plan  types.Plan
+		agg   StatsAggregator
+		// slaves map[string]types.SlaveRunner
+		server proto.UltronServiceServer
+		mu     sync.Mutex
+	}
 
 	StatsAggregator interface {
 		Aggregate(ctx context.Context, c chan<- *statistics.SummaryReport)

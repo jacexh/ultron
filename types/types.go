@@ -9,17 +9,6 @@ import (
 )
 
 type (
-	// Attacker 事务接口定义，需要在实现上保证其goroutine-safe
-	Attacker interface {
-		Name() string
-		Fire(context.Context) error
-	}
-
-	Task interface {
-		Add(Attacker, int)
-		PickUp() Attacker
-	}
-
 	// StageConfig 测试阶段的描述
 	StageConfig struct {
 		Duration    time.Duration `json:"duration,omitempty"`   // 阶段持续时间
@@ -44,13 +33,8 @@ type (
 		WithPlane(Plan)
 	}
 
-	SlaveRunner interface {
-		WithTask(Task)
-	}
-
 	Runner interface {
 		MasterRunner
-		SlaveRunner
 	}
 
 	// EventType 事件类型
