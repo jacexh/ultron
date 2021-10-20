@@ -127,7 +127,7 @@ func (p *Plan) StopCurrentAndStartNext(n int, report *statistics.SummaryReport) 
 }
 
 func (p *Plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) bool {
-	totalReuqests := report.Reports[statistics.Total].Requests + report.Reports[statistics.Total].Failures
+	totalRequests := report.TotalRequests + report.TotalFailures
 	totalDuration := report.LastAttack.Sub(report.FirstAttack)
 	var previousRequests, currentStageRequests uint64
 	var previousDuration, currentStageDuration time.Duration
@@ -139,7 +139,7 @@ func (p *Plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) b
 		}
 	}
 	currentStageDuration = totalDuration - previousDuration
-	currentStageRequests = totalReuqests - previousRequests
+	currentStageRequests = totalRequests - previousRequests
 
 	if p.stages[n].Duration > 0 && currentStageDuration >= p.stages[n].Duration {
 		p.stageDatas[n] = stageData{requests: currentStageRequests, duration: currentStageDuration}

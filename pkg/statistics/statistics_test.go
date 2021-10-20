@@ -15,16 +15,16 @@ import (
 
 func TestFindResponseBucket(t *testing.T) {
 	t1 := 61 * time.Millisecond
-	assert.EqualValues(t, t1, findReponseBucket(t1))
+	assert.EqualValues(t, t1, findResponseBucket(t1))
 
 	t2 := 121 * time.Millisecond
-	assert.EqualValues(t, 120*time.Millisecond, findReponseBucket(t2))
+	assert.EqualValues(t, 120*time.Millisecond, findResponseBucket(t2))
 
 	t3 := 1111 * time.Millisecond
-	assert.EqualValues(t, 1100*time.Millisecond, findReponseBucket(t3))
+	assert.EqualValues(t, 1100*time.Millisecond, findResponseBucket(t3))
 
 	t4 := 3 * time.Second * 333 * time.Microsecond
-	assert.NotEqualValues(t, 3300*time.Microsecond, findReponseBucket(t4))
+	assert.NotEqualValues(t, 3300*time.Microsecond, findResponseBucket(t4))
 }
 
 func TestAttackStatistician_Record(t *testing.T) {
@@ -156,10 +156,8 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 			strconv.FormatFloat(report.Reports["/api/foobar"].TPS, 'f', 2, 64)},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	header := []string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "Current TPS"}
-	if report.FullHistory {
-		header[len(header)-1] = "Total TPS"
-	}
+	header := []string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"}
+
 	table.SetHeader(header)
 	table.SetHeaderColor(
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
@@ -177,14 +175,17 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
-		tablewriter.Colors{tablewriter.Bold, tablewriter.BgMagentaColor},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlackColor},
 	)
 
 	footer := make([]string, 16)
-	footer[12] = report.Reports[Total].Name
-	footer[13] = strconv.FormatUint(report.Reports[Total].Requests, 10)
-	footer[14] = strconv.FormatUint(report.Reports[Total].Failures, 10)
-	footer[15] = strconv.FormatFloat(report.Reports[Total].TPS, 'f', 2, 64)
+	if report.FullHistory {
+		footer[11] = "Full History"
+	}
+	footer[12] = "Total"
+	footer[13] = strconv.FormatUint(report.TotalRequests, 10)
+	footer[14] = strconv.FormatUint(report.TotalFailures, 10)
+	footer[15] = strconv.FormatFloat(report.TotalTPS, 'f', 2, 64)
 
 	table.SetFooter(footer)
 	table.SetFooterColor(
@@ -199,7 +200,7 @@ func TestAttackResultAggregator_Report(t *testing.T) {
 		tablewriter.Colors{},
 		tablewriter.Colors{},
 		tablewriter.Colors{},
-		tablewriter.Colors{},
+		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlueColor},
 		tablewriter.Colors{},
 		tablewriter.Colors{},

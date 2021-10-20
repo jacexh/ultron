@@ -14,7 +14,6 @@ var (
 
 const (
 	CurrentTPSTimeRange = 12 * time.Second
-	Total               = "[TOTAL]"
 )
 
 type (
@@ -56,16 +55,19 @@ type (
 		FailRation     float64                  // 错误率
 		FailureDetails map[string]int32         // 错误详情分布
 		FullHistory    bool                     // 是否是该阶段完整的报告
-		FirstAttck     time.Time                // 第一请求发生时间
-		LastAttck      time.Time                // 最后一次请求结束时间
+		FirstAttack    time.Time                // 第一请求发生时间
+		LastAttack     time.Time                // 最后一次请求结束时间
 	}
 
 	SummaryReport struct {
-		FirstAttack time.Time
-		LastAttack  time.Time
-		FullHistory bool
-		Reports     map[string]*AttackReport
-		Extras      map[string]string
+		FirstAttack   time.Time
+		LastAttack    time.Time
+		TotalRequests uint64
+		TotalFailures uint64
+		TotalTPS      float64
+		FullHistory   bool
+		Reports       map[string]*AttackReport
+		Extras        map[string]string
 	}
 
 	timeRangeContainer struct {
@@ -107,7 +109,7 @@ func (ls *timeRangeContainer) accumulate(k, v int64) {
 	}
 }
 
-func findReponseBucket(t time.Duration) time.Duration {
+func findResponseBucket(t time.Duration) time.Duration {
 	if t <= 100*time.Millisecond {
 		return t
 	}
@@ -123,9 +125,6 @@ func (ar *AttackResult) IsFailure() bool {
 }
 
 func NewAttackStatistician(name string) *AttackStatistician {
-	if name == Total {
-		panic("attacker name conflicts with build-in name")
-	}
 	return &AttackStatistician{
 		name:                name,
 		recentSuccessBucket: newTimeRangeContainer(20),
@@ -165,7 +164,7 @@ func (ara *AttackStatistician) recordSuccess(ret *AttackResult) {
 	ara.lastAttack = now
 
 	ara.recentSuccessBucket.accumulate(now.Unix(), 1)
-	ara.responseBucket[findReponseBucket(ret.Duration)]++
+	ara.responseBucket[findResponseBucket(ret.Duration)]++
 }
 
 func (ara *AttackStatistician) recordFailure(ret *AttackResult) {
@@ -201,7 +200,7 @@ func (ara *AttackStatistician) totalTPS() float64 {
 	if ara.lastAttack == ara.firstAttack {
 		return 0
 	}
-	return float64(ara.requests) / float64(ara.lastAttack.Sub(ara.firstAttack).Seconds())
+	return float64(ara.requests) / ara.lastAttack.Sub(ara.firstAttack).Seconds()
 }
 
 // CurrentTPS 最近12秒的TPS
@@ -278,7 +277,7 @@ func (ara *AttackStatistician) average() time.Duration {
 	if ara.requests == 0 {
 		return 0
 	}
-	return time.Duration(ara.totalResponseTime / time.Duration(ara.requests))
+	return ara.totalResponseTime / time.Duration(ara.requests)
 }
 
 func (ara *AttackStatistician) failRatio() float64 {
@@ -304,8 +303,8 @@ func (ara *AttackStatistician) Report(full bool) *AttackReport {
 		FailRation:     ara.failRatio(),
 		FailureDetails: make(map[string]int32),
 		FullHistory:    full,
-		FirstAttck:     ara.firstAttack,
-		LastAttck:      ara.lastAttack,
+		FirstAttack:    ara.firstAttack,
+		LastAttack:     ara.lastAttack,
 	}
 	if full {
 		report.TPS = ara.totalTPS()
@@ -382,29 +381,31 @@ func NewStatisticianGroup() *StatisticianGroup {
 
 // Report 输出统计报表
 func (s *StatisticianGroup) Report(full bool) *SummaryReport {
-	sr := &SummaryReport{Reports: make(map[string]*AttackReport)}
-	sr.Reports[Total] = &AttackReport{Name: Total, FullHistory: full}
+	sr := &SummaryReport{
+		FullHistory: full,
+		Reports:     make(map[string]*AttackReport),
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for key, value := range s.container {
 		sr.Reports[key] = value.Report(full)
-		sr.Reports[Total].Requests += sr.Reports[key].Requests
-		sr.Reports[Total].Failures += sr.Reports[key].Failures
-		sr.Reports[Total].TPS += sr.Reports[key].TPS
+		sr.TotalRequests += sr.Reports[key].Requests
+		sr.TotalFailures += sr.Reports[key].Failures
+		sr.TotalTPS += sr.Reports[key].TPS
 
-		if sr.FirstAttack.IsZero() && !sr.Reports[key].FirstAttck.IsZero() {
-			sr.FirstAttack = sr.Reports[key].FirstAttck
+		if sr.FirstAttack.IsZero() && !sr.Reports[key].FirstAttack.IsZero() {
+			sr.FirstAttack = sr.Reports[key].FirstAttack
 		}
-		if sr.LastAttack.IsZero() && !sr.Reports[key].LastAttck.IsZero() {
-			sr.LastAttack = sr.Reports[key].LastAttck
+		if sr.LastAttack.IsZero() && !sr.Reports[key].LastAttack.IsZero() {
+			sr.LastAttack = sr.Reports[key].LastAttack
 		}
-		if s := sr.Reports[key].FirstAttck; !s.IsZero() && s.Before(sr.FirstAttack) {
+		if s := sr.Reports[key].FirstAttack; !s.IsZero() && s.Before(sr.FirstAttack) {
 			sr.FirstAttack = s
 		}
-		if !sr.LastAttack.IsZero() && sr.LastAttack.Before(sr.Reports[key].LastAttck) {
-			sr.LastAttack = sr.Reports[key].LastAttck
+		if !sr.LastAttack.IsZero() && sr.LastAttack.Before(sr.Reports[key].LastAttack) {
+			sr.LastAttack = sr.Reports[key].LastAttack
 		}
 	}
 	return sr

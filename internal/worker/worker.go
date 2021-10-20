@@ -2,107 +2,128 @@ package worker
 
 import (
 	"context"
+	"log"
 	"math/rand"
-	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wosai/ultron/pkg/attacker"
 	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/types"
 )
 
 type (
-	Worker interface {
-		Start(<-chan attacker.Attacker, chan<- *statistics.StatisticianGroup)
-		Kill()
+	WorkShop interface {
+		Open(context.Context, *attacker.Task) <-chan *statistics.AttackResult
+		Execute(types.StageConfig)
+		Close()
 	}
 
-	worker struct {
-		planCtx context.Context
+	FixedSizeWorkShop struct {
+		ctx     context.Context
 		cancel  context.CancelFunc
+		config  types.StageConfig
+		output  chan *statistics.AttackResult
 		task    *attacker.Task
-		sg      *statistics.StatisticianGroup
-		min     time.Duration
-		max     time.Duration
+		counter uint32
+		pool    map[uint32]*simpleWorker
+		wg      *sync.WaitGroup
 	}
 
-	WorkerFacotry interface {
-		Build() <-chan Worker
-		Recyle() <-chan struct{}
+	simpleWorker struct {
+		id     uint32
+		cancel context.CancelFunc
+		parent *FixedSizeWorkShop
+	}
+
+	Timer interface {
+		Sleep()
+	}
+
+	ConcurrencePolicy interface {
+		RampUp() int
+		RampDown() int
 	}
 )
 
-func (w *worker) Kill() {
-	w.cancel()
-}
-
-func (w *worker) Start(input <-chan attacker.Attacker, output chan<- *statistics.AttackResult) {
-	var attacker attacker.Attacker
-	var err error
-
-	for {
-		select {
-		case <-w.planCtx.Done():
-			return
-		case attacker = <-input:
-		}
-
-		start := time.Now()
-		err = attacker.Fire(w.planCtx)
-		output <- &statistics.AttackResult{
-			Name:     attacker.Name(),
-			Duration: time.Since(start),
-			Error:    err,
-		}
-
-		select {
-		case <-w.planCtx.Done():
-			return
-		default:
-		}
-
-		if w.max > 0 {
-			time.Sleep(w.min + time.Duration(rand.Int63n(int64(w.max-w.min)+1)))
-		}
-	}
-}
-
-func (w *worker) DoWork(min, max time.Duration) {
-	var wg sync.WaitGroup
-	wg.Add(1)
+func (sw *simpleWorker) start(ctx context.Context, task *attacker.Task, output chan<- *statistics.AttackResult) error {
+	ctx, sw.cancel = context.WithCancel(ctx)
 	defer func() {
 		if rec := recover(); rec != nil {
-			debug.PrintStack()
+			log.Println(rec)
 		}
-		wg.Done()
 	}()
 
-	var err error
 	for {
-		attacker := w.task.PickUp()
-		start := time.Now()
-
 		select {
-		case <-w.planCtx.Done():
-			return
+		case <-ctx.Done():
+			return ctx.Err()
 		default:
 		}
 
-		err = attacker.Fire(w.planCtx)
-		w.sg.Record(&statistics.AttackResult{
-			Name:     attacker.Name(),
+		start := time.Now()
+		att := task.PickUp()
+		err := att.Fire(ctx)
+		output <- &statistics.AttackResult{
+			Name:     att.Name(),
 			Duration: time.Since(start),
 			Error:    err,
-		})
+		}
 
 		select {
-		case <-w.planCtx.Done():
-			return
+		case <-ctx.Done():
+			return ctx.Err()
 		default:
 		}
 
-		if max > 0 {
-			time.Sleep(min + time.Duration(rand.Int63n(int64(max-min)+1)))
+		if sw.parent.config.MaxWait > 0 {
+			time.Sleep(sw.parent.config.MinWait + time.Duration(rand.Int63n(int64(sw.parent.config.MaxWait-sw.parent.config.MinWait))))
 		}
 	}
+}
+
+func (sw *simpleWorker) kill() {
+	sw.cancel()
+}
+
+func NewFixedSizeWorkShop() WorkShop {
+	return &FixedSizeWorkShop{
+		output: make(chan *statistics.AttackResult, 100),
+		pool:   make(map[uint32]*simpleWorker),
+		wg:     new(sync.WaitGroup),
+	}
+
+}
+
+func (fs *FixedSizeWorkShop) Open(ctx context.Context, task *attacker.Task) <-chan *statistics.AttackResult {
+	fs.ctx, fs.cancel = context.WithCancel(ctx)
+	fs.task = task
+	return fs.output
+}
+
+func (fs *FixedSizeWorkShop) Execute(config types.StageConfig) {
+	fs.config = config
+
+	for i := 0; i < config.Concurrence; i++ {
+		worker := &simpleWorker{
+			id:     atomic.AddUint32(&fs.counter, 1) - 1,
+			parent: fs,
+		}
+		fs.pool[worker.id] = worker
+		go func(w *simpleWorker) {
+			fs.wg.Add(1)
+			defer fs.wg.Done()
+
+			if err := worker.start(fs.ctx, fs.task, fs.output); err != nil {
+				log.Println(err.Error())
+			}
+		}(worker)
+	}
+}
+
+func (fs *FixedSizeWorkShop) Close() {
+	fs.cancel()
+	fs.wg.Wait()
+	close(fs.output)
 }

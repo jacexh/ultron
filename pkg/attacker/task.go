@@ -7,51 +7,48 @@ import (
 
 type (
 	Task struct {
-		attacker    []*smoothAttacker
+		attacker    []*swrrAttacker
 		totalWeight uint32
 		counts      uint32
 		preempted   []Attacker
 		once        sync.Once
 	}
 
-	// smoothAttacker 平滑的加权请求
-	smoothAttacker struct {
-		attacker      Attacker
-		weight        uint32
-		currentWeight uint32
+	// swrrAttacker 平滑的加权请求
+	swrrAttacker struct {
+		attacker Attacker
+		weight   uint32
+		current  int32
 	}
 )
 
 func NewTask() *Task {
 	return &Task{
-		attacker: make([]*smoothAttacker, 0),
+		attacker: make([]*swrrAttacker, 0),
 	}
 }
 
 func (t *Task) Add(a Attacker, weight uint32) {
 	t.totalWeight += weight
-	t.attacker = append(t.attacker, &smoothAttacker{
+	t.attacker = append(t.attacker, &swrrAttacker{
 		attacker: a,
 		weight:   weight,
 	})
 }
 
-// https://en.wikipedia.org/wiki/Weighted_round_robin
+// https://tenfy.cn/2018/11/12/smooth-weighted-round-robin/
 func (t *Task) swrr() Attacker {
-	var maxIndex int = 0
-	var maxWeight uint32 = 0
+	var best *swrrAttacker
 
-	for i, attacker := range t.attacker {
-		attacker.currentWeight += attacker.weight
-		if attacker.currentWeight > maxWeight {
-			maxWeight = attacker.currentWeight
-			maxIndex = i
+	for _, attacker := range t.attacker {
+		attacker.current += int32(attacker.weight)
+		if best == nil || attacker.current > best.current {
+			best = attacker
 		}
 	}
 
-	sa := t.attacker[maxIndex]
-	sa.currentWeight -= t.totalWeight
-	return sa.attacker
+	best.current -= int32(t.totalWeight)
+	return best.attacker
 }
 
 func (t *Task) PickUp() Attacker {
