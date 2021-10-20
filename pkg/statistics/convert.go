@@ -3,18 +3,16 @@ package statistics
 import (
 	"errors"
 	"time"
-
-	"github.com/wosai/ultron/v2/pkg/statistics/proto"
 )
 
-func ConvertAsDTO(as *AttackStatistician) (*proto.AttackStatisticsDTO, error) {
+func ConvertAsDTO(as *AttackStatistician) (*AttackStatisticsDTO, error) {
 	if as == nil {
 		return nil, errors.New("failed to convert as dto: <nil>")
 	}
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
-	dto := &proto.AttackStatisticsDTO{
+	dto := &AttackStatisticsDTO{
 		Name:                as.name,
 		Requests:            as.requests,
 		Failures:            as.failures,
@@ -45,7 +43,7 @@ func ConvertAsDTO(as *AttackStatistician) (*proto.AttackStatisticsDTO, error) {
 	return dto, nil
 }
 
-func NewAttackStatisticianFromDTO(dto *proto.AttackStatisticsDTO) (*AttackStatistician, error) {
+func NewAttackStatisticianFromDTO(dto *AttackStatisticsDTO) (*AttackStatistician, error) {
 	if dto == nil {
 		return nil, errors.New("failed to new AttackStatistician: <nil>")
 	}

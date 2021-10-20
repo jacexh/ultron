@@ -130,6 +130,7 @@ func TestAttackResultAggregator_merge(t *testing.T) {
 	assert.EqualValues(t, report.Requests, 20)
 }
 
+// todo: remove this case
 func TestAttackResultAggregator_Report(t *testing.T) {
 	s := NewStatisticianGroup()
 	for i := 0; i < 400*400; i++ {

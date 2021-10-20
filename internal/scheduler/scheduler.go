@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/wosai/ultron/v2"
-	"github.com/wosai/ultron/v2/pkg/proto"
+	"github.com/wosai/ultron/v2/internal/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
@@ -17,7 +17,7 @@ type (
 		plan  ultron.Plan
 		agg   StatsAggregator
 		// slaves map[string]types.SlaveRunner
-		server proto.UltronServiceServer
+		server genproto.UltronServiceServer
 		mu     sync.Mutex
 	}
 

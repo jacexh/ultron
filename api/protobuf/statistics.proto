@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package wosai.ultron;
 
-option go_package = "github.com/wosai/ultron/v2/pkg/statistics/proto";
+option go_package = "github.com/wosai/ultron/v2/pkg/statistics";
 
 message AttackStatisticsDTO  {
     string name = 1;
