@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/ultron/v2/pkg/attacker"
 )
 
 type (
@@ -29,8 +28,6 @@ type (
 const defaultUserAgent = "github.com/wosai/ultron"
 
 var (
-	_ attacker.Attacker = (*FastHTTPAttacker)(nil)
-
 	defaultFastHTTPClient = &fasthttp.Client{
 		Name:                defaultUserAgent,
 		MaxConnsPerHost:     1000,

@@ -1,4 +1,4 @@
-package attacker
+package ultron
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type fakeAttcker struct{}
+type fakeAttacker struct{}
 
-func (fs *fakeAttcker) Name() string {
+func (fs *fakeAttacker) Name() string {
 	return "fake"
 }
 
-func (fs *fakeAttcker) Fire(ctx context.Context) error {
+func (fs *fakeAttacker) Fire(ctx context.Context) error {
 	req, _ := http.NewRequest(http.MethodGet, "https://www.google.com", nil)
 	_ = req.WithContext(ctx)
 	select {
@@ -27,7 +27,7 @@ func (fs *fakeAttcker) Fire(ctx context.Context) error {
 }
 
 func BenchmarkFakeAttacker(b *testing.B) {
-	attacker := &fakeAttcker{}
+	attacker := &fakeAttacker{}
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {

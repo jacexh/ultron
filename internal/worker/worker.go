@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2"
-	"github.com/wosai/ultron/v2/pkg/attacker"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
 	WorkShop interface {
-		Open(context.Context, *attacker.Task) <-chan *statistics.AttackResult
+		Open(context.Context, *ultron.Task) <-chan *statistics.AttackResult
 		Execute(ultron.StageConfig)
 		Close()
 	}
@@ -25,7 +24,7 @@ type (
 		cancel  context.CancelFunc
 		config  ultron.StageConfig
 		output  chan *statistics.AttackResult
-		task    *attacker.Task
+		task    *ultron.Task
 		counter uint32
 		pool    map[uint32]*simpleWorker
 		wg      *sync.WaitGroup
@@ -48,7 +47,7 @@ type (
 )
 
 // todo:
-func (sw *simpleWorker) start(ctx context.Context, task *attacker.Task, output chan<- *statistics.AttackResult) error {
+func (sw *simpleWorker) start(ctx context.Context, task *ultron.Task, output chan<- *statistics.AttackResult) error {
 	ctx, sw.cancel = context.WithCancel(ctx)
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -97,7 +96,7 @@ func NewFixedSizeWorkShop() WorkShop {
 
 }
 
-func (fs *FixedSizeWorkShop) Open(ctx context.Context, task *attacker.Task) <-chan *statistics.AttackResult {
+func (fs *FixedSizeWorkShop) Open(ctx context.Context, task *ultron.Task) <-chan *statistics.AttackResult {
 	fs.ctx, fs.cancel = context.WithCancel(ctx)
 	fs.task = task
 	return fs.output

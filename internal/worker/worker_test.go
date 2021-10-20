@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2"
-	"github.com/wosai/ultron/v2/pkg/attacker"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
@@ -45,7 +44,7 @@ func (t transaction) Fire(ctx context.Context) error {
 	return nil
 }
 
-func (fw *forLoopWorker) do(task *attacker.Task, stats *statistics.StatisticianGroup, c *uint32) {
+func (fw *forLoopWorker) do(task *ultron.Task, stats *statistics.StatisticianGroup, c *uint32) {
 	var err error
 	for {
 		select {
@@ -72,8 +71,8 @@ func (fw *forLoopWorker) do(task *attacker.Task, stats *statistics.StatisticianG
 	}
 }
 
-func (cw *channelWorker) do(input <-chan attacker.Attacker, output chan<- *statistics.AttackResult) error {
-	var at attacker.Attacker
+func (cw *channelWorker) do(input <-chan ultron.Attacker, output chan<- *statistics.AttackResult) error {
+	var at ultron.Attacker
 	var err error
 	var opening bool
 
@@ -105,8 +104,8 @@ func (cw *channelWorker) do(input <-chan attacker.Attacker, output chan<- *stati
 	}
 }
 
-func (cw *channelWorker) do2(input <-chan attacker.Attacker, stats *statistics.StatisticianGroup) error {
-	var at attacker.Attacker
+func (cw *channelWorker) do2(input <-chan ultron.Attacker, stats *statistics.StatisticianGroup) error {
+	var at ultron.Attacker
 	var err error
 	var opening bool
 
@@ -142,8 +141,8 @@ func TestChannelWork(t *testing.T) {
 	var wg = &sync.WaitGroup{}
 	sg := statistics.NewStatisticianGroup()
 	output := make(chan *statistics.AttackResult, 100)
-	input := make(chan attacker.Attacker, 100)
-	task := attacker.NewTask()
+	input := make(chan ultron.Attacker, 100)
+	task := ultron.NewTask()
 	task.Add(transaction{}, 5)
 
 	go func() {
@@ -175,8 +174,8 @@ func TestChannelWork(t *testing.T) {
 func TestChannelWork2(t *testing.T) {
 	var wg = &sync.WaitGroup{}
 	sg := statistics.NewStatisticianGroup()
-	input := make(chan attacker.Attacker, 100)
-	task := attacker.NewTask()
+	input := make(chan ultron.Attacker, 100)
+	task := ultron.NewTask()
 	task.Add(transaction{}, 5)
 
 	for i := 0; i < 100; i++ {
@@ -201,7 +200,7 @@ func TestChannelWork2(t *testing.T) {
 func TestForLoopWorker(t *testing.T) {
 	var wg = &sync.WaitGroup{}
 	sg := statistics.NewStatisticianGroup()
-	task := attacker.NewTask()
+	task := ultron.NewTask()
 	task.Add(transaction{}, 5)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -231,7 +230,7 @@ func TestForLoopWorker(t *testing.T) {
 func TestFixedSizeWorkShop_Finish(t *testing.T) {
 	wr := NewFixedSizeWorkShop()
 	sg := statistics.NewStatisticianGroup()
-	task := attacker.NewTask()
+	task := ultron.NewTask()
 	task.Add(transaction{name: "test-0"}, 5)
 	task.Add(transaction{name: "test-1"}, 12)
 
