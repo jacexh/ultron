@@ -28,11 +28,18 @@ jobs:
         git commit -am 'Automated generate protobuf files' && git push
         set -e
     - name: Run Unittest Cases
-      run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
-    - uses: codecov/codecov-action@v2
-      with:
-        files: coverage.txt
-        flags: unittest
-        verbose: true
+      run: |
+        packages=`find . -type f -name "go.mod" -exec dirname {} \;`
+        for dir in $packages; do
+          cd $dir
+          go test -race -covermode=atomic -v ./...
+          cd -
+        done;
     - name: Run Benchmark Cases
-      run: go test -bench . ./...
+      run: |
+        packages=`find . -type f -name "go.mod" -exec dirname {} \;`
+        for dir in $packages; do
+          cd $dir
+          go test -bench . ./...
+          cd -
+        done;
