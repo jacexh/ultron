@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wosai/ultron/pkg/statistics"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 func TestPlan_AddStages(t *testing.T) {
 	plan := NewPlan()
 	_ = plan.AddStages(
-		types.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
-		types.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
+		ultron.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
+		ultron.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
 	)
 
 	assert.Nil(t, plan.Check())
@@ -22,8 +22,8 @@ func TestPlan_AddStages(t *testing.T) {
 func TestPlan_startNextStage(t *testing.T) {
 	plan := NewPlan()
 	_ = plan.AddStages(
-		types.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
-		types.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
+		ultron.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
+		ultron.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
 	)
 	assert.Nil(t, plan.Check())
 
@@ -72,14 +72,14 @@ func TestPlan_startNextStage(t *testing.T) {
 		Reports:       map[string]*statistics.AttackReport{},
 	})
 	assert.True(t, stopped)
-	assert.Error(t, types.ErrPlanClosed)
+	assert.Error(t, ultron.ErrPlanClosed)
 }
 
 func TestPlan_Stages(t *testing.T) {
 	plan := NewPlan()
 	_ = plan.AddStages(
-		types.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
-		types.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
+		ultron.StageConfig{Duration: 1 * time.Hour, Concurrence: 100},
+		ultron.StageConfig{Requests: 1024 * 1024, Concurrence: 200},
 	)
 
 	stages := plan.Stages()

@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/wosai/ultron/transport/rest"
+	"github.com/wosai/ultron/v2/transport/rest"
 )
 
 func main() {

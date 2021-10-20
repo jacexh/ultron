@@ -5,16 +5,16 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/wosai/ultron/pkg/proto"
-	"github.com/wosai/ultron/pkg/statistics"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/pkg/proto"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期
 	Scheduler struct {
 		batch uint32
-		plan  types.Plan
+		plan  ultron.Plan
 		agg   StatsAggregator
 		// slaves map[string]types.SlaveRunner
 		server proto.UltronServiceServer
@@ -41,14 +41,14 @@ type (
 	}
 )
 
-func SplitStageConfiguration(sc types.StageConfig, n int) []types.StageConfig {
+func SplitStageConfiguration(sc ultron.StageConfig, n int) []ultron.StageConfig {
 	if n == 0 {
 		panic(errors.New("bad slices number"))
 	}
-	ret := make([]types.StageConfig, n)
+	ret := make([]ultron.StageConfig, n)
 	// 先处理不切分的配置
 	for i := 0; i < n; i++ {
-		ret[i] = types.StageConfig{
+		ret[i] = ultron.StageConfig{
 			Duration:    sc.Duration,
 			Requests:    sc.Requests / uint64(n),
 			Concurrence: sc.Concurrence / n,

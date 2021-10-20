@@ -3,8 +3,8 @@ package stats
 import (
 	"context"
 
-	"github.com/wosai/ultron/internal/scheduler"
-	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/v2/internal/scheduler"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (

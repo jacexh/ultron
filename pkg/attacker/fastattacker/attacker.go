@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/ultron/pkg/attacker"
+	"github.com/wosai/ultron/v2/pkg/attacker"
 )
 
 type (

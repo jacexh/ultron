@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
 )
 
 func TestStageConfiguration_SplitOne(t *testing.T) {
-	conf := types.StageConfig{
+	conf := ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
 		Concurrence: 1000,
@@ -23,7 +23,7 @@ func TestStageConfiguration_SplitOne(t *testing.T) {
 }
 
 func TestStageConfiguration_SplitTwo(t *testing.T) {
-	conf := types.StageConfig{
+	conf := ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    40000000,
 		Concurrence: 1000,
@@ -33,7 +33,7 @@ func TestStageConfiguration_SplitTwo(t *testing.T) {
 	}
 
 	subs := SplitStageConfiguration(conf, 2)
-	expected := types.StageConfig{
+	expected := ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    20000000,
 		Concurrence: 500,
@@ -46,7 +46,7 @@ func TestStageConfiguration_SplitTwo(t *testing.T) {
 }
 
 func TestStageConfiguration_SplitThree(t *testing.T) {
-	conf := types.StageConfig{
+	conf := ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    2000,
 		Concurrence: 1000,
@@ -56,7 +56,7 @@ func TestStageConfiguration_SplitThree(t *testing.T) {
 	}
 
 	subs := SplitStageConfiguration(conf, 3)
-	expected := types.StageConfig{
+	expected := ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    666,
 		Concurrence: 333,
@@ -65,7 +65,7 @@ func TestStageConfiguration_SplitThree(t *testing.T) {
 		MaxWait:     3 * time.Second,
 	}
 	assert.EqualValues(t, expected, subs[2])
-	assert.EqualValues(t, subs[0], types.StageConfig{
+	assert.EqualValues(t, subs[0], ultron.StageConfig{
 		Duration:    2 * time.Hour,
 		Requests:    667,
 		Concurrence: 334,

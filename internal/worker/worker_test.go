@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wosai/ultron/pkg/attacker"
-	"github.com/wosai/ultron/pkg/statistics"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/pkg/attacker"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
@@ -235,8 +235,8 @@ func TestFixedSizeWorkShop_Finish(t *testing.T) {
 	task.Add(transaction{name: "test-0"}, 5)
 	task.Add(transaction{name: "test-1"}, 12)
 
-	output := wr.Start(context.Background(), task)
-	go wr.Execute(types.StageConfig{
+	output := wr.Open(context.Background(), task)
+	go wr.Execute(ultron.StageConfig{
 		Concurrence: 200,
 		MinWait:     10 * time.Millisecond,
 		MaxWait:     15 * time.Millisecond,
@@ -244,7 +244,7 @@ func TestFixedSizeWorkShop_Finish(t *testing.T) {
 
 	go func() {
 		<-time.After(3 * time.Second)
-		wr.Finish()
+		wr.Close()
 	}()
 
 	for ret := range output {

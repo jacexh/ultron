@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/wosai/ultron/pkg/statistics/proto"
+	"github.com/wosai/ultron/v2/pkg/statistics/proto"
 )
 
 func ConvertAsDTO(as *AttackStatistician) (*proto.AttackStatisticsDTO, error) {

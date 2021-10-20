@@ -8,22 +8,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/wosai/ultron/pkg/attacker"
-	"github.com/wosai/ultron/pkg/statistics"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/pkg/attacker"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
 	WorkShop interface {
 		Open(context.Context, *attacker.Task) <-chan *statistics.AttackResult
-		Execute(types.StageConfig)
+		Execute(ultron.StageConfig)
 		Close()
 	}
 
 	FixedSizeWorkShop struct {
 		ctx     context.Context
 		cancel  context.CancelFunc
-		config  types.StageConfig
+		config  ultron.StageConfig
 		output  chan *statistics.AttackResult
 		task    *attacker.Task
 		counter uint32
@@ -47,6 +47,7 @@ type (
 	}
 )
 
+// todo:
 func (sw *simpleWorker) start(ctx context.Context, task *attacker.Task, output chan<- *statistics.AttackResult) error {
 	ctx, sw.cancel = context.WithCancel(ctx)
 	defer func() {
@@ -102,7 +103,7 @@ func (fs *FixedSizeWorkShop) Open(ctx context.Context, task *attacker.Task) <-ch
 	return fs.output
 }
 
-func (fs *FixedSizeWorkShop) Execute(config types.StageConfig) {
+func (fs *FixedSizeWorkShop) Execute(config ultron.StageConfig) {
 	fs.config = config
 
 	for i := 0; i < config.Concurrence; i++ {
@@ -116,7 +117,6 @@ func (fs *FixedSizeWorkShop) Execute(config types.StageConfig) {
 			defer fs.wg.Done()
 
 			if err := worker.start(fs.ctx, fs.task, fs.output); err != nil {
-				log.Println(err.Error())
 			}
 		}(worker)
 	}

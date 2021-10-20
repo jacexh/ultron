@@ -5,16 +5,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wosai/ultron/pkg/statistics"
-	"github.com/wosai/ultron/types"
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
 	Plan struct {
 		locked     bool
 		current    int
-		stages     []types.StageConfig
-		status     types.Status
+		stages     []ultron.StageConfig
+		status     ultron.Status
 		stageDatas []stageData
 		mu         sync.Mutex
 	}
@@ -27,29 +27,29 @@ type (
 	Status string
 )
 
-var _ types.Plan = (*Plan)(nil)
+var _ ultron.Plan = (*Plan)(nil)
 
 func NewPlan() *Plan {
 	return &Plan{
 		current: -1,
-		stages:  make([]types.StageConfig, 0),
-		status:  types.StatusReady,
+		stages:  make([]ultron.StageConfig, 0),
+		status:  ultron.StatusReady,
 	}
 }
 
-func (p *Plan) addStage(conf types.StageConfig) error {
+func (p *Plan) addStage(conf ultron.StageConfig) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.locked {
 		return errors.New("plan was locked")
 	}
-	if p.status == types.StatusReady {
+	if p.status == ultron.StatusReady {
 		p.stages = append(p.stages, conf)
 	}
 	return nil
 }
 
-func (p *Plan) AddStages(sc ...types.StageConfig) error {
+func (p *Plan) AddStages(sc ...ultron.StageConfig) error {
 	for _, conf := range sc {
 		if err := p.addStage(conf); err != nil {
 			return err
@@ -87,43 +87,43 @@ func (p *Plan) Check() error {
 	return nil
 }
 
-func (p *Plan) StopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, conf types.StageConfig, err error) {
+func (p *Plan) StopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, conf ultron.StageConfig, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if !p.locked {
-		return false, n, types.StageConfig{}, errors.New("did not check stage configurations yet")
+		return false, n, ultron.StageConfig{}, errors.New("did not check stage configurations yet")
 	}
 
-	if p.status == types.StatusInterrupted || p.status == types.StatusFinished {
-		return false, n, types.StageConfig{}, types.ErrPlanClosed
+	if p.status == ultron.StatusInterrupted || p.status == ultron.StatusFinished {
+		return false, n, ultron.StageConfig{}, ultron.ErrPlanClosed
 	}
 
-	if p.status == types.StatusRunning {
+	if p.status == ultron.StatusRunning {
 		if p.current != n {
-			return false, n, types.StageConfig{}, nil
+			return false, n, ultron.StageConfig{}, nil
 		}
 
 		stageFinished := p.isFinishedCurrentStage(n, report)
 		if !stageFinished { // 该阶段尚未结束，不做任务事情
-			return false, n, types.StageConfig{}, nil
+			return false, n, ultron.StageConfig{}, nil
 		}
 
 		if p.current >= len(p.stages)-1 { // 最后一个阶段
-			p.status = types.StatusFinished
-			return true, n, types.StageConfig{}, types.ErrPlanClosed
+			p.status = ultron.StatusFinished
+			return true, n, ultron.StageConfig{}, ultron.ErrPlanClosed
 		}
 
 		p.current++
 		return true, p.current, p.stages[p.current], nil
 	}
 
-	if p.status == types.StatusReady && p.current == -1 {
-		p.status = types.StatusRunning
+	if p.status == ultron.StatusReady && p.current == -1 {
+		p.status = ultron.StatusRunning
 		p.current++
 		return true, p.current, p.stages[p.current], nil
 	}
-	return false, n, types.StageConfig{}, errors.New("failed to stop currend stage and start next stage")
+	return false, n, ultron.StageConfig{}, errors.New("failed to stop current stage and start next stage")
 }
 
 func (p *Plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) bool {
@@ -152,18 +152,18 @@ func (p *Plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) b
 	return false
 }
 
-func (p *Plan) Status() types.Status {
+func (p *Plan) Status() ultron.Status {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	return p.status
 }
 
-func (p *Plan) Stages() []types.StageConfig {
+func (p *Plan) Stages() []ultron.StageConfig {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	ret := make([]types.StageConfig, len(p.stages))
+	ret := make([]ultron.StageConfig, len(p.stages))
 	copy(ret, p.stages)
 	return ret
 }
