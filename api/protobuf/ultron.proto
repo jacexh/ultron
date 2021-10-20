@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package wosai.ultron;
 
-option go_package = "github.com/wosai/ultron/pkg/rpc";
+option go_package = "github.com/wosai/ultron/pkg/proto";
+
+import "statistics.proto";
 
 service UltronService {
     rpc Subscribe(Session) returns (stream Event) {}
-    rpc SendUp(StatisticalReport) returns (Feedback) {}
+    rpc SendUp(AttackStatisticsDTO) returns (Feedback) {}
 }
 
 message Session {
@@ -34,11 +36,6 @@ message StageConfig {
     string job_id = 1;
     uint32 concurrence = 2;
     int32 hatch_rate = 3;
-}
-
-message StatisticalReport {
-    string job_id = 1;
-    string batch_id = 2;
 }
 
 message Feedback {

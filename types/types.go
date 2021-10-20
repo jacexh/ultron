@@ -2,21 +2,13 @@ package types
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"github.com/wosai/ultron/pkg/statistics"
 )
 
 type (
-	// Attacker 事务接口定义，需要在实现上保证其goroutine-safe
-	Attacker interface {
-		Name() string
-		Fire(context.Context) error
-	}
-
-	Task interface {
-		Add(Attacker, int)
-		PickUp() Attacker
-	}
-
 	// StageConfig 测试阶段的描述
 	StageConfig struct {
 		Duration    time.Duration `json:"duration,omitempty"`   // 阶段持续时间
@@ -27,21 +19,22 @@ type (
 		MaxWait     time.Duration `json:"max_wait,omitempty"`   // Attacker之间最长等待时间
 	}
 
+	Status int
+
 	Plan interface {
-		AddStages(...StageConfig)
+		AddStages(...StageConfig) error
+		Stages() []StageConfig
+		Status() Status
+		Check() error
+		StopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, StageConfig, error)
 	}
 
 	MasterRunner interface {
 		WithPlane(Plan)
 	}
 
-	SlaveRunner interface {
-		WithTask(Task)
-	}
-
 	Runner interface {
 		MasterRunner
-		SlaveRunner
 	}
 
 	// EventType 事件类型
@@ -60,4 +53,17 @@ type (
 		Interrupt() error
 		Finish() error
 	}
+
+	ReportHandleFunc func(context.Context, *statistics.SummaryReport, statistics.Tags)
+)
+
+const (
+	StatusReady Status = iota
+	StatusRunning
+	StatusFinished
+	StatusInterrupted
+)
+
+var (
+	ErrPlanClosed = errors.New("plan was finished or interrupted")
 )

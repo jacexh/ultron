@@ -3,26 +3,30 @@ on: [push, pull_request]
 
 jobs:
   ci:
-    strategy:
-      matrix:
-        go-version: [1.16.x, 1.17.x]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/setup-go@v2
       name: Set up Go 1.x
       with:
-        go-version: ${{matrix.go-version}}
+        go-version: "^1.17"
     - uses: actions/checkout@v2
       name: Check out code into Go module directory
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
     - name: Install Protoc
       uses: arduino/setup-protoc@v1
       with:
         version: "3.18.1"
     - name: Generate Protocol Buff Files
-      run: |
+      run: |   
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
         make proto
+        git config --global user.name 'Github Action'
+        git config --global user.email 'jacexh@users.noreply.github.com'
+        set +e
+        git commit -am 'Automated generate protobuf files' && git push
+        set -e
     - name: Run Unittest Cases
       run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
     - uses: codecov/codecov-action@v2
@@ -31,4 +35,4 @@ jobs:
         flags: unittest
         verbose: true
     - name: Run Benchmark Cases
-      run: go test -bench .
+      run: go test -bench . ./...
