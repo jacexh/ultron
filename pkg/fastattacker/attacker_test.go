@@ -6,7 +6,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
 
@@ -24,11 +23,17 @@ func TestFastHTTPAttacker_Fire(t *testing.T) {
 		}),
 	)
 	err := attacker.Fire(context.Background())
-	assert.Nil(t, err)
+	if err != nil {
+		t.FailNow()
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	err = attacker.Fire(ctx)
-	assert.NotNil(t, err)
-	assert.True(t, errors.Is(err, context.Canceled))
+	if err == nil {
+		t.FailNow()
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.FailNow()
+	}
 }
