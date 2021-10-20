@@ -18,8 +18,8 @@ const (
 )
 
 type (
-	// AttackResut 事务执行结果
-	AttackResut struct {
+	// AttackResult 事务执行结果
+	AttackResult struct {
 		Name     string
 		Duration time.Duration
 		Error    error
@@ -118,7 +118,7 @@ func findReponseBucket(t time.Duration) time.Duration {
 }
 
 // IsFailure 事务是否执行失败
-func (ar *AttackResut) IsFailure() bool {
+func (ar *AttackResult) IsFailure() bool {
 	return ar.Error != nil
 }
 
@@ -136,7 +136,7 @@ func NewAttackStatistician(name string) *AttackStatistician {
 	}
 }
 
-func (ara *AttackStatistician) recordSuccess(ret *AttackResut) {
+func (ara *AttackStatistician) recordSuccess(ret *AttackResult) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -168,7 +168,7 @@ func (ara *AttackStatistician) recordSuccess(ret *AttackResut) {
 	ara.responseBucket[findReponseBucket(ret.Duration)]++
 }
 
-func (ara *AttackStatistician) recordFailure(ret *AttackResut) {
+func (ara *AttackStatistician) recordFailure(ret *AttackResult) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -188,7 +188,7 @@ func (ara *AttackStatistician) recordFailure(ret *AttackResut) {
 	ara.recentFailureBucket.accumulate(now.Unix(), 1)
 }
 
-func (ara *AttackStatistician) Record(ret *AttackResut) {
+func (ara *AttackStatistician) Record(ret *AttackResult) {
 	if ret.IsFailure() {
 		ara.recordFailure(ret)
 		return
@@ -411,7 +411,7 @@ func (s *StatisticianGroup) Report(full bool) *SummaryReport {
 }
 
 // Record 记录一次请求结果
-func (s *StatisticianGroup) Record(result *AttackResut) {
+func (s *StatisticianGroup) Record(result *AttackResult) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

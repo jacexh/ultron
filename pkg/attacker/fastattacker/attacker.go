@@ -77,12 +77,6 @@ func (fa *FastHTTPAttacker) Fire(ctx context.Context) error {
 		return err
 	}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-
 	for _, check := range fa.checkFuncs {
 		if err = check(res); err != nil {
 			return err

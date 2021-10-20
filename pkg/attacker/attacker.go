@@ -106,12 +106,6 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 
 	res.Body.Close()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-
 	for _, check := range ha.checkFuncs {
 		if err = check(res, body); err != nil {
 			return err

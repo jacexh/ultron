@@ -37,7 +37,7 @@ type (
 	}
 
 	StatsRecorder interface {
-		Record(*statistics.AttackResut)
+		Record(*statistics.AttackResult)
 	}
 )
 
