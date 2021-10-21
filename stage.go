@@ -5,47 +5,27 @@ import (
 )
 
 type (
-	// Stage 每个阶段必须包含
-	Stage interface {
-		ExitCondition
-		Timer
-	}
-
 	// ExitCondition 阶段退出条件
-	ExitCondition interface {
-		Exit(ExitCondition) bool
-		Endless() bool
-	}
-
-	UniversalExitConditions struct {
-		Requests uint64        `json:"requests,omitempty"`
-		Duration time.Duration `json:"duration,omitempty"`
+	ExitConditions interface {
+		NeverStop() bool
+		Check(ExitConditions) bool
 	}
 
 	stage struct {
-		timer         Timer
-		exitCondition ExitCondition
+		timer    Timer
+		checker  ExitConditions
+		strategy AttackStrategyDescriber
+	}
+
+	// exitConditions 通用的退出条件
+	UniversalExitConditions struct {
+		Requests uint64        `json:"requests,omitempty"` // 请求总数，不严格控制
+		Duration time.Duration `json:"duration,omitempty"` // 持续时长，不严格控制
 	}
 )
 
-// func BuildStage() Stage {
-// 	return &stage{
-// 		timer:         NonstopTimer{},
-// 		exitCondition: UniversalExitConditions{},
-// 		strategy:      FixedUserStrategy{},
-// 	}
-// }
-
-// func (s *stage) WithExitCondition(requests uint64, duration time.Duration) Stage {
-// 	return s
-// }
-
-func (s stage) Endless() bool {
-	return s.Endless()
-}
-
-func (sec UniversalExitConditions) Exit(actual ExitCondition) bool {
-	if sec.Endless() {
+func (sec UniversalExitConditions) Check(actual ExitConditions) bool {
+	if sec.NeverStop() {
 		return false
 	}
 	if a, ok := actual.(UniversalExitConditions); ok {
@@ -59,9 +39,39 @@ func (sec UniversalExitConditions) Exit(actual ExitCondition) bool {
 	return false
 }
 
-func (sec UniversalExitConditions) Endless() bool {
+func (sec UniversalExitConditions) NeverStop() bool {
 	if sec.Duration <= 0 && sec.Requests <= 0 {
 		return true
 	}
 	return false
+}
+
+func BuildStage() *stage {
+	return &stage{}
+}
+
+func (s *stage) WithTimer(t Timer) *stage {
+	if t == nil {
+		s.timer = NonstopTimer{}
+	} else {
+		s.timer = t
+	}
+	return s
+}
+
+func (s *stage) WithExitConditions(ec ExitConditions) *stage {
+	if ec == nil {
+		s.checker = UniversalExitConditions{}
+	} else {
+		s.checker = ec
+	}
+	return s
+}
+
+func (s *stage) WithAttackStrategy(d AttackStrategyDescriber) *stage {
+	if d == nil {
+		panic("bad attack strategy")
+	}
+	s.strategy = d
+	return s
 }

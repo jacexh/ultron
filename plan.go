@@ -1,0 +1,159 @@
+package ultron
+
+import (
+	"errors"
+	"sync"
+	"time"
+
+	"github.com/wosai/ultron/v2/pkg/statistics"
+)
+
+type (
+	// Plan interface {
+	// 	addStages(...*stage) error
+	// 	Stages() []*stage
+	// 	Status() Status
+	// 	Check() error
+	// 	StopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, StageConfig, error)
+	// }
+
+	plan struct {
+		locked       bool
+		current      int
+		stages       []*stage
+		status       Status
+		actualStages []UniversalExitConditions
+		mu           sync.Mutex
+	}
+)
+
+// var _ Plan = (*plan)(nil)
+
+func newPlan() *plan {
+	return &plan{
+		current: -1,
+		stages:  make([]*stage, 0),
+		status:  StatusReady,
+	}
+}
+
+func (p *plan) addStage(s *stage) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.locked {
+		return errors.New("plan was locked")
+	}
+	if p.status == StatusReady {
+		p.stages = append(p.stages, s)
+	}
+	return nil
+}
+
+// func (p *Plan) AddStages(sc ...ultron.StageConfig) error {
+// 	for _, conf := range sc {
+// 		if err := p.addStage(conf); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
+
+func (p *plan) check() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if len(p.stages) == 0 {
+		return errors.New("empty stage")
+	}
+
+	for index, stage := range p.stages {
+		// 非最后阶段
+		if index < len(p.stages)-1 {
+			if stage.checker.NeverStop() {
+				return errors.New("cannot break out this stage")
+			}
+		}
+	}
+	p.locked = true
+	p.actualStages = make([]UniversalExitConditions, len(p.stages))
+	return nil
+}
+
+func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, s AttackStrategyDescriber, t Timer, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if !p.locked {
+		panic("did not check stage configurations yet")
+	}
+
+	if p.status == StatusInterrupted || p.status == StatusFinished {
+		return false, n, nil, nil, ErrPlanClosed
+	}
+
+	if p.status == StatusRunning {
+		if p.current != n { // stage id不一致，不做任何控制
+			return false, n, nil, nil, nil
+		}
+
+		stageFinished := p.isFinishedCurrentStage(n, report)
+		if !stageFinished { // 该阶段尚未结束，不做任务事情
+			return false, n, nil, nil, nil
+		}
+
+		if p.current >= len(p.stages)-1 { // 最后一个阶段
+			p.status = StatusFinished
+			return true, n, nil, nil, ErrPlanClosed
+		}
+
+		p.current++
+		return true, p.current, p.stages[p.current].strategy, p.stages[p.current].timer, nil
+	}
+
+	if p.status == StatusReady && p.current == -1 {
+		p.status = StatusRunning
+		p.current++
+		return true, p.current, p.stages[p.current].strategy, p.stages[p.current].timer, nil
+	}
+	return false, n, nil, nil, errors.New("failed to stop current stage and start next stage")
+}
+
+func (p *plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) bool {
+	totalRequests := report.TotalRequests + report.TotalFailures
+	totalDuration := report.LastAttack.Sub(report.FirstAttack)
+	var previousRequests, currentStageRequests uint64
+	var previousDuration, currentStageDuration time.Duration
+
+	if n > 0 {
+		for i := 0; i < n; i++ {
+			previousDuration += p.actualStages[i].Duration
+			previousRequests += p.actualStages[i].Requests
+		}
+	}
+	currentStageDuration = totalDuration - previousDuration
+	currentStageRequests = totalRequests - previousRequests
+
+	condition := UniversalExitConditions{Requests: currentStageRequests, Duration: currentStageDuration}
+	if p.stages[n].checker.Check(condition) {
+		p.actualStages[n] = condition
+		return true
+	}
+
+	return false
+}
+
+func (p *plan) Status() Status {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.status
+}
+
+// func (p *Plan) Stages() []ultron.StageConfig {
+// 	p.mu.Lock()
+// 	defer p.mu.Unlock()
+
+// 	ret := make([]ultron.StageConfig, len(p.stages))
+// 	copy(ret, p.stages)
+// 	return ret
+// }
