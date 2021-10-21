@@ -11,6 +11,14 @@ type (
 		Check(ExitConditions) bool
 	}
 
+	// Stage 描述一个压测阶段，需要包含并发策略、延时器、退出条件
+	Stage interface {
+		GetTimer() Timer
+		GetExitConditions() ExitConditions
+		GetStrategy() AttackStrategyDescriber
+	}
+
+	// stage 通用的stage对象
 	stage struct {
 		timer    Timer
 		checker  ExitConditions
@@ -21,6 +29,15 @@ type (
 	UniversalExitConditions struct {
 		Requests uint64        `json:"requests,omitempty"` // 请求总数，不严格控制
 		Duration time.Duration `json:"duration,omitempty"` // 持续时长，不严格控制
+	}
+
+	V1StageConfig struct {
+		Requests        uint64
+		Duration        time.Duration
+		ConcurrentUsers int
+		RampUpPeriod    int // 单位秒
+		MinWait         time.Duration
+		MaxWait         time.Duration
 	}
 )
 
@@ -74,4 +91,28 @@ func (s *stage) WithAttackStrategy(d AttackStrategyDescriber) *stage {
 	}
 	s.strategy = d
 	return s
+}
+
+func (s *stage) GetTimer() Timer {
+	return s.timer
+}
+
+func (s *stage) GetExitConditions() ExitConditions {
+	return s.checker
+}
+
+func (s *stage) GetStrategy() AttackStrategyDescriber {
+	return s.strategy
+}
+
+func (v1 V1StageConfig) GetTimer() Timer {
+	return UniformRandomTimer{MinWait: v1.MinWait, MaxWait: v1.MaxWait}
+}
+
+func (v1 V1StageConfig) GetExitConditions() ExitConditions {
+	return UniversalExitConditions{Requests: v1.Requests, Duration: v1.Duration}
+}
+
+func (v1 V1StageConfig) GetStrategy() AttackStrategyDescriber {
+	return &FixedConcurrentUsers{ConcurrentUsers: v1.ConcurrentUsers, RampUpPeriod: v1.RampUpPeriod}
 }

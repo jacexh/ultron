@@ -9,35 +9,36 @@ import (
 )
 
 type (
-	// Plan interface {
-	// 	addStages(...*stage) error
-	// 	Stages() []*stage
-	// 	Status() Status
-	// 	Check() error
-	// 	StopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, StageConfig, error)
-	// }
+	Plan interface {
+		AddStages(...Stage)
+		Stages() []Stage
+		Current() (int, Stage)
+		Status() Status
+		check() error
+		stopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, Stage, error)
+	}
 
 	plan struct {
 		locked       bool
 		current      int
-		stages       []*stage
+		stages       []Stage
 		status       Status
 		actualStages []UniversalExitConditions
 		mu           sync.Mutex
 	}
 )
 
-// var _ Plan = (*plan)(nil)
+var _ Plan = (*plan)(nil)
 
-func newPlan() *plan {
+func NewPlan() Plan {
 	return &plan{
 		current: -1,
-		stages:  make([]*stage, 0),
+		stages:  make([]Stage, 0),
 		status:  StatusReady,
 	}
 }
 
-func (p *plan) addStage(s *stage) error {
+func (p *plan) addStage(s Stage) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.locked {
@@ -49,14 +50,13 @@ func (p *plan) addStage(s *stage) error {
 	return nil
 }
 
-// func (p *Plan) AddStages(sc ...ultron.StageConfig) error {
-// 	for _, conf := range sc {
-// 		if err := p.addStage(conf); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+func (p *plan) AddStages(stages ...Stage) {
+	for _, stage := range stages {
+		if err := p.addStage(stage); err != nil {
+			panic(err)
+		}
+	}
+}
 
 func (p *plan) check() error {
 	p.mu.Lock()
@@ -69,7 +69,7 @@ func (p *plan) check() error {
 	for index, stage := range p.stages {
 		// 非最后阶段
 		if index < len(p.stages)-1 {
-			if stage.checker.NeverStop() {
+			if stage.GetExitConditions().NeverStop() {
 				return errors.New("cannot break out this stage")
 			}
 		}
@@ -79,7 +79,7 @@ func (p *plan) check() error {
 	return nil
 }
 
-func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, s AttackStrategyDescriber, t Timer, err error) {
+func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, s Stage, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -88,34 +88,34 @@ func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) 
 	}
 
 	if p.status == StatusInterrupted || p.status == StatusFinished {
-		return false, n, nil, nil, ErrPlanClosed
+		return false, n, nil, ErrPlanClosed
 	}
 
 	if p.status == StatusRunning {
 		if p.current != n { // stage id不一致，不做任何控制
-			return false, n, nil, nil, nil
+			return false, n, nil, nil
 		}
 
 		stageFinished := p.isFinishedCurrentStage(n, report)
 		if !stageFinished { // 该阶段尚未结束，不做任务事情
-			return false, n, nil, nil, nil
+			return false, n, nil, nil
 		}
 
 		if p.current >= len(p.stages)-1 { // 最后一个阶段
 			p.status = StatusFinished
-			return true, n, nil, nil, ErrPlanClosed
+			return true, n, nil, ErrPlanClosed
 		}
 
 		p.current++
-		return true, p.current, p.stages[p.current].strategy, p.stages[p.current].timer, nil
+		return true, p.current, p.stages[p.current], nil
 	}
 
 	if p.status == StatusReady && p.current == -1 {
 		p.status = StatusRunning
 		p.current++
-		return true, p.current, p.stages[p.current].strategy, p.stages[p.current].timer, nil
+		return true, p.current, p.stages[p.current], nil
 	}
-	return false, n, nil, nil, errors.New("failed to stop current stage and start next stage")
+	return false, n, nil, errors.New("failed to stop current stage and start next stage")
 }
 
 func (p *plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) bool {
@@ -134,7 +134,7 @@ func (p *plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) b
 	currentStageRequests = totalRequests - previousRequests
 
 	condition := UniversalExitConditions{Requests: currentStageRequests, Duration: currentStageDuration}
-	if p.stages[n].checker.Check(condition) {
+	if p.stages[n].GetExitConditions().Check(condition) {
 		p.actualStages[n] = condition
 		return true
 	}
@@ -149,11 +149,18 @@ func (p *plan) Status() Status {
 	return p.status
 }
 
-// func (p *Plan) Stages() []ultron.StageConfig {
-// 	p.mu.Lock()
-// 	defer p.mu.Unlock()
+func (p *plan) Stages() []Stage {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-// 	ret := make([]ultron.StageConfig, len(p.stages))
-// 	copy(ret, p.stages)
-// 	return ret
-// }
+	ret := make([]Stage, len(p.stages))
+	copy(ret, p.stages)
+	return ret
+}
+
+func (p *plan) Current() (int, Stage) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.current, p.stages[p.current]
+}

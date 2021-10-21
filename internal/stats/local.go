@@ -1,36 +1,29 @@
 package stats
 
-import (
-	"context"
+// type (
+// 	LocalStatsAggregator struct {
+// 		*statistics.StatisticianGroup
+// 	}
 
-	"github.com/wosai/ultron/v2/internal/scheduler"
-	"github.com/wosai/ultron/v2/pkg/statistics"
-)
+// 	RemoteStatsAggregator struct {
+// 		batch  uint32
+// 		slaves []scheduler.StatsProvider
+// 	}
+// )
 
-type (
-	LocalStatsAggregator struct {
-		*statistics.StatisticianGroup
-	}
+// var _ scheduler.StatsAggregator = (*LocalStatsAggregator)(nil)
 
-	RemoteStatsAggregator struct {
-		batch  uint32
-		slaves []scheduler.StatsProvider
-	}
-)
+// func (lsa LocalStatsAggregator) Start(slave ...scheduler.StatsProvider) {
+// 	lsa.Reset()
+// }
 
-var _ scheduler.StatsAggregator = (*LocalStatsAggregator)(nil)
+// func (lsa LocalStatsAggregator) Aggregate(ctx context.Context, input chan<- *statistics.SummaryReport) {
+// 	input <- lsa.Report(false)
+// }
 
-func (lsa LocalStatsAggregator) Start(slave ...scheduler.StatsProvider) {
-	lsa.Reset()
-}
+// func (lsa LocalStatsAggregator) Stop(ctx context.Context, input chan<- *statistics.SummaryReport) {
+// 	input <- lsa.Report(true)
+// }
 
-func (lsa LocalStatsAggregator) Aggregate(ctx context.Context, input chan<- *statistics.SummaryReport) {
-	input <- lsa.Report(false)
-}
-
-func (lsa LocalStatsAggregator) Stop(ctx context.Context, input chan<- *statistics.SummaryReport) {
-	input <- lsa.Report(true)
-}
-
-func (rsa *RemoteStatsAggregator) Aggregate(ctx context.Context, input chan<- *statistics.SummaryReport) {
-}
+// func (rsa *RemoteStatsAggregator) Aggregate(ctx context.Context, input chan<- *statistics.SummaryReport) {
+// }
