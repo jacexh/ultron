@@ -15,7 +15,7 @@ type (
 		Current() (int, Stage)
 		Status() Status
 		check() error
-		stopCurrentAndStartNext(int, *statistics.SummaryReport) (bool, int, Stage, error)
+		stopCurrentAndStartNext(int, statistics.SummaryReport) (bool, int, Stage, error)
 	}
 
 	plan struct {
@@ -79,7 +79,7 @@ func (p *plan) check() error {
 	return nil
 }
 
-func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) (stopped bool, stageID int, s Stage, err error) {
+func (p *plan) stopCurrentAndStartNext(n int, report statistics.SummaryReport) (stopped bool, stageID int, s Stage, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -118,7 +118,7 @@ func (p *plan) stopCurrentAndStartNext(n int, report *statistics.SummaryReport) 
 	return false, n, nil, errors.New("failed to stop current stage and start next stage")
 }
 
-func (p *plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) bool {
+func (p *plan) isFinishedCurrentStage(n int, report statistics.SummaryReport) bool {
 	totalRequests := report.TotalRequests + report.TotalFailures
 	totalDuration := report.LastAttack.Sub(report.FirstAttack)
 	var previousRequests, currentStageRequests uint64

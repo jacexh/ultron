@@ -13,7 +13,7 @@ func BuildHTTPRouter() http.Handler {
 	route.Get("/", Echo)
 
 	// server static files
-	fs := http.FileServer(http.Dir("../web"))
+	fs := http.FileServer(http.Dir("./web"))
 	route.Handle("/static/", http.StripPrefix("/static/", fs))
 	return route
 }

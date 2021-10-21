@@ -28,7 +28,7 @@ func TestPlan_startNextStage(t *testing.T) {
 	assert.Nil(t, p1.check())
 	assert.EqualValues(t, p1.Status(), StatusReady)
 
-	stopped, i, stage, err := p1.stopCurrentAndStartNext(-1, nil)
+	stopped, i, stage, err := p1.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
 	assert.Nil(t, err)
 	assert.EqualValues(t, i, 0)
 	assert.EqualValues(t, stage, p1.(*plan).stages[0])
@@ -37,21 +37,21 @@ func TestPlan_startNextStage(t *testing.T) {
 	assert.EqualValues(t, p1.Status(), StatusRunning)
 
 	// 尚未超时
-	stopped, i, stage, err = p1.stopCurrentAndStartNext(i, &statistics.SummaryReport{
+	stopped, i, stage, err = p1.stopCurrentAndStartNext(i, statistics.SummaryReport{
 		LastAttack:    time.Now(),
 		FirstAttack:   time.Now().Add(-30 * time.Minute),
 		TotalRequests: 10000,
-		Reports:       map[string]*statistics.AttackReport{},
+		Reports:       map[string]statistics.AttackReport{},
 	})
 	assert.False(t, stopped)
 	assert.Nil(t, err)
 
 	// 已经超时
-	stopped, i, stage, err = p1.stopCurrentAndStartNext(i, &statistics.SummaryReport{
+	stopped, i, stage, err = p1.stopCurrentAndStartNext(i, statistics.SummaryReport{
 		LastAttack:    time.Now(),
 		FirstAttack:   time.Now().Add(-61 * time.Minute),
 		TotalRequests: 10000,
-		Reports:       map[string]*statistics.AttackReport{},
+		Reports:       map[string]statistics.AttackReport{},
 	})
 	assert.Nil(t, err)
 	assert.EqualValues(t, i, 1)
@@ -59,20 +59,20 @@ func TestPlan_startNextStage(t *testing.T) {
 	assert.True(t, stopped)
 
 	// 第二阶段累计请求数
-	stopped, i, stage, err = p1.stopCurrentAndStartNext(1, &statistics.SummaryReport{
+	stopped, i, stage, err = p1.stopCurrentAndStartNext(1, statistics.SummaryReport{
 		LastAttack:    time.Now(),
 		FirstAttack:   time.Now().Add(-10 * time.Minute),
 		TotalRequests: 10000 + 1024*1024 - 1,
-		Reports:       map[string]*statistics.AttackReport{},
+		Reports:       map[string]statistics.AttackReport{},
 	})
 	assert.False(t, stopped)
 	assert.Nil(t, err)
 
-	stopped, i, stage, err = p1.stopCurrentAndStartNext(1, &statistics.SummaryReport{
+	stopped, i, stage, err = p1.stopCurrentAndStartNext(1, statistics.SummaryReport{
 		LastAttack:    time.Now(),
 		FirstAttack:   time.Now().Add(-10 * time.Minute),
 		TotalRequests: 10000 + 1024*1024,
-		Reports:       map[string]*statistics.AttackReport{},
+		Reports:       map[string]statistics.AttackReport{},
 	})
 	assert.True(t, stopped)
 	assert.Error(t, ErrPlanClosed)

@@ -66,7 +66,7 @@ type (
 		TotalFailures uint64
 		TotalTPS      float64
 		FullHistory   bool
-		Reports       map[string]*AttackReport
+		Reports       map[string]AttackReport
 		Extras        map[string]string
 	}
 
@@ -135,7 +135,7 @@ func NewAttackStatistician(name string) *AttackStatistician {
 	}
 }
 
-func (ara *AttackStatistician) recordSuccess(ret *AttackResult) {
+func (ara *AttackStatistician) recordSuccess(ret AttackResult) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -167,7 +167,7 @@ func (ara *AttackStatistician) recordSuccess(ret *AttackResult) {
 	ara.responseBucket[findResponseBucket(ret.Duration)]++
 }
 
-func (ara *AttackStatistician) recordFailure(ret *AttackResult) {
+func (ara *AttackStatistician) recordFailure(ret AttackResult) {
 	if ara.name != ret.Name {
 		return
 	}
@@ -187,7 +187,7 @@ func (ara *AttackStatistician) recordFailure(ret *AttackResult) {
 	ara.recentFailureBucket.accumulate(now.Unix(), 1)
 }
 
-func (ara *AttackStatistician) Record(ret *AttackResult) {
+func (ara *AttackStatistician) Record(ret AttackResult) {
 	if ret.IsFailure() {
 		ara.recordFailure(ret)
 		return
@@ -288,11 +288,11 @@ func (ara *AttackStatistician) failRatio() float64 {
 	return float64(ara.failures) / total
 }
 
-func (ara *AttackStatistician) Report(full bool) *AttackReport {
+func (ara *AttackStatistician) Report(full bool) AttackReport {
 	ara.mu.Lock()
 	defer ara.mu.Unlock()
 
-	report := &AttackReport{
+	report := AttackReport{
 		Name:           ara.name,
 		Requests:       ara.requests,
 		Failures:       ara.failures,
@@ -380,10 +380,10 @@ func NewStatisticianGroup() *StatisticianGroup {
 }
 
 // Report 输出统计报表
-func (s *StatisticianGroup) Report(full bool) *SummaryReport {
-	sr := &SummaryReport{
+func (s *StatisticianGroup) Report(full bool) SummaryReport {
+	sr := SummaryReport{
 		FullHistory: full,
-		Reports:     make(map[string]*AttackReport),
+		Reports:     make(map[string]AttackReport),
 	}
 
 	s.mu.Lock()
@@ -412,7 +412,7 @@ func (s *StatisticianGroup) Report(full bool) *SummaryReport {
 }
 
 // Record 记录一次请求结果
-func (s *StatisticianGroup) Record(result *AttackResult) {
+func (s *StatisticianGroup) Record(result AttackResult) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -463,4 +463,20 @@ func (s *StatisticianGroup) Tags() Tags {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.tags
+}
+
+func (s *StatisticianGroup) Merge(other *StatisticianGroup) {
+	if other == nil {
+		return
+	}
+	for key, value := range other.tags {
+		s.tags[key] = value
+	}
+
+	for key, value := range other.container {
+		if _, ok := s.container[key]; !ok {
+			s.container[key] = NewAttackStatistician(key)
+		}
+		s.container[key].merge(value)
+	}
 }

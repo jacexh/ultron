@@ -14,7 +14,7 @@ import (
 type (
 	// AttackStrategyCommander 压测策略
 	AttackStrategyCommander interface {
-		Open(context.Context, *Task) <-chan *statistics.AttackResult
+		Open(context.Context, *Task) <-chan statistics.AttackResult
 		Command(AttackStrategyDescriber, Timer)
 		Close()
 	}
@@ -42,7 +42,7 @@ type (
 		ctx       context.Context
 		cancel    context.CancelFunc
 		describer AttackStrategyDescriber
-		output    chan *statistics.AttackResult
+		output    chan statistics.AttackResult
 		timer     Timer
 		task      *Task
 		counter   uint32
@@ -152,7 +152,7 @@ func (e *fcuExecutor) kill() {
 	e.cancel()
 }
 
-func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *statistics.AttackResult) {
+func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- statistics.AttackResult) {
 	if output == nil {
 		panic("invalid output channel")
 	}
@@ -162,7 +162,7 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 	defer func() {
 		if rec := recover(); rec != nil {
 			debug.PrintStack()
-			// todo
+			// TODO: 补充额外信息？
 		}
 	}()
 
@@ -178,11 +178,8 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 		err := attacker.Fire(ctx)
 
 		select {
-		case output <- &statistics.AttackResult{Name: attacker.Name(), Duration: time.Since(start), Error: err}:
+		case output <- statistics.AttackResult{Name: attacker.Name(), Duration: time.Since(start), Error: err}:
 		case <-ctx.Done():
-		case <-time.After(3 * time.Second): // 这里是channel非常不好的使用方式，通常情况下，channel只允许一个对象写入，这样就可以保证安全的关闭；
-			//在当前场景下，channel存在多个写入方，可能会造成channel不安全的关闭从而阻塞进程
-			panic("output channel may closed")
 		}
 
 		e.mu.RLock()
@@ -195,7 +192,7 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCommander {
 	return &fixedConcurrentUsersStrategyCommander{
 		ctx:    context.TODO(),
-		output: make(chan *statistics.AttackResult, 100),
+		output: make(chan statistics.AttackResult, 100),
 		pool:   make(map[uint32]*fcuExecutor),
 		wg:     new(sync.WaitGroup),
 	}
@@ -207,7 +204,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) clearDeadExector(id uint
 	delete(commander.pool, id)
 }
 
-func (commander *fixedConcurrentUsersStrategyCommander) Open(ctx context.Context, task *Task) <-chan *statistics.AttackResult {
+func (commander *fixedConcurrentUsersStrategyCommander) Open(ctx context.Context, task *Task) <-chan statistics.AttackResult {
 	commander.ctx, commander.cancel = context.WithCancel(ctx)
 	commander.task = task
 	return commander.output
