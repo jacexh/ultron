@@ -101,7 +101,7 @@ func TestFCUExecutor(t *testing.T) {
 	commander.Close()
 }
 
-func TestFCUEBenchmark(t *testing.T) {
+func TestFCUSBenchmark(t *testing.T) {
 	commander := newFixedConcurrentUsersStrategyCommander()
 	task := NewTask()
 	task.Add(newBenchmarkAttacker("benchmark", 1*time.Millisecond), 10)
@@ -122,6 +122,6 @@ func TestFCUEBenchmark(t *testing.T) {
 	commander.Close()
 	wg.Wait()
 
-	report := sg.Report(true) // tps理论最大值10000
+	report := sg.Report(true) // tps理论最大值10000, 1.6.0该配置均值在8000左右
 	log.Println(report.TotalTPS, report.FirstAttack.String(), report.LastAttack.String())
 }
