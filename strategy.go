@@ -48,6 +48,7 @@ type (
 		counter   uint32
 		pool      map[uint32]*fcuExecutor
 		wg        *sync.WaitGroup
+		mu        sync.Mutex
 	}
 
 	// fcuExecutor FixedConcurrentUsers策略的执行者
@@ -201,6 +202,8 @@ func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCom
 }
 
 func (commander *fixedConcurrentUsersStrategyCommander) clearDeadExector(id uint32) {
+	commander.mu.Lock()
+	defer commander.mu.Unlock()
 	delete(commander.pool, id)
 }
 
@@ -251,7 +254,10 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 			for i := 0; i < step.N; i++ {
 				id := atomic.AddUint32(&commander.counter, 1) - 1
 				executor := newFCUExecutor(id, commander, t)
+
+				commander.mu.Lock()
 				commander.pool[id] = executor
+				commander.mu.Unlock()
 
 				commander.wg.Add(1)
 				go func(exe *fcuExecutor, wg *sync.WaitGroup) {
