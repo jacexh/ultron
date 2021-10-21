@@ -172,22 +172,13 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 		start := time.Now()
 		attacker := task.PickUp()
 		err := attacker.Fire(ctx)
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		output <- &statistics.AttackResult{
-			Name:     attacker.Name(),
-			Duration: time.Since(start),
-			Error:    err,
-		}
 
 		select {
+		case output <- &statistics.AttackResult{Name: attacker.Name(), Duration: time.Since(start), Error: err}:
 		case <-ctx.Done():
-			return
-		default:
+		case <-time.After(3 * time.Second): // 这里是channel非常不好的使用方式，通常情况下，channel只允许一个对象写入，这样就可以保证安全的关闭；
+			//在当前场景下，channel存在多个写入方，可能会造成channel不安全的关闭从而阻塞进程
+			panic("output channel may closed")
 		}
 
 		e.commander.timer.Sleep()

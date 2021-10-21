@@ -2,11 +2,39 @@ package ultron
 
 import (
 	"context"
+	"log"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
+
+type (
+	benchmarkAttacker struct {
+		name string
+		wait time.Duration
+	}
+)
+
+func newBenchmarkAttacker(n string, wait time.Duration) Attacker {
+	return &benchmarkAttacker{name: n, wait: wait}
+}
+
+func (b *benchmarkAttacker) Name() string {
+	return b.name
+}
+
+func (b *benchmarkAttacker) Fire(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	time.Sleep(b.wait)
+	return nil
+}
 
 func TestFixedConcurrentUsers_Spawn(t *testing.T) {
 	s := &FixedConcurrentUsers{
@@ -71,4 +99,29 @@ func TestFCUExecutor(t *testing.T) {
 	<-time.After(2 * time.Second)
 	commander.Command(&FixedConcurrentUsers{ConcurrentUsers: 30, RampUpPeriod: 7}, NonstopTimer{})
 	commander.Close()
+}
+
+func TestFCUEBenchmark(t *testing.T) {
+	commander := newFixedConcurrentUsersStrategyCommander()
+	task := NewTask()
+	task.Add(newBenchmarkAttacker("benchmark", 1*time.Millisecond), 10)
+	sg := statistics.NewStatisticianGroup()
+	output := commander.Open(context.Background(), task)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for result := range output {
+			sg.Record(result)
+		}
+	}()
+
+	commander.Command(&FixedConcurrentUsers{ConcurrentUsers: 100, RampUpPeriod: 0}, NonstopTimer{})
+	<-time.After(5 * time.Second)
+	commander.Close()
+	wg.Wait()
+
+	report := sg.Report(true) // tps理论最大值10000
+	log.Println(report.TotalTPS, report.FirstAttack.String(), report.LastAttack.String())
 }
