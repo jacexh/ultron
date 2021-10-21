@@ -1,0 +1,53 @@
+{
+    "go.useLanguageServer": true,
+    "go.alternateTools": {
+        "go-langserver": "gopls"
+    },
+     "go.addTags": {
+    },
+    "go.toolsManagement.autoUpdate": true,
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.intergrated,defaultProfile.linux": "zsh",
+    "go.editorContextMenuCommands": {
+        "toggleTestFile": false,
+        "addTags": false,
+        "removeTags": false,
+        "fillStruct": false,
+        "testAtCursor": true,
+        "testFile": false, 
+        "testPackage": false,
+        "generateTestForFunction": true,
+        "generateTestForFile": false,
+        "generateTestForPackage": false,
+        "addImport": false,
+        "testCoverage": true,
+        "playground": true,
+        "debugTestAtCursor": true,
+        "benchmarkAtCursor": false
+    },
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "golang.go",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "go.autocompleteUnimportedPackages": true,
+    "go.formatTool": "goimports",
+    "go.testFlags": ["-v"],
+    "go.lintOnSave": "package",
+    "editor.minimap.enabled": true,
+    "gopls": {
+        "build.experimentalWorkspaceModule": true
+    },
+    "cSpell.words": [
+        "FCUS",
+        "olekukonko",
+        "stretchr",
+        "wosai",
+        "valyala"
+    ],
+    "go.coverMode": "atomic",
+    "go.coverOnSingleTestFile": true,
+    "go.coverOnSingleTest": true
+}

@@ -21,8 +21,8 @@ type (
 	FastHTTPPrepareFunc func(*fasthttp.Request) error
 	// FastHTTPCheckFunc fasthttp.Response检查函数
 	FastHTTPCheckFunc func(*fasthttp.Response) error
-	// FastHTTPAttckerOption FastHTTPAttcker的配置项
-	FastHTTPAttckerOption func(*FastHTTPAttacker)
+	// FastHTTPAttackerOption FastHTTPAttacker的配置项
+	FastHTTPAttackerOption func(*FastHTTPAttacker)
 )
 
 const defaultUserAgent = "github.com/wosai/ultron"
@@ -82,19 +82,19 @@ func (fa *FastHTTPAttacker) Fire(ctx context.Context) error {
 	return nil
 }
 
-func (fa *FastHTTPAttacker) Apply(opts ...FastHTTPAttckerOption) {
+func (fa *FastHTTPAttacker) Apply(opts ...FastHTTPAttackerOption) {
 	for _, opt := range opts {
 		opt(fa)
 	}
 }
 
-func WithClient(client *fasthttp.Client) FastHTTPAttckerOption {
+func WithClient(client *fasthttp.Client) FastHTTPAttackerOption {
 	return func(fh *FastHTTPAttacker) {
 		fh.client = client
 	}
 }
 
-func WithCheckFunc(checks ...FastHTTPCheckFunc) FastHTTPAttckerOption {
+func WithCheckFunc(checks ...FastHTTPCheckFunc) FastHTTPAttackerOption {
 	return func(fh *FastHTTPAttacker) {
 		for _, check := range checks {
 			if check == nil {
@@ -105,7 +105,7 @@ func WithCheckFunc(checks ...FastHTTPCheckFunc) FastHTTPAttckerOption {
 	}
 }
 
-func WithPrepareFunc(prepare FastHTTPPrepareFunc) FastHTTPAttckerOption {
+func WithPrepareFunc(prepare FastHTTPPrepareFunc) FastHTTPAttackerOption {
 	return func(fh *FastHTTPAttacker) {
 		if prepare == nil {
 			panic("invalid FastHTTPPrepareFunc")
@@ -114,7 +114,7 @@ func WithPrepareFunc(prepare FastHTTPPrepareFunc) FastHTTPAttckerOption {
 	}
 }
 
-func WithTimeout(t time.Duration) FastHTTPAttckerOption {
+func WithTimeout(t time.Duration) FastHTTPAttackerOption {
 	return func(fh *FastHTTPAttacker) {
 		fh.client.ReadTimeout = t
 		fh.client.WriteTimeout = t

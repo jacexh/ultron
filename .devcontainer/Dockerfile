@@ -17,9 +17,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends protobuf-compiler
 
 # [Optional] Uncomment the next line to use go get to install anything else you need
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26 \
-    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1 \
-    && go get -u github.com/cweill/gotests/gotests
+# RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26 \
+#     && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1 \
+#     && go get -u github.com/cweill/gotests/gotests
 
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
