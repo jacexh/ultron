@@ -1,12 +1,13 @@
 package ultron
 
-import "time"
+import (
+	"time"
+)
 
 type (
 	// Stage 每个阶段必须包含
 	Stage interface {
 		ExitCondition
-		AttackStrategy
 		Timer
 	}
 
@@ -16,33 +17,32 @@ type (
 		Endless() bool
 	}
 
-	// AttackStrategy 压测策略
-	AttackStrategy interface {
-		GenWaves() []AttackWave
-		Switch(next AttackStrategy) []AttackWave
-	}
-
-	// AttackWave 基于压测策略描述产生的增压、降压变化
-	AttackWave struct {
-		N        int
-		Interval time.Duration
-	}
-
-	FixedUsers struct {
-		User int `json:"user"`
-	}
-
-	FixedUserStage struct {
-		FixedUsers              `json:",inline"`
-		UniformRandomTimer      `json:",inline"`
-		UniversalExitConditions `json:",inline"`
-	}
-
 	UniversalExitConditions struct {
 		Requests uint64        `json:"requests,omitempty"`
 		Duration time.Duration `json:"duration,omitempty"`
 	}
+
+	stage struct {
+		timer         Timer
+		exitCondition ExitCondition
+	}
 )
+
+// func BuildStage() Stage {
+// 	return &stage{
+// 		timer:         NonstopTimer{},
+// 		exitCondition: UniversalExitConditions{},
+// 		strategy:      FixedUserStrategy{},
+// 	}
+// }
+
+// func (s *stage) WithExitCondition(requests uint64, duration time.Duration) Stage {
+// 	return s
+// }
+
+func (s stage) Endless() bool {
+	return s.Endless()
+}
 
 func (sec UniversalExitConditions) Exit(actual ExitCondition) bool {
 	if sec.Endless() {
