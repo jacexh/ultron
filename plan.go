@@ -133,6 +133,7 @@ func (p *plan) isFinishedCurrentStage(n int, report *statistics.SummaryReport) b
 	currentStageDuration = totalDuration - previousDuration
 	currentStageRequests = totalRequests - previousRequests
 
+	// todo 暂时不支持其他ExitConditions
 	condition := UniversalExitConditions{Requests: currentStageRequests, Duration: currentStageDuration}
 	if p.stages[n].GetExitConditions().Check(condition) {
 		p.actualStages[n] = condition

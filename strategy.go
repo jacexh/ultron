@@ -47,14 +47,15 @@ type (
 		task      *Task
 		counter   uint32
 		pool      map[uint32]*fcuExecutor
-		wg        sync.WaitGroup
+		wg        *sync.WaitGroup
 	}
 
 	// fcuExecutor FixedConcurrentUsers策略的执行者
 	fcuExecutor struct {
-		id        uint32
-		cancel    context.CancelFunc
-		commander *fixedConcurrentUsersStrategyCommander
+		id     uint32
+		cancel context.CancelFunc
+		timer  Timer
+		mu     sync.RWMutex
 	}
 )
 
@@ -132,25 +133,28 @@ func (fx *FixedConcurrentUsers) Split(n int) []AttackStrategyDescriber {
 	return ret
 }
 
-func newFCUExecutor(id uint32, parent *fixedConcurrentUsersStrategyCommander) *fcuExecutor {
+func newFCUExecutor(id uint32, parent *fixedConcurrentUsersStrategyCommander, t Timer) *fcuExecutor {
 	return &fcuExecutor{
-		id:        id,
-		commander: parent,
+		id:    id,
+		timer: t,
 	}
+}
+
+func (e *fcuExecutor) renewTimer(t Timer) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.timer = t
 }
 
 func (e *fcuExecutor) kill() {
 	log.Printf("executor-%d is quit\n", e.id)
 	e.cancel()
-	e.commander.clearDeadExector(e.id)
 }
 
 func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *statistics.AttackResult) {
 	if output == nil {
 		panic("invalid output channel")
 	}
-	e.commander.wg.Add(1)
-	defer e.commander.wg.Done()
 
 	ctx, e.cancel = context.WithCancel(ctx)
 
@@ -159,7 +163,6 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 			debug.PrintStack()
 			// todo
 		}
-		e.kill()
 	}()
 
 	for {
@@ -181,7 +184,10 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- *stat
 			panic("output channel may closed")
 		}
 
-		e.commander.timer.Sleep()
+		e.mu.RLock()
+		t := e.timer
+		e.mu.RUnlock()
+		t.Sleep()
 	}
 }
 
@@ -190,6 +196,7 @@ func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCom
 		ctx:    context.TODO(),
 		output: make(chan *statistics.AttackResult, 100),
 		pool:   make(map[uint32]*fcuExecutor),
+		wg:     new(sync.WaitGroup),
 	}
 }
 
@@ -205,6 +212,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Open(ctx context.Context
 
 func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategyDescriber, t Timer) {
 	var rampUpSteps []*RampUpStep
+
 	if commander.describer == nil {
 		rampUpSteps = d.Spawn()
 	} else {
@@ -216,6 +224,9 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 		commander.timer = NonstopTimer{}
 	} else {
 		commander.timer = t
+	}
+	for _, exe := range commander.pool {
+		exe.renewTimer(commander.timer)
 	}
 
 	killed := 0
@@ -239,10 +250,18 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 		case step.N > 0: // 增压策略
 			for i := 0; i < step.N; i++ {
 				id := atomic.AddUint32(&commander.counter, 1) - 1
-				executor := newFCUExecutor(id, commander)
+				executor := newFCUExecutor(id, commander, t)
 				commander.pool[id] = executor
 
-				go executor.start(commander.ctx, commander.task, commander.output)
+				commander.wg.Add(1)
+				go func(exe *fcuExecutor, wg *sync.WaitGroup) {
+					defer func() {
+						exe.kill()
+						commander.clearDeadExector(exe.id)
+						wg.Done()
+					}()
+					exe.start(commander.ctx, commander.task, commander.output)
+				}(executor, commander.wg)
 			}
 			spawned += step.N
 			log.Printf("spawn %d users\n", spawned)
