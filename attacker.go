@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -157,6 +158,14 @@ func WithDisableKeepAlives(disbale bool) HTTPAttackerOption {
 func WithTimeout(t time.Duration) HTTPAttackerOption {
 	return func(h *HTTPAttacker) {
 		h.client.Timeout = t
+	}
+}
+
+func WithProxy(proxy func(*http.Request) (*url.URL, error)) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		if transport, ok := h.client.Transport.(*http.Transport); ok {
+			transport.Proxy = proxy
+		}
 	}
 }
 

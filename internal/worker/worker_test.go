@@ -161,7 +161,7 @@ func TestChannelWork(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 1000*1000; i++ {
+	for i := 0; i < 100*1000; i++ {
 		input <- task.PickUp()
 	}
 	close(input)

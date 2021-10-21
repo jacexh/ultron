@@ -36,7 +36,7 @@ func TestAttackStatistician_Record(t *testing.T) {
 	as.Record(&AttackResult{
 		Name:     "foobar",
 		Duration: 300 * time.Millisecond,
-		Error:    errors.New("fxxk"),
+		Error:    errors.New("unknown"),
 	})
 	report := as.Report(false)
 	assert.EqualValues(t, report.Requests, 1)

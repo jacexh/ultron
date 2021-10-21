@@ -34,7 +34,9 @@
 		"bierner.markdown-preview-github-styles",
 		"cschleiden.vscode-github-actions",
 		"redhat.vscode-yaml",
-		"carlos-algms.make-task-provider"
+		"carlos-algms.make-task-provider",
+		"streetsidesoftware.code-spell-checker",
+		"k--kato.intellij-idea-keybindings"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

@@ -19,9 +19,12 @@ type (
 
 	// GaussianRandomTimer 高斯分布
 	GaussianRandomTimer struct {
-		StdDev      float64 // 标准差
-		DesiredMean float64 // 期望均值
+		StdDev      float64 `json:"std_dev"`      // 标准差
+		DesiredMean float64 `json:"desired_mean"` // 期望均值
 	}
+
+	// NonstopTimer 不中断
+	NonstopTimer struct{}
 )
 
 func (urt UniformRandomTimer) Sleep() {
@@ -36,3 +39,5 @@ func (grt GaussianRandomTimer) Sleep() {
 		time.Sleep(t * time.Millisecond)
 	}
 }
+
+func (ns NonstopTimer) Sleep() {}
