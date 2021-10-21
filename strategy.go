@@ -238,14 +238,19 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 		switch {
 		case step.N < 0: // 降压策略
 			d := 0
+
+			commander.mu.Lock()
 			for _, e := range commander.pool {
 				if d > step.N {
+					delete(commander.pool, e.id) // 主动清理
 					e.kill()
 					d--
 				} else {
 					break
 				}
 			}
+			commander.mu.Unlock()
+
 			killed -= step.N
 			log.Printf("killed %d users\n", killed)
 			time.Sleep(step.Interval)
@@ -262,8 +267,8 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 				commander.wg.Add(1)
 				go func(exe *fcuExecutor, wg *sync.WaitGroup) {
 					defer func() {
-						exe.kill()
 						commander.clearDeadExector(exe.id)
+						exe.kill() // 所有清理逻辑
 						wg.Done()
 					}()
 					exe.start(commander.ctx, commander.task, commander.output)
