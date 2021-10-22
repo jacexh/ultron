@@ -33,13 +33,8 @@ func (mock *mockStatsProvider) Submit(ctx context.Context, batch uint32) (*stati
 	default:
 	}
 
-	// r := rand.Float64()
-	// if r <= 0.1 {
-	// 	return nil, errors.New("unknown error")
-	// }
 	sg := statistics.NewStatisticianGroup()
 	sg.Record(statistics.AttackResult{Name: "mock test", Duration: 3 * time.Millisecond})
-	Logger.Info("provider report", zap.Any("report", sg.Report(true)))
 	return sg, nil
 }
 

@@ -11,7 +11,7 @@ var (
 
 func buildLogger() {
 	cfg := zap.NewProductionConfig()
-	cfg.Encoding = "console"
+	// cfg.Encoding = "console"
 	cfg.EncoderConfig.TimeKey = "@timestamp"
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 

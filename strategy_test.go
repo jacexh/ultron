@@ -2,13 +2,13 @@ package ultron
 
 import (
 	"context"
-	"log"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"go.uber.org/zap"
 )
 
 type (
@@ -123,5 +123,5 @@ func TestFCUSBenchmark(t *testing.T) {
 	wg.Wait()
 
 	report := sg.Report(true) // tps理论最大值10000, 1.6.0该配置均值在8000左右
-	log.Println(report.TotalTPS, report.FirstAttack.String(), report.LastAttack.String())
+	Logger.Info("report", zap.Float64("tps", report.TotalTPS), zap.Time("first_attack", report.FirstAttack), zap.Time("last_attack", report.LastAttack))
 }

@@ -2,11 +2,11 @@ package ultron
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 type fakeAttacker struct{}
@@ -45,7 +45,7 @@ func BenchmarkHTTPAttacker_Fire(b *testing.B) {
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
 			if err := attacker.Fire(context.Background()); err != nil {
-				log.Println(err.Error())
+				Logger.Error("occur error", zap.Error(err))
 			}
 		}
 	})
@@ -60,7 +60,7 @@ func TestHTTPAttacker_Fire(t *testing.T) {
 		WithCheckFuncs(
 			CheckHTTPStatusCode,
 			func(r *http.Response, b []byte) error {
-				log.Println(string(b))
+				Logger.Info("body", zap.ByteString("body", b))
 				return nil
 			}),
 	)

@@ -1,11 +1,10 @@
 package ultron
 
 import (
-	"fmt"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestTask_PickUp(t *testing.T) {
@@ -18,7 +17,6 @@ func TestTask_PickUp(t *testing.T) {
 	for _, attacker := range task.preempted {
 		actual[attacker.Name()]++
 	}
-	log.Println(actual)
 	assert.EqualValues(t, actual["task-1"], 5)
 	assert.EqualValues(t, actual["task-2"], 12)
 }
@@ -34,7 +32,7 @@ func TestTask_PickUp2(t *testing.T) {
 		attacker := task.PickUp()
 		counter[attacker.Name()] += 1
 	}
-	fmt.Println(counter)
+	Logger.Info("attacker picked up", zap.Any("attackers", counter))
 }
 
 func BenchmarkTest_PickUp(b *testing.B) {

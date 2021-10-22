@@ -2,13 +2,14 @@ package ultron
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"go.uber.org/zap"
 )
 
 type (
@@ -148,7 +149,6 @@ func (e *fcuExecutor) renewTimer(t Timer) {
 }
 
 func (e *fcuExecutor) kill() {
-	log.Printf("executor-%d is quit\n", e.id)
 	e.cancel()
 }
 
@@ -162,7 +162,7 @@ func (e *fcuExecutor) start(ctx context.Context, task *Task, output chan<- stati
 	defer func() {
 		if rec := recover(); rec != nil {
 			debug.PrintStack()
-			// TODO: 补充额外信息？
+			Logger.DPanic("recovered", zap.Any("panic", rec))
 		}
 	}()
 
@@ -249,7 +249,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 			commander.mu.Unlock()
 
 			killed -= step.N
-			log.Printf("killed %d users\n", killed)
+			Logger.Info(fmt.Sprintf("killed %d users in ramp-up peroid", killed))
 			time.Sleep(step.Interval)
 
 		case step.N > 0: // 增压策略
@@ -272,7 +272,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 				}(executor, commander.wg)
 			}
 			spawned += step.N
-			log.Printf("spawn %d users\n", spawned)
+			Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
 			time.Sleep(step.Interval)
 
 		default:

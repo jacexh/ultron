@@ -63,7 +63,7 @@ func BenchmarkStatistician_SyncRecord(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			s.Record(AttackResult{
-				Name:     "benchmar",
+				Name:     "benchmark",
 				Duration: 111 * time.Millisecond,
 			})
 		}
