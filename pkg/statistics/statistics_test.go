@@ -1,8 +1,10 @@
 package statistics
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -125,9 +127,29 @@ func TestAttackResultAggregator_merge(t *testing.T) {
 	a1.merge(a2)
 	report := a1.Report(true)
 
+	assert.False(t, report.FirstAttack.IsZero())
 	assert.EqualValues(t, report.Average, 9500*time.Microsecond)
 	assert.EqualValues(t, report.Median, 9*time.Millisecond)
 	assert.EqualValues(t, report.Requests, 20)
+}
+
+func TestAttackResultAggregator_MergeEmptry(t *testing.T) {
+	a1 := NewAttackStatistician("test")
+	a2 := NewAttackStatistician("test")
+	for i := 0; i < 20; i++ {
+		l := rand.Float64()
+		var err error
+		if l <= 0.3 {
+			err = errors.New("unknown error")
+		}
+		a2.Record(AttackResult{Name: "test", Error: err, Duration: 1 * time.Millisecond})
+	}
+	a1.merge(a2)
+
+	assert.EqualValues(t, a1, a2)
+	report := a1.Report(true)
+	data, _ := json.Marshal(report)
+	log.Println(string(data))
 }
 
 // todo: remove this case

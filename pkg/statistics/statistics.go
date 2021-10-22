@@ -53,7 +53,7 @@ type (
 		TPS            float64                  // 每秒事务数
 		Distributions  map[string]time.Duration // 百分位分布
 		FailRation     float64                  // 错误率
-		FailureDetails map[string]int32         // 错误详情分布
+		FailureDetails map[string]uint64        // 错误详情分布
 		FullHistory    bool                     // 是否是该阶段完整的报告
 		FirstAttack    time.Time                // 第一请求发生时间
 		LastAttack     time.Time                // 最后一次请求结束时间
@@ -301,7 +301,7 @@ func (ara *AttackStatistician) Report(full bool) AttackReport {
 		Average:        ara.average(),
 		Distributions:  make(map[string]time.Duration),
 		FailRation:     ara.failRatio(),
-		FailureDetails: make(map[string]int32),
+		FailureDetails: make(map[string]uint64),
 		FullHistory:    full,
 		FirstAttack:    ara.firstAttack,
 		LastAttack:     ara.lastAttack,
@@ -316,6 +316,11 @@ func (ara *AttackStatistician) Report(full bool) AttackReport {
 		report.Distributions[strconv.FormatFloat(d, 'f', 2, 64)] = pers[index]
 	}
 	report.Median = pers[0]
+
+	// failure details
+	for key, value := range ara.failureBucket {
+		report.FailureDetails[key] = value
+	}
 	return report
 }
 
@@ -335,7 +340,7 @@ func (ara *AttackStatistician) merge(other *AttackStatistician) error {
 	ara.requests += other.requests
 	ara.failures += other.failures
 	ara.totalResponseTime += other.totalResponseTime
-	if other.minResponseTime < ara.minResponseTime && other.minResponseTime > 0 {
+	if (other.minResponseTime < ara.minResponseTime && other.minResponseTime > 0) || ara.minResponseTime == 0 {
 		ara.minResponseTime = other.minResponseTime
 	}
 	if other.maxResponseTime > ara.maxResponseTime {
@@ -353,7 +358,7 @@ func (ara *AttackStatistician) merge(other *AttackStatistician) error {
 	for k, v := range other.failureBucket {
 		ara.failureBucket[k] += v
 	}
-	if other.firstAttack.Before(ara.firstAttack) {
+	if (!other.firstAttack.IsZero() && other.firstAttack.Before(ara.firstAttack)) || ara.firstAttack.IsZero() {
 		ara.firstAttack = other.firstAttack
 	}
 	if ara.lastAttack.Before(other.lastAttack) {
