@@ -15,14 +15,14 @@ type (
 	Stage interface {
 		GetTimer() Timer
 		GetExitConditions() ExitConditions
-		GetStrategy() AttackStrategyDescriber
+		GetStrategy() AttackStrategy
 	}
 
 	// stage 通用的stage对象
 	stage struct {
 		timer    Timer
 		checker  ExitConditions
-		strategy AttackStrategyDescriber
+		strategy AttackStrategy
 	}
 
 	// exitConditions 通用的退出条件
@@ -85,7 +85,7 @@ func (s *stage) WithExitConditions(ec ExitConditions) *stage {
 	return s
 }
 
-func (s *stage) WithAttackStrategy(d AttackStrategyDescriber) *stage {
+func (s *stage) WithAttackStrategy(d AttackStrategy) *stage {
 	if d == nil {
 		panic("bad attack strategy")
 	}
@@ -101,7 +101,7 @@ func (s *stage) GetExitConditions() ExitConditions {
 	return s.checker
 }
 
-func (s *stage) GetStrategy() AttackStrategyDescriber {
+func (s *stage) GetStrategy() AttackStrategy {
 	return s.strategy
 }
 
@@ -113,6 +113,6 @@ func (v1 V1StageConfig) GetExitConditions() ExitConditions {
 	return UniversalExitConditions{Requests: v1.Requests, Duration: v1.Duration}
 }
 
-func (v1 V1StageConfig) GetStrategy() AttackStrategyDescriber {
+func (v1 V1StageConfig) GetStrategy() AttackStrategy {
 	return &FixedConcurrentUsers{ConcurrentUsers: v1.ConcurrentUsers, RampUpPeriod: v1.RampUpPeriod}
 }

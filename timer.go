@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"encoding/json"
 	"math/rand"
 	"time"
 )
@@ -9,6 +10,12 @@ type (
 	// Timer 延时器
 	Timer interface {
 		Sleep()
+	}
+
+	TimerDTO interface {
+		Timer
+		json.Marshaler
+		json.Unmarshaler
 	}
 
 	// UniformRandomTimer 平均随机数

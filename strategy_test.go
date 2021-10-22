@@ -75,7 +75,7 @@ func TestFixedConcurrentUsers_Spilt(t *testing.T) {
 		RampUpPeriod:    3,
 	}
 	subs := fx.Split(3)
-	assert.EqualValues(t, subs, []AttackStrategyDescriber{
+	assert.EqualValues(t, subs, []AttackStrategy{
 		&FixedConcurrentUsers{ConcurrentUsers: 334, RampUpPeriod: 3},
 		&FixedConcurrentUsers{ConcurrentUsers: 333, RampUpPeriod: 3},
 		&FixedConcurrentUsers{ConcurrentUsers: 333, RampUpPeriod: 3},

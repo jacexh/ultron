@@ -16,15 +16,15 @@ type (
 	// AttackStrategyCommander 压测策略
 	AttackStrategyCommander interface {
 		Open(context.Context, *Task) <-chan statistics.AttackResult
-		Command(AttackStrategyDescriber, Timer)
+		Command(AttackStrategy, Timer)
 		Close()
 	}
 
-	// AttackStrategyDescriber 压测策略描述
-	AttackStrategyDescriber interface {
+	// AttackStrategy 压测策略描述
+	AttackStrategy interface {
 		Spawn() []*RampUpStep
-		Switch(next AttackStrategyDescriber) []*RampUpStep
-		Split(int) []AttackStrategyDescriber
+		Switch(next AttackStrategy) []*RampUpStep
+		Split(int) []AttackStrategy
 	}
 
 	// RampUpStep 增/降压描述
@@ -42,7 +42,7 @@ type (
 	fixedConcurrentUsersStrategyCommander struct {
 		ctx       context.Context
 		cancel    context.CancelFunc
-		describer AttackStrategyDescriber
+		describer AttackStrategy
 		output    chan statistics.AttackResult
 		timer     Timer
 		task      *Task
@@ -62,7 +62,7 @@ type (
 )
 
 var (
-	_ AttackStrategyDescriber = (*FixedConcurrentUsers)(nil)
+	_ AttackStrategy          = (*FixedConcurrentUsers)(nil)
 	_ AttackStrategyCommander = (*fixedConcurrentUsersStrategyCommander)(nil)
 )
 
@@ -107,7 +107,7 @@ func (fc *FixedConcurrentUsers) Spawn() []*RampUpStep {
 }
 
 // Switch 转入下一个阶段
-func (fc *FixedConcurrentUsers) Switch(next AttackStrategyDescriber) []*RampUpStep {
+func (fc *FixedConcurrentUsers) Switch(next AttackStrategy) []*RampUpStep {
 	n, ok := next.(*FixedConcurrentUsers)
 	if !ok {
 		panic("cannot switch to different type of AttackStrategyDescriber")
@@ -116,11 +116,11 @@ func (fc *FixedConcurrentUsers) Switch(next AttackStrategyDescriber) []*RampUpSt
 }
 
 // Split 切分配置
-func (fx *FixedConcurrentUsers) Split(n int) []AttackStrategyDescriber {
+func (fx *FixedConcurrentUsers) Split(n int) []AttackStrategy {
 	if n <= 0 {
 		panic("bad slices number")
 	}
-	ret := make([]AttackStrategyDescriber, n)
+	ret := make([]AttackStrategy, n)
 	for i := 0; i < n; i++ {
 		ret[i] = &FixedConcurrentUsers{
 			ConcurrentUsers: fx.ConcurrentUsers / n,
@@ -210,7 +210,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Open(ctx context.Context
 	return commander.output
 }
 
-func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategyDescriber, t Timer) {
+func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy, t Timer) {
 	var rampUpSteps []*RampUpStep
 
 	if commander.describer == nil {

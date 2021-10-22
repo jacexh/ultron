@@ -7,38 +7,52 @@ option go_package = "github.com/wosai/ultron/v2/internal/genproto";
 import "statistics.proto";
 
 service UltronService {
-    rpc Subscribe(Session) returns (stream Event) {}
-    rpc SendUp(AttackStatisticsDTO) returns (Feedback) {}
+    rpc Connect(Session) returns (stream Event) {}
+    rpc Submit(RequestSubmit) returns (ResponseSubmit) {}
 }
 
 message Session {
     string slave_id = 1;
+    map<string, string> extras = 2;
+}
+
+enum EventType {
+    PING = 0;
+    CONNECTED = 1;
+    DISCONNECT = 2;
+    PLAN_STARTED = 3;
+    PLAN_FINISHED = 4;
+    PLAN_INTERRUPTED = 5;
+    NEXT_STAGE_STARTED = 6;
+    STATS_AGGREGATE = 7;  // 上报
+}
+
+message TimerDTO {
+    string type = 1;
+    bytes timer = 2;
+}
+
+message AttackStrategyDTO {
+    string type = 1;
+    bytes attack_strategy = 2;
 }
 
 message Event {
-    enum Type {
-        PING = 0;
-        CONNECTED = 1;
-        DISCONNECTED = 2;
-
-        JOB_STARTED = 10;
-        JOB_FINISHED = 11;
-
-        REFRESH_CONFIG = 20;
-    }
-    Type type = 1;
+    EventType type = 1;
     oneof data {
-        StageConfig stage_config = 2;
+        string plan_name = 2;
+        AttackStrategyDTO attack_strategy = 3;
+        TimerDTO timer = 4;
     };
 }
 
-message StageConfig {
-    string job_id = 1;
-    uint32 concurrence = 2;
-    int32 hatch_rate = 3;
+message RequestSubmit {
+    uint32 batch_id = 1;
+    AttackStatisticsDTO stats =2;
 }
 
-message Feedback {
+
+message ResponseSubmit {
     enum Result {
         ACCEPTED = 0;
         BATCH_EXPIRED = 1;
@@ -48,13 +62,4 @@ message Feedback {
     string job_id = 1;
     string batch_id = 2;
     Result result = 3;
-}
-
-message StageOption {
-    int32 duration = 1;
-    uint64 requests = 2;
-    uint32 concurrence = 3;
-    int32 hatch_rate = 4;
-    int64 min_wait = 5;
-    int64 max_wait = 6;
 }

@@ -22,10 +22,6 @@ type (
 		Remove(string)
 	}
 
-	Slave interface {
-		GetStatsProvider() StatsProvider
-	}
-
 	statsAggregator struct {
 		counter           uint32
 		toleranceForDelay uint32 // 容忍延后的批次
