@@ -5,6 +5,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/wosai/ultron/v2/pkg/statistics v0.0.0-00010101000000-000000000000
+	github.com/wosai/ultron/v2/pkg/genproto v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.19.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.41.0
@@ -24,6 +25,9 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/wosai/ultron/v2/pkg/statistics => ./pkg/statistics
+replace (
+	github.com/wosai/ultron/v2/pkg/statistics => ./pkg/statistics
+	github.com/wosai/ultron/v2/pkg/genproto => ./pkg/genproto
+)
 
 go 1.17

@@ -1,6 +1,7 @@
 package ultron
 
 import (
+	"github.com/wosai/ultron/v2/pkg/genproto"
 	"google.golang.org/grpc"
 )
 
@@ -29,5 +30,9 @@ type (
 		Start(bool)
 		WithTask(*Task)
 		SubscriberResult()
+	}
+
+	slave struct {
+		client genproto.UltronServiceClient
 	}
 )
