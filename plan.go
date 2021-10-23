@@ -26,9 +26,21 @@ type (
 		actualStages []UniversalExitConditions
 		mu           sync.Mutex
 	}
+
+	Status int
 )
 
-var _ Plan = (*plan)(nil)
+const (
+	StatusReady Status = iota
+	StatusRunning
+	StatusFinished
+	StatusInterrupted
+)
+
+var (
+	_             Plan = (*plan)(nil)
+	ErrPlanClosed      = errors.New("plan was finished or interrupted")
+)
 
 func NewPlan() Plan {
 	return &plan{

@@ -10,6 +10,7 @@ import (
 
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"go.uber.org/zap"
 )
 
 type (
@@ -21,9 +22,8 @@ type (
 
 	slaveAgent struct {
 		session *genproto.Session
-		// server  genproto.UltronService_SubscribeServer
-		input  chan *genproto.Event
-		closed uint32
+		input   chan *genproto.Event
+		closed  uint32
 	}
 )
 
@@ -42,9 +42,10 @@ func (sa *slaveAgent) ID() string {
 }
 
 func (sa *slaveAgent) close() {
-	atomic.CompareAndSwapUint32(&sa.closed, 0, 1)
-	sa.input <- &genproto.Event{Type: genproto.EventType_DISCONNECT}
-	close(sa.input)
+	if atomic.CompareAndSwapUint32(&sa.closed, 0, 1) {
+		sa.input <- &genproto.Event{Type: genproto.EventType_DISCONNECT}
+		close(sa.input)
+	}
 }
 
 func (sa *slaveAgent) send(event *genproto.Event) error {
@@ -55,6 +56,7 @@ func (sa *slaveAgent) send(event *genproto.Event) error {
 	return fmt.Errorf("slave-%s is closed", sa.ID())
 }
 
+// TODO:
 func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.StatisticianGroup, error) {
 	recv := make(chan *statistics.StatisticianGroup, 1)
 	defer close(recv)
@@ -67,26 +69,34 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case sg := <-recv:
-		// statistics.AttackStatisticsDTO
 		return sg, nil
 	}
 }
 
-func (u *ultronServer) Subscribe(client *genproto.Session, events genproto.UltronService_SubscribeServer) error {
-	agent := newSlaveAgent(client, events)
+// TODO:
+func (u *ultronServer) Subscribe(session *genproto.Session, sendStream genproto.UltronService_SubscribeServer) error {
+	agent := newSlaveAgent(session, sendStream)
 	defer agent.close()
 
 	if agent.ID() == "" {
 		return errors.New("empty client id")
 	}
-	u.slaves[agent.ID()] = agent
 
-	if err := events.Send(&genproto.Event{Type: genproto.EventType_CONNECTED}); err != nil {
+	u.mu.Lock()
+	u.slaves[agent.ID()] = agent
+	u.mu.Unlock()
+
+	<-sendStream.Context().Done()
+	return io.EOF
+
+	defaultMessageBus.publish(&messageSlaveConnected{session: session})
+
+	if err := sendStream.Send(&genproto.Event{Type: genproto.EventType_CONNECTED}); err != nil {
 		return err
 	}
 
 	for event := range agent.input {
-		if err := events.Send(event); err != nil {
+		if err := sendStream.Send(event); err != nil {
 			return err
 		}
 		if event.Type == genproto.EventType_DISCONNECT {
@@ -96,14 +106,15 @@ func (u *ultronServer) Subscribe(client *genproto.Session, events genproto.Ultro
 	return io.EOF
 }
 
+// TODO:
 func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*genproto.ResponseSubmit, error) {
 	u.mu.Lock()
-	defer u.mu.Unlock()
 
 	if batch, ok := u.stats[report.GetBatchId()]; ok {
 		if c, ok := batch[report.GetSlaveId()]; ok {
 			delete(batch, report.GetSlaveId())
-			sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats()) // TODO: 可能有问题
+			u.mu.Unlock()
+			sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats())
 			if err != nil {
 				return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, err
 			} else {
@@ -113,5 +124,7 @@ func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmi
 
 		}
 	}
-	return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, nil
+	u.mu.Unlock()
+	Logger.Error("slave submitted report with invalid batch id", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()))
+	return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, errors.New("reject report from slave")
 }
