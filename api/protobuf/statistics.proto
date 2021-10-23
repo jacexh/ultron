@@ -19,3 +19,13 @@ message AttackStatisticsDTO  {
     int64 last_attack = 12;
     int64 interval =13;
 }
+
+message TagDTO {
+    string key = 1;
+    string value = 2;
+}
+
+message StatisticianGroupDTO {
+    map<string, AttackStatisticsDTO> container = 1;
+    repeated TagDTO tags = 2;
+}

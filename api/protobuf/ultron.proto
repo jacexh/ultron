@@ -43,12 +43,14 @@ message Event {
         string plan_name = 2;
         AttackStrategyDTO attack_strategy = 3;
         TimerDTO timer = 4;
+        uint32 batch_id = 5;
     };
 }
 
 message RequestSubmit {
-    uint32 batch_id = 1;
-    AttackStatisticsDTO stats =2;
+    string slave_id = 1;
+    uint32 batch_id = 2;
+    StatisticianGroupDTO stats =3;
 }
 
 

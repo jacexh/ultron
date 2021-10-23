@@ -36,7 +36,7 @@
     "go.formatTool": "goimports",
     "go.testFlags": ["-v"],
     "go.lintOnSave": "package",
-    "editor.minimap.enabled": false,
+    "editor.minimap.enabled": true,
     "gopls": {
         "build.experimentalWorkspaceModule": true
     },

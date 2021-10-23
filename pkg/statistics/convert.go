@@ -5,7 +5,46 @@ import (
 	"time"
 )
 
-func ConvertAsDTO(as *AttackStatistician) (*AttackStatisticsDTO, error) {
+func ConvertStatisticianGroup(entity *StatisticianGroup) (*StatisticianGroupDTO, error) {
+	if entity == nil {
+		return nil, errors.New("failed to convert StatisticianGroup as StatisticianGroupDTO")
+	}
+	dto := &StatisticianGroupDTO{
+		Container: make(map[string]*AttackStatisticsDTO),
+		Tags:      make([]*TagDTO, 0),
+	}
+	entity.mu.Lock()
+	defer entity.mu.Unlock()
+
+	for _, v := range entity.Tags() {
+		dto.Tags = append(dto.Tags, &TagDTO{Key: v.Key, Value: v.Value})
+	}
+
+	var err error
+	for k, v := range entity.container {
+		dto.Container[k], err = ConvertAttackStatistician(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return dto, nil
+}
+
+func NewStatisticianGroupFromDTO(dto *StatisticianGroupDTO) (*StatisticianGroup, error) {
+	sg := NewStatisticianGroup()
+	for _, v := range dto.GetTags() {
+		sg.SetTag(v.Key, v.Value)
+	}
+	var err error
+	for _, v := range dto.GetContainer() {
+		if sg.container[v.Name], err = NewAttackStatisticianFromDTO(v); err != nil {
+			return nil, err
+		}
+	}
+	return sg, nil
+}
+
+func ConvertAttackStatistician(as *AttackStatistician) (*AttackStatisticsDTO, error) {
 	if as == nil {
 		return nil, errors.New("failed to convert as dto: <nil>")
 	}

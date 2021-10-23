@@ -12,7 +12,7 @@ type (
 	}
 
 	Slave interface {
-		Connect(string, ...grpc.CallOption) error
+		Connect(string, ...grpc.DialOption) error
 		WithTask(*Task)
 		SubscriberResult()
 	}

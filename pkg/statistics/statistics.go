@@ -470,10 +470,22 @@ func (s *StatisticianGroup) Tags() Tags {
 	return s.tags
 }
 
+func (s *StatisticianGroup) SetTag(key, value string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.tags[key] = Tag{Key: key, Value: value}
+}
+
 func (s *StatisticianGroup) Merge(other *StatisticianGroup) {
 	if other == nil {
 		return
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	other.mu.Lock()
+	defer other.mu.Unlock()
+
 	for key, value := range other.tags {
 		s.tags[key] = value
 	}
