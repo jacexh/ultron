@@ -15,7 +15,7 @@ import (
 type (
 	ultronServer struct {
 		slaves map[string]*slaveAgent
-		stats  map[uint32]map[string]chan *statistics.AttackStatisticsDTO
+		stats  map[uint32]map[string]chan *statistics.StatisticianGroup
 		mu     sync.RWMutex
 	}
 
@@ -97,11 +97,21 @@ func (u *ultronServer) Subscribe(client *genproto.Session, events genproto.Ultro
 }
 
 func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*genproto.ResponseSubmit, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	if batch, ok := u.stats[report.GetBatchId()]; ok {
 		if c, ok := batch[report.GetSlaveId()]; ok {
-			// c <- report.GetStats()
-			close(c)
+			delete(batch, report.GetSlaveId())
+			sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats()) // TODO: 可能有问题
+			if err != nil {
+				return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, err
+			} else {
+				c <- sg
+				return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_ACCEPTED}, nil
+			}
+
 		}
 	}
-	return nil, nil
+	return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, nil
 }
