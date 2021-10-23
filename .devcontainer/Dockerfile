@@ -7,13 +7,13 @@ ARG INSTALL_NODE="false"
 ARG NODE_VERSION="lts/*"
 RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "source /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
 
-# ENV GOPROXY="https://goproxy.cn,direct"
+ENV GOPROXY="https://goproxy.cn,direct"
 
 # [Optional] Uncomment this section to install additional OS packages.
-# RUN set -e \
-#     && sed -i "s/deb.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list \
-#     && sed -i "s/security.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+RUN set -e \
+    && sed -i "s/deb.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list \
+    && sed -i "s/security.debian.org/mirrors.aliyun.com/g" /etc/apt/sources.list \
+    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends protobuf-compiler
 
 # [Optional] Uncomment the next line to use go get to install anything else you need
