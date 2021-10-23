@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"golang.org/x/sync/errgroup"
@@ -17,7 +18,7 @@ type (
 	}
 
 	StatsAggregator interface {
-		Aggregate(context.Context, bool) (statistics.SummaryReport, error)
+		Aggregate(bool) (statistics.SummaryReport, error)
 		Add(...StatsProvider)
 		Remove(string)
 	}
@@ -41,7 +42,7 @@ func newStatsAggregator() *statsAggregator {
 	}
 }
 
-func (agg *statsAggregator) Aggregate(ctx context.Context, fullHistory bool) (statistics.SummaryReport, error) {
+func (agg *statsAggregator) Aggregate(fullHistory bool) (statistics.SummaryReport, error) {
 	agg.mu.Lock()
 	var providers []StatsProvider
 	batch := agg.counter
@@ -59,6 +60,9 @@ func (agg *statsAggregator) Aggregate(ctx context.Context, fullHistory bool) (st
 	}
 
 	// 开始接收各个provider上报的数据
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	g, ctx := errgroup.WithContext(ctx)
 	for _, provider := range providers {
 		provider := provider // https://golang.org/doc/faq#closures_and_goroutines
