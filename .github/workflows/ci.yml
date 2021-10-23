@@ -19,7 +19,6 @@ jobs:
         version: "3.18.1"
     - name: Generate Protocol Buff Files
       run: |   
-        make tools
         make proto
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'

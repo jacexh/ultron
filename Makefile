@@ -1,5 +1,5 @@
 .PHONY: proto
-proto:
+proto: tools
 	@protoc --proto_path=api/protobuf/ api/protobuf/ultron.proto \
 	--go_out=internal/genproto \
 	--go_opt=paths=source_relative \

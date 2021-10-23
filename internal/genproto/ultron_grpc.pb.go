@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UltronServiceClient interface {
-	Connect(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_ConnectClient, error)
+	Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
 	Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*ResponseSubmit, error)
 }
 
@@ -30,12 +30,12 @@ func NewUltronServiceClient(cc grpc.ClientConnInterface) UltronServiceClient {
 	return &ultronServiceClient{cc}
 }
 
-func (c *ultronServiceClient) Connect(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_ConnectClient, error) {
-	stream, err := c.cc.NewStream(ctx, &UltronService_ServiceDesc.Streams[0], "/wosai.ultron.UltronService/Connect", opts...)
+func (c *ultronServiceClient) Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UltronService_ServiceDesc.Streams[0], "/wosai.ultron.UltronService/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ultronServiceConnectClient{stream}
+	x := &ultronServiceSubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -45,16 +45,16 @@ func (c *ultronServiceClient) Connect(ctx context.Context, in *Session, opts ...
 	return x, nil
 }
 
-type UltronService_ConnectClient interface {
+type UltronService_SubscribeClient interface {
 	Recv() (*Event, error)
 	grpc.ClientStream
 }
 
-type ultronServiceConnectClient struct {
+type ultronServiceSubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *ultronServiceConnectClient) Recv() (*Event, error) {
+func (x *ultronServiceSubscribeClient) Recv() (*Event, error) {
 	m := new(Event)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (c *ultronServiceClient) Submit(ctx context.Context, in *RequestSubmit, opt
 // All implementations should embed UnimplementedUltronServiceServer
 // for forward compatibility
 type UltronServiceServer interface {
-	Connect(*Session, UltronService_ConnectServer) error
+	Subscribe(*Session, UltronService_SubscribeServer) error
 	Submit(context.Context, *RequestSubmit) (*ResponseSubmit, error)
 }
 
@@ -83,8 +83,8 @@ type UltronServiceServer interface {
 type UnimplementedUltronServiceServer struct {
 }
 
-func (UnimplementedUltronServiceServer) Connect(*Session, UltronService_ConnectServer) error {
-	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
+func (UnimplementedUltronServiceServer) Subscribe(*Session, UltronService_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedUltronServiceServer) Submit(context.Context, *RequestSubmit) (*ResponseSubmit, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
@@ -101,24 +101,24 @@ func RegisterUltronServiceServer(s grpc.ServiceRegistrar, srv UltronServiceServe
 	s.RegisterService(&UltronService_ServiceDesc, srv)
 }
 
-func _UltronService_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _UltronService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Session)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(UltronServiceServer).Connect(m, &ultronServiceConnectServer{stream})
+	return srv.(UltronServiceServer).Subscribe(m, &ultronServiceSubscribeServer{stream})
 }
 
-type UltronService_ConnectServer interface {
+type UltronService_SubscribeServer interface {
 	Send(*Event) error
 	grpc.ServerStream
 }
 
-type ultronServiceConnectServer struct {
+type ultronServiceSubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *ultronServiceConnectServer) Send(m *Event) error {
+func (x *ultronServiceSubscribeServer) Send(m *Event) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -154,8 +154,8 @@ var UltronService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Connect",
-			Handler:       _UltronService_Connect_Handler,
+			StreamName:    "Subscribe",
+			Handler:       _UltronService_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},

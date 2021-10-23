@@ -7,7 +7,7 @@ option go_package = "github.com/wosai/ultron/v2/internal/genproto";
 import "statistics.proto";
 
 service UltronService {
-    rpc Connect(Session) returns (stream Event) {}
+    rpc Subscribe(Session) returns (stream Event) {}
     rpc Submit(RequestSubmit) returns (ResponseSubmit) {}
 }
 
@@ -17,14 +17,14 @@ message Session {
 }
 
 enum EventType {
-    PING = 0;
-    CONNECTED = 1;
-    DISCONNECT = 2;
-    PLAN_STARTED = 3;
-    PLAN_FINISHED = 4;
-    PLAN_INTERRUPTED = 5;
-    NEXT_STAGE_STARTED = 6;
-    STATS_AGGREGATE = 7;  // 上报
+    PING = 0; // 心跳包
+    CONNECTED = 1;  //已连接
+    DISCONNECT = 2; // 要求slave断开连接
+    PLAN_STARTED = 3; // 测试计划开始
+    PLAN_FINISHED = 4; // 测试计划结束
+    PLAN_INTERRUPTED = 5; // 测试计划中断执行
+    NEXT_STAGE_STARTED = 6; // 开始执行计划中的下一阶段
+    STATS_AGGREGATE = 7;  // 上报统计对象
 }
 
 message TimerDTO {
@@ -54,12 +54,12 @@ message RequestSubmit {
 
 message ResponseSubmit {
     enum Result {
-        ACCEPTED = 0;
-        BATCH_EXPIRED = 1;
-        UNKNOWN_JOB = 2;
-        UNKNOWN_BATCH = 3;
+        ACCEPTED = 0; // 上报对象已经接收
+        BATCH_EXPIRED = 1; // 批次已经结束
+        UNKNOWN_BATCH = 2; // 批次ID错误3; // 批次ID错误
+        UNKNOWN_PLAN = 3; // 计划名称错误
     }
-    string job_id = 1;
+    string plan_name = 1;
     string batch_id = 2;
     Result result = 3;
 }

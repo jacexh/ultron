@@ -36,7 +36,8 @@
 		"redhat.vscode-yaml",
 		"carlos-algms.make-task-provider",
 		"streetsidesoftware.code-spell-checker",
-		"k--kato.intellij-idea-keybindings"
+		"k--kato.intellij-idea-keybindings",
+		"donjayamanne.githistory"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
