@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"go.uber.org/zap"
 )
 
 type (
@@ -23,17 +24,18 @@ type (
 		input     chan *genproto.Event
 		callbacks map[uint32]chan *statistics.StatisticianGroup
 		closed    uint32
+		ticker    *time.Ticker
 		mu        sync.Mutex
 	}
 )
 
 var _ genproto.UltronServiceServer = (*ultronServer)(nil)
 
-func newSlaveAgent(session *genproto.Session, server genproto.UltronService_SubscribeServer) *slaveAgent {
+func newSlaveAgent(session *genproto.Session) *slaveAgent {
 	return &slaveAgent{
-		session: session,
-		// server:  server,
-		input: make(chan *genproto.Event, 1),
+		session:   session,
+		input:     make(chan *genproto.Event, 1),
+		callbacks: make(map[uint32]chan *statistics.StatisticianGroup),
 	}
 }
 
@@ -68,12 +70,17 @@ func (sa *slaveAgent) callback(batch uint32, sg *statistics.StatisticianGroup) e
 	return errors.New("batch not found")
 }
 
-// TODO:
+// Submit SlaveAgent.Submit的实现
 func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.StatisticianGroup, error) {
 	recv := make(chan *statistics.StatisticianGroup, 1)
 	defer close(recv)
 
 	sa.mu.Lock()
+	_, exists := sa.callbacks[batch]
+	if exists {
+		sa.mu.Unlock()
+		return nil, fmt.Errorf("slave agent %s received conflicted batch id: %d", sa.ID(), batch)
+	}
 	sa.callbacks[batch] = recv
 	// 清理
 	for old, ch := range sa.callbacks {
@@ -84,12 +91,17 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	}
 	sa.mu.Unlock()
 
-	if err := sa.send(&genproto.Event{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.Event_BatchId{BatchId: batch}}); err != nil {
+	defer func() {
 		sa.mu.Lock()
 		defer sa.mu.Unlock()
 		delete(sa.callbacks, batch)
-		return nil, err
-	}
+	}()
+
+	go func() {
+		if err := sa.send(&genproto.Event{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.Event_BatchId{BatchId: batch}}); err != nil {
+			Logger.Error("the slave agent is closed, didnot send EventType_STATS_AGGREGATE", zap.String("slave_agent", sa.ID()), zap.Error(err))
+		}
+	}()
 
 	select {
 	case <-ctx.Done():
@@ -99,55 +111,92 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	}
 }
 
-// TODO:
+func (sa *slaveAgent) keepAlive() {
+	for range sa.ticker.C {
+		if err := sa.send(&genproto.Event{Type: genproto.EventType_PING}); err != nil {
+			sa.ticker.Stop()
+			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
+			return
+		}
+	}
+}
+
+func newUltronServer() genproto.UltronServiceServer {
+	return &ultronServer{
+		slaves: make(map[string]*slaveAgent),
+	}
+}
+
+// Subscribe 具体实现
 func (u *ultronServer) Subscribe(session *genproto.Session, sendStream genproto.UltronService_SubscribeServer) error {
-	agent := newSlaveAgent(session, sendStream)
+	agent := newSlaveAgent(session)
 	defer agent.close()
 
 	if agent.ID() == "" {
+		Logger.Error("cannot subscribe to ultron server with empty slave id")
 		return errors.New("empty client id")
 	}
 
 	u.mu.Lock()
+	_, exists := u.slaves[agent.ID()]
+	if exists {
+		Logger.Error("cannot subscribe to ultron server with conflicted slave id", zap.String("slave_id", agent.ID()))
+		return fmt.Errorf("conflicted slave id: %s", agent.ID())
+	}
 	u.slaves[agent.ID()] = agent
 	u.mu.Unlock()
+	Logger.Info("a new slave is subscribing to ultron server", zap.String("slave_id", session.SlaveId), zap.Any("extras", session.Extras))
 
-	<-sendStream.Context().Done()
-	return io.EOF
+	defer func() {
+		u.mu.Lock()
+		defer u.mu.Unlock()
+		delete(u.slaves, agent.ID())
+	}() // TODO: SlaveAgent should convert as StatsProvider then register to StatsAggregator
 
-	defaultMessageBus.publish(&messageSlaveConnected{session: session})
-
-	if err := sendStream.Send(&genproto.Event{Type: genproto.EventType_CONNECTED}); err != nil {
-		return err
-	}
+	// 防止阻塞
+	go func(agent *slaveAgent) {
+		if err := agent.send(&genproto.Event{Type: genproto.EventType_CONNECTED}); err != nil {
+			Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()), zap.Error(err))
+			return
+		}
+		agent.ticker = time.NewTicker(15 * time.Second)
+		agent.keepAlive()
+	}(agent)
 
 	for event := range agent.input {
 		if err := sendStream.Send(event); err != nil {
+			Logger.Error("failed to send message to slave", zap.String("slave_id", agent.ID()), zap.Any("event", event), zap.Error(err))
 			return err
 		}
 		if event.Type == genproto.EventType_DISCONNECT {
-			break
+			Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
+			return nil
 		}
 	}
-	return io.EOF
+	Logger.Warn("slave agent is closed", zap.String("slave_id", agent.ID()))
+	return nil
 }
 
-// TODO:
+// Submit 提交统计报告
 func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*genproto.ResponseSubmit, error) {
 	u.mu.Lock()
 	slave, ok := u.slaves[report.GetSlaveId()]
 	u.mu.Unlock()
 
 	if !ok {
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, errors.New("reject report from slave")
+		Logger.Error("unregistered slave submitted stats report", zap.String("slave_id", report.SlaveId), zap.Uint32("batch_id", report.BatchId))
+		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNREGISTERED_SLAVE}, fmt.Errorf("unknown slave id: %s", report.GetSlaveId())
 	}
 
 	sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats())
 	if err != nil {
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, err
+		Logger.Error("slave submitted bad report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
+		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_BAD_SUBMISSION}, err
 	}
 	if err = slave.callback(report.GetBatchId(), sg); err != nil {
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNKNOWN_BATCH}, err
+		Logger.Error("failed to handle stats report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
+		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_BATCH_REJECTED}, err
 	}
+	Logger.Info("accepted stats report from slave", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()))
 	return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_ACCEPTED}, nil
 }

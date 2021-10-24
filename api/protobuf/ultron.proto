@@ -17,14 +17,15 @@ message Session {
 }
 
 enum EventType {
-    PING = 0; // 心跳包
-    CONNECTED = 1;  //已连接
-    DISCONNECT = 2; // 要求slave断开连接
-    PLAN_STARTED = 3; // 测试计划开始
-    PLAN_FINISHED = 4; // 测试计划结束
-    PLAN_INTERRUPTED = 5; // 测试计划中断执行
-    NEXT_STAGE_STARTED = 6; // 开始执行计划中的下一阶段
-    STATS_AGGREGATE = 7;  // 上报统计对象
+    UNKONWN = 0;
+    PING = 1; // 心跳包
+    CONNECTED = 2;  //已连接
+    DISCONNECT = 3; // 要求slave断开连接
+    PLAN_STARTED = 4; // 测试计划开始
+    PLAN_FINISHED = 5; // 测试计划结束
+    PLAN_INTERRUPTED = 6; // 测试计划中断执行
+    NEXT_STAGE_STARTED = 7; // 开始执行计划中的下一阶段
+    STATS_AGGREGATE = 8;  // 上报统计对象
 }
 
 message TimerDTO {
@@ -56,12 +57,11 @@ message RequestSubmit {
 
 message ResponseSubmit {
     enum Result {
-        ACCEPTED = 0; // 上报对象已经接收
-        BATCH_EXPIRED = 1; // 批次已经结束
-        UNKNOWN_BATCH = 2; // 批次ID错误3; // 批次ID错误
-        UNKNOWN_PLAN = 3; // 计划名称错误
+        UNKNOWN = 0;
+        ACCEPTED = 1; // 上报对象已经接收
+        UNREGISTERED_SLAVE = 2; // 未登记的slave id
+        BATCH_REJECTED = 3; //  批次被拒绝
+        BAD_SUBMISSION = 4; // 错误的提交，一般为内容错误
     }
-    string plan_name = 1;
-    string batch_id = 2;
-    Result result = 3;
+    Result result = 1;
 }
