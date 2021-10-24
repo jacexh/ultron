@@ -39,3 +39,11 @@ tools:
 .PHONY: server
 server:
 	@go run cmd/main.go
+
+.PHONY: gomod
+gomod: 
+	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
+		cd $$dir; \
+		go mod download; \
+		cd -; \
+	done

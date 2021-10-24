@@ -25,7 +25,7 @@ type EventType int32
 
 const (
 	EventType_UNKONWN            EventType = 0
-	EventType_PING               EventType = 1 // 心跳包
+	EventType_PING               EventType = 1
 	EventType_CONNECTED          EventType = 2 //已连接
 	EventType_DISCONNECT         EventType = 3 // 要求slave断开连接
 	EventType_PLAN_STARTED       EventType = 4 // 测试计划开始

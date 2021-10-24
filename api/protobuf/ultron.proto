@@ -18,7 +18,7 @@ message Session {
 
 enum EventType {
     UNKONWN = 0;
-    PING = 1; // 心跳包
+    PING = 1;
     CONNECTED = 2;  //已连接
     DISCONNECT = 3; // 要求slave断开连接
     PLAN_STARTED = 4; // 测试计划开始

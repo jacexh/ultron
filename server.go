@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,7 +25,6 @@ type (
 		input     chan *genproto.Event
 		callbacks map[uint32]chan *statistics.StatisticianGroup
 		closed    uint32
-		ticker    *time.Ticker
 		mu        sync.Mutex
 	}
 )
@@ -111,17 +111,19 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	}
 }
 
-func (sa *slaveAgent) keepAlive() {
-	for range sa.ticker.C {
+func (sa *slaveAgent) keepAlives() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
 		if err := sa.send(&genproto.Event{Type: genproto.EventType_PING}); err != nil {
-			sa.ticker.Stop()
-			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
+			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.session.SlaveId), zap.Error(err))
 			return
 		}
 	}
 }
 
-func newUltronServer() genproto.UltronServiceServer {
+func NewUltronServer() genproto.UltronServiceServer {
 	return &ultronServer{
 		slaves: make(map[string]*slaveAgent),
 	}
@@ -159,22 +161,27 @@ func (u *ultronServer) Subscribe(session *genproto.Session, sendStream genproto.
 			Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()), zap.Error(err))
 			return
 		}
-		agent.ticker = time.NewTicker(15 * time.Second)
-		agent.keepAlive()
+		agent.keepAlives()
 	}(agent)
 
-	for event := range agent.input {
-		if err := sendStream.Send(event); err != nil {
-			Logger.Error("failed to send message to slave", zap.String("slave_id", agent.ID()), zap.Any("event", event), zap.Error(err))
-			return err
-		}
-		if event.Type == genproto.EventType_DISCONNECT {
-			Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
-			return nil
+subscribing:
+	for {
+		select {
+		case <-sendStream.Context().Done():
+			Logger.Error("the slave has disconnected to this ultron server", zap.String("slave_id", agent.ID()), zap.Error(sendStream.Context().Err()))
+			break subscribing
+		case event := <-agent.input:
+			if err := sendStream.Send(event); err != nil {
+				Logger.Error("failed to send message to slave", zap.String("slave_id", agent.ID()), zap.Any("event", event), zap.Error(err))
+				return err
+			}
+			if event.Type == genproto.EventType_DISCONNECT {
+				Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
+				return nil
+			}
 		}
 	}
-	Logger.Warn("slave agent is closed", zap.String("slave_id", agent.ID()))
-	return nil
+	return io.EOF
 }
 
 // Submit 提交统计报告

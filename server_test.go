@@ -27,7 +27,7 @@ func TestSlaveAgent_Submit(t *testing.T) {
 func dialer() func(context.Context, string) (net.Conn, error) {
 	listener := bufconn.Listen(1024 * 1024)
 	server := grpc.NewServer()
-	genproto.RegisterUltronServiceServer(server, newUltronServer())
+	genproto.RegisterUltronServiceServer(server, NewUltronServer())
 	go func() {
 		if err := server.Serve(listener); err != nil {
 			Logger.Error("shutdown ultron server", zap.Error(err))
@@ -40,7 +40,7 @@ func dialer() func(context.Context, string) (net.Conn, error) {
 
 func TestUltronServer_Subscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	timer := time.NewTimer(1 * time.Second)
+	timer := time.NewTimer(25 * time.Second)
 	go func() {
 		<-timer.C
 		timer.Stop()
@@ -52,7 +52,43 @@ func TestUltronServer_Subscribe(t *testing.T) {
 	client := genproto.NewUltronServiceClient(conn)
 	streams, err := client.Subscribe(context.Background(), &genproto.Session{SlaveId: uuid.NewString()})
 	assert.Nil(t, err)
+
 	msg, err := streams.Recv()
 	assert.Nil(t, err)
 	assert.EqualValues(t, msg.Type, genproto.EventType_CONNECTED)
+
+	err = streams.CloseSend()
+	if err != nil {
+		Logger.Error("close send", zap.Error(err))
+	}
 }
+
+// func TestClient(t *testing.T) {
+// 	ctx, cancel := context.WithCancel(context.Background())
+// 	defer cancel()
+// 	conn, err := grpc.DialContext(ctx, "127.0.0.1:2021", grpc.WithInsecure(), grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 15 * time.Second, Timeout: 3 * time.Second, PermitWithoutStream: false}))
+// 	if err != nil {
+// 		Logger.Error("failed to connect to server", zap.Error(err))
+// 	}
+// 	client := genproto.NewUltronServiceClient(conn)
+// 	stream, err := client.Subscribe(ctx, &genproto.Session{SlaveId: uuid.NewString(), Extras: map[string]string{"foobar": "hello world"}})
+// 	if err != nil {
+// 		Logger.Error("got error", zap.Error(err))
+// 	}
+
+// 	go func() {
+// 		for {
+// 			event, err := stream.Recv()
+// 			if err != nil {
+// 				Logger.Error("got error", zap.Error(err))
+// 				return
+// 			}
+// 			Logger.Info("event", zap.Any("event", event))
+// 		}
+// 	}()
+
+// 	// time.Sleep(3 * time.Second)
+// 	// stream.CloseSend()
+
+// 	time.Sleep(60 * time.Minute)
+// }

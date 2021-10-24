@@ -57,7 +57,6 @@
 
 	"remoteEnv": {
 		"GOPROXY": "https://goproxy.cn,direct",
-		"REMOTE_HOST_WORKSPACE": "/home/jace/vscode-remote-workspace"
 	},
 
 	// Use 'otherPortsAttributes' to configure any ports that aren't configured using 'portsAttributes'.
@@ -66,10 +65,10 @@
 	// },
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "go mod download",
+	"postCreateCommand": "make gomod",
 
 	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"
 	"workspaceFolder": "/workspace",
-	"workspaceMount": "source=${containerEnv:REMOTE_HOST_WORKSPACE}/${localWorkspaceFolderBasename},target=/workspace,type=bind,consistency=cached"
+	"workspaceMount": "source=/home/jace/vscode-remote-workspace/ultron,target=/workspace,type=bind,consistency=cached"
 }
