@@ -44,7 +44,7 @@ func TestStatsProvider_Aggregate(t *testing.T) {
 		agg.Add(&mockStatsProvider{id: uuid.New().String()})
 	}
 
-	report, err := agg.Aggregate(context.Background(), true)
+	report, err := agg.Aggregate(true)
 	assert.Nil(t, err)
 	Logger.Info("report", zap.Any("report", report))
 }
