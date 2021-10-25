@@ -1,11 +1,11 @@
-package ultron
+package master
 
-type (
-	scheduler struct {
-		batch uint32
-		plan  Plan
-	}
-)
+// type (
+// 	scheduler struct {
+// 		batch uint32
+// 		plan  Plan
+// 	}
+// )
 
 // type (
 // 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期

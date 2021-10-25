@@ -1,4 +1,4 @@
-package ultron
+package master
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -18,7 +19,7 @@ type (
 )
 
 var (
-	_ StatsProvider = (*mockStatsProvider)(nil)
+	_ ultron.StatsProvider = (*mockStatsProvider)(nil)
 )
 
 func (mock *mockStatsProvider) ID() string {
@@ -46,5 +47,5 @@ func TestStatsProvider_Aggregate(t *testing.T) {
 
 	report, err := agg.Aggregate(true)
 	assert.Nil(t, err)
-	Logger.Info("report", zap.Any("report", report))
+	ultron.Logger.Info("report", zap.Any("report", report))
 }

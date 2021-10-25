@@ -15,28 +15,28 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// UltronServiceClient is the client API for UltronService service.
+// UltronAPIClient is the client API for UltronAPI service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type UltronServiceClient interface {
-	Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
-	Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*emptypb.Empty, error)
+type UltronAPIClient interface {
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (UltronAPI_SubscribeClient, error)
+	Submit(ctx context.Context, in *SubmitRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
-type ultronServiceClient struct {
+type ultronAPIClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewUltronServiceClient(cc grpc.ClientConnInterface) UltronServiceClient {
-	return &ultronServiceClient{cc}
+func NewUltronAPIClient(cc grpc.ClientConnInterface) UltronAPIClient {
+	return &ultronAPIClient{cc}
 }
 
-func (c *ultronServiceClient) Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &UltronService_ServiceDesc.Streams[0], "/wosai.ultron.UltronService/Subscribe", opts...)
+func (c *ultronAPIClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (UltronAPI_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UltronAPI_ServiceDesc.Streams[0], "/wosai.ultron.UltronAPI/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &ultronServiceSubscribeClient{stream}
+	x := &ultronAPISubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -46,117 +46,117 @@ func (c *ultronServiceClient) Subscribe(ctx context.Context, in *Session, opts .
 	return x, nil
 }
 
-type UltronService_SubscribeClient interface {
-	Recv() (*Event, error)
+type UltronAPI_SubscribeClient interface {
+	Recv() (*SubscribeResponse, error)
 	grpc.ClientStream
 }
 
-type ultronServiceSubscribeClient struct {
+type ultronAPISubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *ultronServiceSubscribeClient) Recv() (*Event, error) {
-	m := new(Event)
+func (x *ultronAPISubscribeClient) Recv() (*SubscribeResponse, error) {
+	m := new(SubscribeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *ultronServiceClient) Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *ultronAPIClient) Submit(ctx context.Context, in *SubmitRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronService/Submit", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronAPI/Submit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// UltronServiceServer is the server API for UltronService service.
-// All implementations should embed UnimplementedUltronServiceServer
+// UltronAPIServer is the server API for UltronAPI service.
+// All implementations should embed UnimplementedUltronAPIServer
 // for forward compatibility
-type UltronServiceServer interface {
-	Subscribe(*Session, UltronService_SubscribeServer) error
-	Submit(context.Context, *RequestSubmit) (*emptypb.Empty, error)
+type UltronAPIServer interface {
+	Subscribe(*SubscribeRequest, UltronAPI_SubscribeServer) error
+	Submit(context.Context, *SubmitRequest) (*emptypb.Empty, error)
 }
 
-// UnimplementedUltronServiceServer should be embedded to have forward compatible implementations.
-type UnimplementedUltronServiceServer struct {
+// UnimplementedUltronAPIServer should be embedded to have forward compatible implementations.
+type UnimplementedUltronAPIServer struct {
 }
 
-func (UnimplementedUltronServiceServer) Subscribe(*Session, UltronService_SubscribeServer) error {
+func (UnimplementedUltronAPIServer) Subscribe(*SubscribeRequest, UltronAPI_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
-func (UnimplementedUltronServiceServer) Submit(context.Context, *RequestSubmit) (*emptypb.Empty, error) {
+func (UnimplementedUltronAPIServer) Submit(context.Context, *SubmitRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
 }
 
-// UnsafeUltronServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to UltronServiceServer will
+// UnsafeUltronAPIServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UltronAPIServer will
 // result in compilation errors.
-type UnsafeUltronServiceServer interface {
-	mustEmbedUnimplementedUltronServiceServer()
+type UnsafeUltronAPIServer interface {
+	mustEmbedUnimplementedUltronAPIServer()
 }
 
-func RegisterUltronServiceServer(s grpc.ServiceRegistrar, srv UltronServiceServer) {
-	s.RegisterService(&UltronService_ServiceDesc, srv)
+func RegisterUltronAPIServer(s grpc.ServiceRegistrar, srv UltronAPIServer) {
+	s.RegisterService(&UltronAPI_ServiceDesc, srv)
 }
 
-func _UltronService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Session)
+func _UltronAPI_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(UltronServiceServer).Subscribe(m, &ultronServiceSubscribeServer{stream})
+	return srv.(UltronAPIServer).Subscribe(m, &ultronAPISubscribeServer{stream})
 }
 
-type UltronService_SubscribeServer interface {
-	Send(*Event) error
+type UltronAPI_SubscribeServer interface {
+	Send(*SubscribeResponse) error
 	grpc.ServerStream
 }
 
-type ultronServiceSubscribeServer struct {
+type ultronAPISubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *ultronServiceSubscribeServer) Send(m *Event) error {
+func (x *ultronAPISubscribeServer) Send(m *SubscribeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _UltronService_Submit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestSubmit)
+func _UltronAPI_Submit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UltronServiceServer).Submit(ctx, in)
+		return srv.(UltronAPIServer).Submit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/wosai.ultron.UltronService/Submit",
+		FullMethod: "/wosai.ultron.UltronAPI/Submit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UltronServiceServer).Submit(ctx, req.(*RequestSubmit))
+		return srv.(UltronAPIServer).Submit(ctx, req.(*SubmitRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// UltronService_ServiceDesc is the grpc.ServiceDesc for UltronService service.
+// UltronAPI_ServiceDesc is the grpc.ServiceDesc for UltronAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var UltronService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "wosai.ultron.UltronService",
-	HandlerType: (*UltronServiceServer)(nil),
+var UltronAPI_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "wosai.ultron.UltronAPI",
+	HandlerType: (*UltronAPIServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Submit",
-			Handler:    _UltronService_Submit_Handler,
+			Handler:    _UltronAPI_Submit_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Subscribe",
-			Handler:       _UltronService_Subscribe_Handler,
+			Handler:       _UltronAPI_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},

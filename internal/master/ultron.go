@@ -1,4 +1,4 @@
-package ultron
+package master
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
@@ -22,36 +23,38 @@ type (
 	}
 
 	slaveAgent struct {
-		session   *genproto.Session
-		input     chan *genproto.Event
+		slaveID   string
+		extras    map[string]string // todo: 之后再实现
+		input     chan *genproto.SubscribeResponse
 		callbacks map[uint32]chan *statistics.StatisticianGroup
 		closed    uint32
 		mu        sync.Mutex
 	}
 )
 
-var _ genproto.UltronServiceServer = (*ultronServer)(nil)
+var _ genproto.UltronAPIServer = (*ultronServer)(nil)
 
-func newSlaveAgent(session *genproto.Session) *slaveAgent {
+func newSlaveAgent(session *genproto.SubscribeRequest) *slaveAgent {
 	return &slaveAgent{
-		session:   session,
-		input:     make(chan *genproto.Event, 1),
+		slaveID:   session.SlaveId,
+		extras:    session.Extras,
+		input:     make(chan *genproto.SubscribeResponse, 1),
 		callbacks: make(map[uint32]chan *statistics.StatisticianGroup),
 	}
 }
 
 func (sa *slaveAgent) ID() string {
-	return sa.session.SlaveId
+	return sa.slaveID
 }
 
 func (sa *slaveAgent) close() {
 	if atomic.CompareAndSwapUint32(&sa.closed, 0, 1) {
-		sa.input <- &genproto.Event{Type: genproto.EventType_DISCONNECT}
+		sa.input <- &genproto.SubscribeResponse{Type: genproto.EventType_DISCONNECT}
 		close(sa.input)
 	}
 }
 
-func (sa *slaveAgent) send(event *genproto.Event) error {
+func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 	if atomic.LoadUint32(&sa.closed) == 0 {
 		sa.input <- event
 		return nil
@@ -98,8 +101,10 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	}()
 
 	go func() {
-		if err := sa.send(&genproto.Event{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.Event_BatchId{BatchId: batch}}); err != nil {
-			Logger.Error("the slave agent is closed, didnot send EventType_STATS_AGGREGATE", zap.String("slave_agent", sa.ID()), zap.Error(err))
+		if err := sa.send(&genproto.SubscribeResponse{
+			Type: genproto.EventType_STATS_AGGREGATE,
+			Data: &genproto.SubscribeResponse_BatchId{BatchId: batch}}); err != nil {
+			ultron.Logger.Error("the slave agent is closed, didnot send EventType_STATS_AGGREGATE", zap.String("slave_agent", sa.ID()), zap.Error(err))
 		}
 	}()
 
@@ -116,38 +121,38 @@ func (sa *slaveAgent) keepAlives() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if err := sa.send(&genproto.Event{Type: genproto.EventType_PING}); err != nil {
-			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.session.SlaveId), zap.Error(err))
+		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}); err != nil {
+			ultron.Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}
 	}
 }
 
-func NewUltronServer() genproto.UltronServiceServer {
+func NewUltronServer() genproto.UltronAPIServer {
 	return &ultronServer{
 		slaves: make(map[string]*slaveAgent),
 	}
 }
 
 // Subscribe 具体实现
-func (u *ultronServer) Subscribe(session *genproto.Session, sendStream genproto.UltronService_SubscribeServer) error {
+func (u *ultronServer) Subscribe(session *genproto.SubscribeRequest, sendStream genproto.UltronAPI_SubscribeServer) error {
 	agent := newSlaveAgent(session)
 	defer agent.close()
 
 	if agent.ID() == "" {
-		Logger.Error("cannot subscribe to ultron server with empty slave id")
+		ultron.Logger.Error("cannot subscribe to ultron server with empty slave id")
 		return errors.New("empty client id")
 	}
 
 	u.mu.Lock()
 	_, exists := u.slaves[agent.ID()]
 	if exists {
-		Logger.Error("cannot subscribe to ultron server with conflicted slave id", zap.String("slave_id", agent.ID()))
+		ultron.Logger.Error("cannot subscribe to ultron server with conflicted slave id", zap.String("slave_id", agent.ID()))
 		return fmt.Errorf("conflicted slave id: %s", agent.ID())
 	}
 	u.slaves[agent.ID()] = agent
 	u.mu.Unlock()
-	Logger.Info("a new slave is subscribing to ultron server", zap.String("slave_id", session.SlaveId), zap.Any("extras", session.Extras))
+	ultron.Logger.Info("a new slave is subscribing to ultron server", zap.String("slave_id", session.SlaveId), zap.Any("extras", session.Extras))
 
 	defer func() {
 		u.mu.Lock()
@@ -157,8 +162,8 @@ func (u *ultronServer) Subscribe(session *genproto.Session, sendStream genproto.
 
 	// 防止阻塞
 	go func(agent *slaveAgent) {
-		if err := agent.send(&genproto.Event{Type: genproto.EventType_CONNECTED}); err != nil {
-			Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()), zap.Error(err))
+		if err := agent.send(&genproto.SubscribeResponse{Type: genproto.EventType_CONNECTED}); err != nil {
+			ultron.Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()), zap.Error(err))
 			return
 		}
 		agent.keepAlives()
@@ -168,15 +173,15 @@ subscribing:
 	for {
 		select {
 		case <-sendStream.Context().Done():
-			Logger.Error("the slave has disconnected to this ultron server", zap.String("slave_id", agent.ID()), zap.Error(sendStream.Context().Err()))
+			ultron.Logger.Error("the slave has disconnected to this ultron server", zap.String("slave_id", agent.ID()), zap.Error(sendStream.Context().Err()))
 			break subscribing
 		case event := <-agent.input:
 			if err := sendStream.Send(event); err != nil {
-				Logger.Error("failed to send message to slave", zap.String("slave_id", agent.ID()), zap.Any("event", event), zap.Error(err))
+				ultron.Logger.Error("failed to send message to slave", zap.String("slave_id", agent.ID()), zap.Any("event", event), zap.Error(err))
 				return err
 			}
 			if event.Type == genproto.EventType_DISCONNECT {
-				Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
+				ultron.Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
 				return nil
 			}
 		}
@@ -185,25 +190,25 @@ subscribing:
 }
 
 // Submit 提交统计报告
-func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*emptypb.Empty, error) {
+func (u *ultronServer) Submit(ctx context.Context, report *genproto.SubmitRequest) (*emptypb.Empty, error) {
 	u.mu.Lock()
 	slave, ok := u.slaves[report.GetSlaveId()]
 	u.mu.Unlock()
 
 	if !ok {
-		Logger.Error("unregistered slave submitted stats report", zap.String("slave_id", report.SlaveId), zap.Uint32("batch_id", report.BatchId))
+		ultron.Logger.Error("unregistered slave submitted stats report", zap.String("slave_id", report.SlaveId), zap.Uint32("batch_id", report.BatchId))
 		return &emptypb.Empty{}, fmt.Errorf("unknown slave id: %s", report.GetSlaveId())
 	}
 
 	sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats())
 	if err != nil {
-		Logger.Error("slave submitted bad report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
+		ultron.Logger.Error("slave submitted bad report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
 		return &emptypb.Empty{}, err
 	}
 	if err = slave.callback(report.GetBatchId(), sg); err != nil {
-		Logger.Error("failed to handle stats report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
+		ultron.Logger.Error("failed to handle stats report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
 		return &emptypb.Empty{}, err
 	}
-	Logger.Info("accepted stats report from slave", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()))
+	ultron.Logger.Info("accepted stats report from slave", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()))
 	return &emptypb.Empty{}, nil
 }

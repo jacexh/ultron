@@ -7,18 +7,18 @@ option go_package = "github.com/wosai/ultron/v2/pkg/genproto";
 import "statistics.proto";
 import "google/protobuf/empty.proto";
 
-service UltronService {
-    rpc Subscribe(Session) returns (stream Event) {}
-    rpc Submit(RequestSubmit) returns (google.protobuf.Empty) {}
+service UltronAPI {
+    rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {}
+    rpc Submit(SubmitRequest) returns (google.protobuf.Empty) {}
 }
 
-message Session {
+message SubscribeRequest {
     string slave_id = 1;
     map<string, string> extras = 2;
 }
 
 enum EventType {
-    UNKONWN = 0;
+    UNKNOWN = 0;
     PING = 1;
     CONNECTED = 2;  //已连接
     DISCONNECT = 3; // 要求slave断开连接
@@ -39,7 +39,7 @@ message AttackStrategyDTO {
     bytes attack_strategy = 2;
 }
 
-message Event {
+message SubscribeResponse {
     EventType type = 1;
     oneof data {
         string plan_name = 2;
@@ -49,7 +49,7 @@ message Event {
     };
 }
 
-message RequestSubmit {
+message SubmitRequest {
     string slave_id = 1;
     uint32 batch_id = 2;
     StatisticianGroupDTO stats =3;

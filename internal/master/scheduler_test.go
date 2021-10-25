@@ -1,4 +1,4 @@
-package ultron
+package master
 
 // func TestStageConfiguration_SplitOne(t *testing.T) {
 // 	conf := ultron.StageConfig{
