@@ -2,6 +2,7 @@ package master
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -55,6 +56,10 @@ func (p *plan) AddStages(stages ...ultron.Stage) {
 func (p *plan) Start() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if p.status != ultron.StatusReady {
+		return fmt.Errorf("cannot start plan in %s status", p.status)
+	}
 
 	if len(p.stages) == 0 {
 		return errors.New("empty stage")

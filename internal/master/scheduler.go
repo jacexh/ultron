@@ -1,28 +1,63 @@
 package master
 
-// type (
-// 	scheduler struct {
-// 		batch uint32
-// 		plan  Plan
-// 	}
-// )
+import (
+	"context"
+	"errors"
+	"sync"
+	"time"
 
-// type (
-// 	// Scheduler 全局调度对象，负责计划、节点(Slave)的生命周期
-// 	Scheduler struct {
-// 		batch uint32
-// 		plan  ultron.Plan
-// 		agg   StatsAggregator
-// 		// slaves map[string]types.SlaveRunner
-// 		server genproto.UltronServiceServer
-// 		mu     sync.Mutex
+	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/internal/eventbus"
+)
+
+type (
+	// Scheduler master进程任务调度者
+	Scheduler struct {
+		plan       ultron.Plan
+		planCtx    context.Context
+		planCancel context.CancelFunc
+		aggregator ultron.StatsAggregator
+		eventbus   ultron.ReportBus
+		ticker     *time.Ticker
+		mu         sync.Mutex
+	}
+)
+
+func NewScheduler() *Scheduler {
+	return &Scheduler{
+		aggregator: newStatsAggregator(),
+		eventbus:   eventbus.DefaultEventBus,
+	}
+}
+
+func (s *Scheduler) CreateNewPlan() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.plan.Status() == ultron.StatusRunning {
+		return errors.New("failed to create a new plan until stop current running plan")
+	}
+
+	if s.planCancel != nil {
+		s.planCancel()
+	}
+	s.planCtx, s.planCancel = context.WithCancel(context.Background())
+	s.plan = NewPlan()
+	return nil
+}
+
+// func (s *Scheduler) Start() error {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+// 	if s.plan == nil {
+// 		return errors.New("cannot start empty plan")
+// 	}
+// 	if err := s.plan.Start(); err != nil {
+// 		return err
 // 	}
 
-// 	StatsReporter interface {
-// 		Report(bool) *statistics.SummaryReport
+// 	_, stageIndex, stage, err := s.plan.StopCurrentAndStartNext(-1, statistics.SummaryReport{})
+// 	if err != nil {
+// 		return err
 // 	}
-
-// 	StatsRecorder interface {
-// 		Record(*statistics.AttackResult)
-// 	}
-// )
+// 	stage.GetStrategy().Spawn()
+// }
