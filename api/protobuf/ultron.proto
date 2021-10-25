@@ -5,10 +5,11 @@ package wosai.ultron;
 option go_package = "github.com/wosai/ultron/v2/pkg/genproto";
 
 import "statistics.proto";
+import "google/protobuf/empty.proto";
 
 service UltronService {
     rpc Subscribe(Session) returns (stream Event) {}
-    rpc Submit(RequestSubmit) returns (ResponseSubmit) {}
+    rpc Submit(RequestSubmit) returns (google.protobuf.Empty) {}
 }
 
 message Session {
@@ -52,16 +53,4 @@ message RequestSubmit {
     string slave_id = 1;
     uint32 batch_id = 2;
     StatisticianGroupDTO stats =3;
-}
-
-
-message ResponseSubmit {
-    enum Result {
-        UNKNOWN = 0;
-        ACCEPTED = 1; // 上报对象已经接收
-        UNREGISTERED_SLAVE = 2; // 未登记的slave id
-        BATCH_REJECTED = 3; //  批次被拒绝
-        BAD_SUBMISSION = 4; // 错误的提交，一般为内容错误
-    }
-    Result result = 1;
 }

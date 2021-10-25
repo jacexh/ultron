@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -131,13 +132,12 @@ func Test_ultronServer_Submit(t *testing.T) {
 			Logger.Error("bad sg", zap.Error(err))
 		}
 		assert.Nil(t, err)
-		res, err := client.Submit(context.Background(), &genproto.RequestSubmit{
+		_, err = client.Submit(context.Background(), &genproto.RequestSubmit{
 			SlaveId: session.GetSlaveId(),
 			BatchId: 1,
 			Stats:   dto,
 		})
 		assert.Nil(t, err)
-		assert.EqualValues(t, res.Result, genproto.ResponseSubmit_ACCEPTED)
 	}()
 
 	sg, err := sa.Submit(ctx, 1)
@@ -148,7 +148,7 @@ func Test_ultronServer_Submit(t *testing.T) {
 func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
 	srv := NewUltronServer()
 	ctx, cancel := context.WithCancel(context.Background())
-	timer := time.NewTimer(15 * time.Second)
+	timer := time.NewTimer(6 * time.Second)
 	go func() {
 		<-timer.C
 		timer.Stop()
@@ -175,21 +175,23 @@ func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
 	dto, err := statistics.ConvertStatisticianGroup(sg)
 	assert.Nil(t, err)
 
+	var submitted uint32
+	var canceled uint32
+
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(batch uint32) {
 			defer wg.Done()
-			Logger.Info("start to batch", zap.Uint32("batch_id", batch))
 			accepted, err := sa.Submit(ctx, batch)
 			if err == nil {
-				Logger.Info("submitted", zap.Uint32("batch", batch))
+				atomic.AddUint32(&submitted, 1)
 				report := accepted.Report(true)
 				assert.EqualValues(t, report.TotalRequests, 1)
 				assert.EqualValues(t, report.Reports["foobar"].Min, 10*time.Millisecond)
 				assert.EqualValues(t, report.Reports["foobar"].Max, 10*time.Millisecond)
 			} else {
-				Logger.Error("failed to submit", zap.Error(err))
+				atomic.AddUint32(&canceled, 1)
 			}
 		}(uint32(i))
 	}
@@ -205,17 +207,15 @@ func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
 				}()
 
 				batch := uint32(rand.Intn(10))
-				Logger.Info("client send report", zap.Uint32("batch", batch))
-				_, err := client.Submit(context.Background(), &genproto.RequestSubmit{
+				client.Submit(context.Background(), &genproto.RequestSubmit{
 					SlaveId: session.GetSlaveId(),
 					BatchId: batch,
 					Stats:   dto,
 				})
-				if err != nil {
-					Logger.Error("client got error", zap.Error(err))
-				}
 			}()
 		}
 	}()
 	wg.Wait()
+	assert.LessOrEqual(t, submitted, uint32(5))
+	assert.EqualValues(t, submitted+canceled, 10)
 }

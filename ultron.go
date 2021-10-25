@@ -12,6 +12,7 @@ import (
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type (
@@ -184,25 +185,25 @@ subscribing:
 }
 
 // Submit 提交统计报告
-func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*genproto.ResponseSubmit, error) {
+func (u *ultronServer) Submit(ctx context.Context, report *genproto.RequestSubmit) (*emptypb.Empty, error) {
 	u.mu.Lock()
 	slave, ok := u.slaves[report.GetSlaveId()]
 	u.mu.Unlock()
 
 	if !ok {
 		Logger.Error("unregistered slave submitted stats report", zap.String("slave_id", report.SlaveId), zap.Uint32("batch_id", report.BatchId))
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_UNREGISTERED_SLAVE}, fmt.Errorf("unknown slave id: %s", report.GetSlaveId())
+		return &emptypb.Empty{}, fmt.Errorf("unknown slave id: %s", report.GetSlaveId())
 	}
 
 	sg, err := statistics.NewStatisticianGroupFromDTO(report.GetStats())
 	if err != nil {
 		Logger.Error("slave submitted bad report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_BAD_SUBMISSION}, err
+		return &emptypb.Empty{}, err
 	}
 	if err = slave.callback(report.GetBatchId(), sg); err != nil {
 		Logger.Error("failed to handle stats report", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()), zap.Error(err))
-		return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_BATCH_REJECTED}, err
+		return &emptypb.Empty{}, err
 	}
 	Logger.Info("accepted stats report from slave", zap.String("slave_id", report.GetSlaveId()), zap.Uint32("batch_id", report.GetBatchId()))
-	return &genproto.ResponseSubmit{Result: genproto.ResponseSubmit_ACCEPTED}, nil
+	return &emptypb.Empty{}, nil
 }

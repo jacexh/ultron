@@ -3,8 +3,7 @@
     "go.alternateTools": {
         "go-langserver": "gopls"
     },
-     "go.addTags": {
-    },
+    "go.addTags": {},
     "go.toolsManagement.autoUpdate": true,
     "terminal.integrated.defaultProfile.osx": "zsh",
     "terminal.intergrated,defaultProfile.linux": "zsh",
@@ -14,7 +13,7 @@
         "removeTags": false,
         "fillStruct": false,
         "testAtCursor": true,
-        "testFile": false, 
+        "testFile": false,
         "testPackage": false,
         "generateTestForFunction": true,
         "generateTestForFile": false,
@@ -34,7 +33,9 @@
     },
     "go.autocompleteUnimportedPackages": true,
     "go.formatTool": "goimports",
-    "go.testFlags": ["-v"],
+    "go.testFlags": [
+        "-v"
+    ],
     "go.lintOnSave": "package",
     "editor.minimap.enabled": true,
     "gopls": {
@@ -49,5 +50,11 @@
     ],
     "go.coverMode": "atomic",
     "go.coverOnSingleTestFile": true,
-    "go.coverOnSingleTest": true
+    "go.coverOnSingleTest": true,
+    "protoc": {
+        "options": [
+            "--proto_path=${workspaceRoot}/api/protobuf/",
+            "--proto_path=${workspaceRoot}/api/google/protobuf/",
+        ]
+    }
 }

@@ -7,6 +7,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UltronServiceClient interface {
 	Subscribe(ctx context.Context, in *Session, opts ...grpc.CallOption) (UltronService_SubscribeClient, error)
-	Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*ResponseSubmit, error)
+	Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type ultronServiceClient struct {
@@ -62,8 +63,8 @@ func (x *ultronServiceSubscribeClient) Recv() (*Event, error) {
 	return m, nil
 }
 
-func (c *ultronServiceClient) Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*ResponseSubmit, error) {
-	out := new(ResponseSubmit)
+func (c *ultronServiceClient) Submit(ctx context.Context, in *RequestSubmit, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronService/Submit", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (c *ultronServiceClient) Submit(ctx context.Context, in *RequestSubmit, opt
 // for forward compatibility
 type UltronServiceServer interface {
 	Subscribe(*Session, UltronService_SubscribeServer) error
-	Submit(context.Context, *RequestSubmit) (*ResponseSubmit, error)
+	Submit(context.Context, *RequestSubmit) (*emptypb.Empty, error)
 }
 
 // UnimplementedUltronServiceServer should be embedded to have forward compatible implementations.
@@ -86,7 +87,7 @@ type UnimplementedUltronServiceServer struct {
 func (UnimplementedUltronServiceServer) Subscribe(*Session, UltronService_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
-func (UnimplementedUltronServiceServer) Submit(context.Context, *RequestSubmit) (*ResponseSubmit, error) {
+func (UnimplementedUltronServiceServer) Submit(context.Context, *RequestSubmit) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
 }
 
