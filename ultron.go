@@ -17,7 +17,7 @@ import (
 type (
 	ultronServer struct {
 		slaves map[string]*slaveAgent
-		mu     sync.RWMutex
+		mu     sync.Mutex
 	}
 
 	slaveAgent struct {
@@ -83,10 +83,9 @@ func (sa *slaveAgent) Submit(ctx context.Context, batch uint32) (*statistics.Sta
 	}
 	sa.callbacks[batch] = recv
 	// 清理
-	for old, ch := range sa.callbacks {
+	for old := range sa.callbacks {
 		if (batch - old) >= 5 {
 			delete(sa.callbacks, old)
-			close(ch)
 		}
 	}
 	sa.mu.Unlock()

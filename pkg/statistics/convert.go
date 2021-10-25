@@ -16,7 +16,7 @@ func ConvertStatisticianGroup(entity *StatisticianGroup) (*StatisticianGroupDTO,
 	entity.mu.Lock()
 	defer entity.mu.Unlock()
 
-	for _, v := range entity.Tags() {
+	for _, v := range entity.tags {
 		dto.Tags = append(dto.Tags, &TagDTO{Key: v.Key, Value: v.Value})
 	}
 

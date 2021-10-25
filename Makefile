@@ -19,15 +19,15 @@ test:
 	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
 		cd $$dir; \
 		go test -race -covermode=atomic -v -coverprofile=coverage.txt ./...; \
-		cd -; \
+		cd - > /dev/null; \
 	done
 
 .PHONY: benchmark
 benchmark: 
 	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
 		cd $$dir; \
-		go test -bench . ./...; \
-		cd -; \
+		go test -bench -v . ./...; \
+		cd - > /dev/null; \
 	done
 
 .PHONY: tools
@@ -45,5 +45,5 @@ gomod:
 	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
 		cd $$dir; \
 		go mod download; \
-		cd -; \
+		cd - > /dev/null; \
 	done
