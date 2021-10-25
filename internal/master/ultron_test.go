@@ -72,7 +72,10 @@ func TestUltronServer_Subscribe(t *testing.T) {
 	// slave主动断开
 	clientCancel()
 	<-time.After(1 * time.Second)
-	assert.EqualValues(t, len(srv.(*ultronServer).slaves), 0)
+	u := srv.(*ultronServer)
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	assert.EqualValues(t, len(u.slaves), 0)
 }
 
 func Test_ultronServer_Submit(t *testing.T) {
@@ -124,7 +127,7 @@ func Test_ultronServer_Submit(t *testing.T) {
 func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
 	srv := NewUltronServer()
 	ctx, cancel := context.WithCancel(context.Background())
-	timer := time.NewTimer(6 * time.Second)
+	timer := time.NewTimer(3 * time.Second)
 	go func() {
 		<-timer.C
 		timer.Stop()
@@ -173,7 +176,7 @@ func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
 	}
 
 	go func() {
-		<-time.After(1 * time.Second)
+		// <-time.After(1 * time.Second)
 		block := make(chan struct{}, 3)
 		for {
 			block <- struct{}{}
