@@ -106,7 +106,7 @@ func (s *stage) GetStrategy() AttackStrategy {
 }
 
 func (v1 V1StageConfig) GetTimer() Timer {
-	return UniformRandomTimer{MinWait: v1.MinWait, MaxWait: v1.MaxWait}
+	return &UniformRandomTimer{MinWait: v1.MinWait, MaxWait: v1.MaxWait}
 }
 
 func (v1 V1StageConfig) GetExitConditions() ExitConditions {
