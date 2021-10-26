@@ -2,12 +2,15 @@ package ultron
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -35,8 +38,8 @@ type (
 
 	// FixedConcurrentUsers 固定goroutine/线程/用户的并发策略
 	FixedConcurrentUsers struct {
-		ConcurrentUsers int // 并发用户数
-		RampUpPeriod    int // 增压周期时长
+		ConcurrentUsers int `json:"conncurrent_users"`        // 并发用户数
+		RampUpPeriod    int `json:"ramp_up_period,omitempty"` // 增压周期时长
 	}
 
 	fixedConcurrentUsersStrategyCommander struct {
@@ -59,11 +62,23 @@ type (
 		timer  Timer
 		mu     sync.RWMutex
 	}
+
+	AttackStrategyConverter struct {
+		convertDTOFunc map[string]AttackStrategyConvertDTOFunc
+	}
+
+	AttackStrategyConvertDTOFunc func([]byte) (AttackStrategy, error)
+
+	NamedAttackStrategy interface {
+		AttackStrategy
+		Name() string
+	}
 )
 
 var (
-	_ AttackStrategy          = (*FixedConcurrentUsers)(nil)
-	_ AttackStrategyCommander = (*fixedConcurrentUsersStrategyCommander)(nil)
+	_                              AttackStrategy          = (*FixedConcurrentUsers)(nil)
+	_                              AttackStrategyCommander = (*fixedConcurrentUsersStrategyCommander)(nil)
+	DefaultAttackStrategyConverter *AttackStrategyConverter
 )
 
 func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) []*RampUpStep {
@@ -133,6 +148,10 @@ func (fx *FixedConcurrentUsers) Split(n int) []AttackStrategy {
 		}
 	}
 	return ret
+}
+
+func (fx *FixedConcurrentUsers) Name() string {
+	return "fixed-concurrent-users"
 }
 
 func newFCUExecutor(id uint32, parent *fixedConcurrentUsersStrategyCommander, t Timer) *fcuExecutor {
@@ -284,4 +303,36 @@ func (commander *fixedConcurrentUsersStrategyCommander) Close() {
 	commander.cancel()
 	commander.wg.Wait()
 	close(commander.output)
+}
+
+func newAttackStrategyConverter() *AttackStrategyConverter {
+	return &AttackStrategyConverter{
+		convertDTOFunc: map[string]AttackStrategyConvertDTOFunc{
+			"fixed-concurrent-users": func(data []byte) (AttackStrategy, error) {
+				as := new(FixedConcurrentUsers)
+				err := json.Unmarshal(data, as)
+				return as, err
+			},
+		},
+	}
+}
+
+func (c *AttackStrategyConverter) ConvertDTO(dto *genproto.AttackStrategyDTO) (AttackStrategy, error) {
+	fn, ok := c.convertDTOFunc[dto.Type]
+	if !ok {
+		return nil, errors.New("cannot found convertion function")
+	}
+	return fn(dto.AttackStrategy)
+}
+
+func (c *AttackStrategyConverter) ConvertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
+	na, ok := as.(NamedAttackStrategy)
+	if !ok {
+		return nil, errors.New("cannot convert attack strategy")
+	}
+	data, err := json.Marshal(na)
+	if err != nil {
+		return nil, err
+	}
+	return &genproto.AttackStrategyDTO{Type: na.Name(), AttackStrategy: data}, nil
 }

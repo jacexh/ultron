@@ -125,3 +125,13 @@ func TestFCUSBenchmark(t *testing.T) {
 	report := sg.Report(true) // tps理论最大值10000, 1.6.0该配置均值在8000左右
 	Logger.Info("report", zap.Float64("tps", report.TotalTPS), zap.Time("first_attack", report.FirstAttack), zap.Time("last_attack", report.LastAttack))
 }
+
+func TestAttackStrategyConverter(t *testing.T) {
+	converter := newAttackStrategyConverter()
+	as := &FixedConcurrentUsers{ConcurrentUsers: 200, RampUpPeriod: 4}
+	dto, err := converter.ConvertAttackStrategy(as)
+	assert.Nil(t, err)
+	as2, err := converter.ConvertDTO(dto)
+	assert.Nil(t, err)
+	assert.EqualValues(t, as, as2)
+}
