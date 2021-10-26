@@ -38,8 +38,6 @@ type (
 
 var (
 	_ genproto.UltronAPIServer = (*slaveSupervisor)(nil)
-
-	ErrNoSubmitted = errors.New("not submitted by the deadline")
 )
 
 func newStatsCallback(agent *slaveAgent, batch uint32) *statsCallback {
@@ -53,9 +51,10 @@ func newStatsCallback(agent *slaveAgent, batch uint32) *statsCallback {
 func (cb *statsCallback) callback(id string, batch uint32, stats *statistics.StatisticianGroup) error {
 	if atomic.CompareAndSwapUint32(&cb.callbacked, 0, 1) {
 		cb.stats = stats
+		cb.signal <- struct{}{}
 		return nil
 	}
-	return errors.New("do not callback again")
+	return fmt.Errorf("do not callback again: %s", cb.id())
 }
 
 func (cb *statsCallback) blockUntilCallbacked() <-chan struct{} {
@@ -65,10 +64,6 @@ func (cb *statsCallback) blockUntilCallbacked() <-chan struct{} {
 func (cb *statsCallback) id() string {
 	return cb.agent.ID()
 }
-
-// func (cb *statsCallback) batchID() uint32 {
-// 	return cb.batch
-// }
 
 func (cb *statsCallback) close() {
 	atomic.StoreUint32(&cb.callbacked, 1)
@@ -144,7 +139,7 @@ func (sup *slaveSupervisor) Submit(ctx context.Context, req *genproto.SubmitRequ
 		}
 	}
 	ultron.Logger.Warn("ultron server reject this request, there is no matched slaveID or batchID founded", zap.String("slave_id", req.SlaveId), zap.Uint32("batch_id", req.BatchId))
-	return &emptypb.Empty{}, errors.New("submittion rejected")
+	return &emptypb.Empty{}, fmt.Errorf("submittion rejected: %s", req.SlaveId)
 }
 
 func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryReport, error) {
@@ -176,7 +171,7 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 	}
 
 	// 开始接收各个provider上报的数据
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -185,7 +180,7 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 		g.Go(func() error {
 			if !callback.agent.send(
 				&genproto.SubscribeResponse{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.SubscribeResponse_BatchId{BatchId: batch}}) {
-				return errors.New("did not send EventType_STATS_AGGREGATE to slave")
+				return fmt.Errorf("did not send EventType_STATS_AGGREGATE to slave: %s", callback.agent.ID())
 			}
 			select {
 			case <-callback.blockUntilCallbacked():
@@ -220,11 +215,28 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 	return sg.Report(fullHistory), nil
 }
 
+func (sup *slaveSupervisor) Exists(id string) bool {
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+	_, exists := sup.slaveAgents[id]
+	return exists
+}
+
 func (sup *slaveSupervisor) Remove(id string) {
 	sup.mu.Lock()
 	defer sup.mu.Unlock()
 
 	delete(sup.slaveAgents, id)
+}
+
+func (sup *slaveSupervisor) Get(id string) ultron.SlaveAgent {
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+	sa, exists := sup.slaveAgents[id]
+	if exists {
+		return sa
+	}
+	return nil
 }
 
 func (sup *slaveSupervisor) Add(sa *slaveAgent) error {
@@ -236,8 +248,20 @@ func (sup *slaveSupervisor) Add(sa *slaveAgent) error {
 	defer sup.mu.Unlock()
 
 	if _, ok := sup.slaveAgents[sa.ID()]; ok {
-		return errors.New("duplicated slave id")
+		return fmt.Errorf("duplicated slave id: %s", sa.ID())
 	}
 	sup.slaveAgents[sa.ID()] = sa
 	return nil
+}
+
+func (sup *slaveSupervisor) Slaves() []ultron.SlaveAgent {
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+	ret := make([]ultron.SlaveAgent, len(sup.slaveAgents))
+	i := 0
+	for _, agent := range sup.slaveAgents {
+		ret[i] = agent
+		i++
+	}
+	return ret
 }

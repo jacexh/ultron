@@ -1,15 +1,9 @@
 package ultron
 
-// type (
-// 	SlaveSupervisor interface {
-// 		Kill(string)
-// 		StartNewPlan()
-// 		FinishCurrentPlan()
-// 		Send(AttackStrategy, Timer)
-// 		Imprison(Slave)
-// 	}
-
-// 	Slave interface {
-// 		ID() string
-// 	}
-// )
+type (
+	// SlaveAgent 定义master侧的slave对象
+	SlaveAgent interface {
+		ID() string
+		Extras() map[string]string
+	}
+)

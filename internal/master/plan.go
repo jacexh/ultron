@@ -58,7 +58,7 @@ func (p *plan) Start() error {
 	defer p.mu.Unlock()
 
 	if p.status != ultron.StatusReady {
-		return fmt.Errorf("cannot start plan in %s status", p.status)
+		return fmt.Errorf("cannot start plan in %d status", p.status)
 	}
 
 	if len(p.stages) == 0 {

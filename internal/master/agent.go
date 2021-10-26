@@ -18,6 +18,10 @@ type (
 	}
 )
 
+var (
+	_ ultron.SlaveAgent = (*slaveAgent)(nil)
+)
+
 func newSlaveAgent(req *genproto.SubscribeRequest) *slaveAgent {
 	return &slaveAgent{
 		slaveID: req.SlaveId,
