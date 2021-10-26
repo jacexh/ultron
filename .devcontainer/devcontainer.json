@@ -10,13 +10,13 @@
 			// Options
 			"INSTALL_NODE": "true",
 			"NODE_VERSION": "lts/*",
-            "UPGRADE_PACKAGES": "true"
+			"UPGRADE_PACKAGES": "true"
 		}
 	},
 	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
 
 	// Set *default* container specific settings.json values on container create.
-	"settings": { 
+	"settings": {
 		"terminal.integrated.defaultProfile.linux": "zsh",
 		"terminal.integrated.defaultProfile.osx": "zsh",
 		"terminal.integrated.defaultProfile.windows": "zsh",
@@ -24,7 +24,7 @@
 		"go.gopath": "/go",
 		"go.useLanguageServer": true
 	},
-	
+
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"golang.Go",
@@ -68,5 +68,7 @@
 	"postCreateCommand": "make gomod",
 
 	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vscode"
+	"remoteUser": "vscode",
+	"workspaceFolder": "/workspace",
+	"workspaceMount": "source=/home/jace/workspace/ultron,target=/workspace,type=bind,consistency=cached"
 }
