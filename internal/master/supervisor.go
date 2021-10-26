@@ -93,8 +93,8 @@ func (sup *slaveSupervisor) Subscribe(req *genproto.SubscribeRequest, stream gen
 	}()
 
 	go func() {
-		if !agent.send(&genproto.SubscribeResponse{Type: genproto.EventType_CONNECTED}) {
-			ultron.Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()))
+		if err := agent.send(&genproto.SubscribeResponse{Type: genproto.EventType_CONNECTED}); err != nil {
+			ultron.Logger.Error("the slave agent is closed, failed to send EventType_CONNECTED", zap.String("slave_id", agent.ID()), zap.Error(err))
 			return
 		}
 		agent.keepAlives()
@@ -148,6 +148,11 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 	sup.mu.Lock()
 	batch := sup.counter
 	sup.counter++
+
+	if len(sup.slaveAgents) == 0 {
+		sup.mu.Unlock()
+		return statistics.SummaryReport{}, errors.New("failed to aggregate stats report without slaves")
+	}
 	sup.buffer[batch] = make(map[string]*statsCallback)
 	for _, agent := range sup.slaveAgents {
 		sup.buffer[batch][agent.ID()] = newStatsCallback(agent, batch)
@@ -168,10 +173,6 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 		sup.mu.Unlock()
 	}()
 
-	if len(sup.buffer[batch]) == 0 {
-		return statistics.SummaryReport{}, errors.New("failed to aggregate stats report without slaves")
-	}
-
 	// 开始接收各个provider上报的数据
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -180,9 +181,9 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 	for _, callback := range callbacks {
 		callback := callback // https://golang.org/doc/faq#closures_and_goroutines
 		g.Go(func() error {
-			if !callback.agent.send(
-				&genproto.SubscribeResponse{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.SubscribeResponse_BatchId{BatchId: batch}}) {
-				return fmt.Errorf("did not send EventType_STATS_AGGREGATE to slave: %s", callback.agent.ID())
+			if err := callback.agent.send(
+				&genproto.SubscribeResponse{Type: genproto.EventType_STATS_AGGREGATE, Data: &genproto.SubscribeResponse_BatchId{BatchId: batch}}); err != nil {
+				return fmt.Errorf("[%s] %v", callback.agent.ID(), err)
 			}
 			select {
 			case <-callback.blockUntilCallbacked():
@@ -268,4 +269,42 @@ func (sup *slaveSupervisor) Slaves() []ultron.SlaveAgent {
 		i++
 	}
 	return ret
+}
+
+func (sup *slaveSupervisor) StartNewPlan() error {
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+
+	eg, _ := errgroup.WithContext(context.TODO())
+	for _, sa := range sup.slaveAgents {
+		sa := sa
+		eg.Go(func() error {
+			if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PLAN_STARTED, Data: &genproto.SubscribeResponse_PlanName{}}); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
+}
+
+func (sup *slaveSupervisor) Refresh(ultron.AttackStrategy, ultron.Timer) error {
+	return nil
+}
+
+func (sup *slaveSupervisor) Stop() error {
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+
+	eg, _ := errgroup.WithContext(context.TODO())
+	for _, sa := range sup.slaveAgents {
+		sa := sa
+		eg.Go(func() error {
+			if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PLAN_FINISHED}); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
 }

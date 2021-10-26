@@ -8,12 +8,14 @@ import (
 
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"syreclabs.com/go/faker"
 )
 
 type (
 	plan struct {
 		locked       bool
 		current      int
+		name         string
 		stages       []ultron.Stage
 		status       ultron.PlanStatus
 		actualStages []ultron.UniversalExitConditions
@@ -25,12 +27,20 @@ var (
 	_ ultron.Plan = (*plan)(nil)
 )
 
-func NewPlan() ultron.Plan {
+func NewPlan(name string) ultron.Plan {
+	if name == "" {
+		name = faker.App().Name()
+	}
 	return &plan{
+		name:    name,
 		current: -1,
 		stages:  make([]ultron.Stage, 0),
 		status:  ultron.StatusReady,
 	}
+}
+
+func (p *plan) Name() string {
+	return p.name
 }
 
 func (p *plan) addStage(s ultron.Stage) error {

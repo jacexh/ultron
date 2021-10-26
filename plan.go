@@ -9,6 +9,7 @@ import (
 type (
 	// Plan 定义测试计划接口
 	Plan interface {
+		Name() string
 		AddStages(...Stage)
 		Stages() []Stage
 		Current() (int, Stage)

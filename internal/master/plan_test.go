@@ -1,16 +1,22 @@
 package master
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"syreclabs.com/go/faker"
 )
 
+func TestFakePlanName(t *testing.T) {
+	fmt.Println(faker.App().Name())
+}
 func TestPlan_AddStages(t *testing.T) {
-	plan := NewPlan()
+	plan := NewPlan("")
 	plan.AddStages(
 		ultron.V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
 	)
@@ -19,7 +25,7 @@ func TestPlan_AddStages(t *testing.T) {
 }
 
 func TestPlan_startNextStage(t *testing.T) {
-	p1 := NewPlan()
+	p1 := NewPlan("")
 	p1.AddStages(
 		ultron.BuildStage().WithAttackStrategy(&ultron.FixedConcurrentUsers{ConcurrentUsers: 100}).
 			WithExitConditions(&ultron.UniversalExitConditions{Duration: 1 * time.Hour}),
@@ -76,6 +82,6 @@ func TestPlan_startNextStage(t *testing.T) {
 		Reports:       map[string]statistics.AttackReport{},
 	})
 	assert.True(t, stopped)
-	assert.Error(t, ultron.ErrPlanClosed)
+	assert.True(t, errors.Is(err, ultron.ErrPlanClosed))
 	assert.EqualValues(t, p1.Status(), ultron.StatusFinished)
 }

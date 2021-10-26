@@ -44,9 +44,9 @@ message SubscribeResponse {
     oneof data {
         string plan_name = 2;
         AttackStrategyDTO attack_strategy = 3;
-        TimerDTO timer = 4;
-        uint32 batch_id = 5;
+        uint32 batch_id = 4;
     };
+    TimerDTO timer =5;
 }
 
 message SubmitRequest {

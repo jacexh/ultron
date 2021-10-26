@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -156,9 +157,9 @@ func TestSlaverSupervisor_Aggregate_FuzzTesting(t *testing.T) {
 			defer wg.Done()
 			_, err := srv.Aggregate(true)
 			if err != nil {
-				canceled++
+				atomic.AddUint32(&canceled, 1)
 			} else {
-				submitted++
+				atomic.AddUint32(&submitted, 1)
 			}
 		}(uint32(i))
 	}

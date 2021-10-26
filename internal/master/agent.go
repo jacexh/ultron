@@ -56,12 +56,12 @@ func (sa *slaveAgent) close() error {
 }
 
 // send 返回是否发送（不代表发送成功）
-func (sa *slaveAgent) send(event *genproto.SubscribeResponse) bool {
+func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 	if atomic.LoadUint32(&sa.closed) == 0 {
 		sa.input <- event
-		return true
+		return nil
 	}
-	return false
+	return fmt.Errorf("slave agent is closed, cannot send event out: %d", event.Type)
 }
 
 func (sa *slaveAgent) keepAlives() {
@@ -69,8 +69,8 @@ func (sa *slaveAgent) keepAlives() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if !sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}) {
-			ultron.Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()))
+		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}); err != nil {
+			ultron.Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}
 	}
