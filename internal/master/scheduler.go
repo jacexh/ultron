@@ -16,7 +16,7 @@ type (
 		plan       ultron.Plan
 		planCtx    context.Context
 		planCancel context.CancelFunc
-		aggregator ultron.StatsAggregator
+		supervisor *slaveSupervisor
 		eventbus   ultron.ReportBus
 		ticker     *time.Ticker
 		mu         sync.Mutex
@@ -25,7 +25,7 @@ type (
 
 func NewScheduler() *Scheduler {
 	return &Scheduler{
-		aggregator: newStatsAggregator(),
+		supervisor: newSlaveSupervisor(),
 		eventbus:   eventbus.DefaultEventBus,
 	}
 }
