@@ -2,6 +2,7 @@ package master
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net"
 	"sync"
@@ -114,8 +115,11 @@ func TestSlaverSupervisor_Aggregate(t *testing.T) {
 		assert.Nil(t, err)
 	}()
 
+	start := time.Now()
 	_, err = srv.Aggregate(true)
+	duration := time.Since(start)
 	assert.Nil(t, err)
+	ultron.Logger.Info(fmt.Sprintf("Aggregate() coast %s", duration.String()))
 }
 
 func TestSlaverSupervisor_Aggregate_FuzzTesting(t *testing.T) {
