@@ -15,6 +15,7 @@ func buildLogger() {
 	// cfg.Encoding = "console"
 	cfg.EncoderConfig.TimeKey = "@timestamp"
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	cfg.Sampling = nil
 
 	var err error
 	Logger, err = cfg.Build()

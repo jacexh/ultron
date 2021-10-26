@@ -2,7 +2,9 @@ package master
 
 import (
 	"context"
+	"math/rand"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -72,10 +74,53 @@ func TestUltronServer_Subscribe(t *testing.T) {
 	assert.EqualValues(t, len(srv.Slaves()), 0)
 }
 
-func Test_ultronServer_Submit(t *testing.T) {
+func TestSlaverSupervisor_Aggregate(t *testing.T) {
 	srv := newSlaveSupervisor()
 	ctx, cancel := context.WithCancel(context.Background())
-	timer := time.NewTimer(4 * time.Second)
+	timer := time.NewTimer(3 * time.Second)
+	go func() {
+		<-timer.C
+		timer.Stop()
+		cancel()
+	}()
+	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(dialer(srv)))
+	assert.Nil(t, err)
+
+	client := genproto.NewUltronAPIClient(conn)
+	session := &genproto.SubscribeRequest{SlaveId: uuid.NewString()}
+	streams, err := client.Subscribe(context.Background(), session)
+	assert.Nil(t, err)
+	msg, err := streams.Recv()
+	assert.Nil(t, err)
+	assert.EqualValues(t, msg.Type, genproto.EventType_CONNECTED)
+
+	sa := srv.Get(session.SlaveId)
+	assert.NotNil(t, sa)
+	go func() {
+		<-time.After(1 * time.Second)
+		sg := statistics.NewStatisticianGroup()
+		sg.Record(statistics.AttackResult{Name: "foobar", Duration: 10 * time.Millisecond})
+		dto, err := statistics.ConvertStatisticianGroup(sg)
+		if err != nil {
+			ultron.Logger.Error("bad sg", zap.Error(err))
+		}
+		assert.Nil(t, err)
+		_, err = client.Submit(context.Background(), &genproto.SubmitRequest{
+			SlaveId: session.GetSlaveId(),
+			BatchId: 0,
+			Stats:   dto,
+		})
+		assert.Nil(t, err)
+	}()
+
+	_, err = srv.Aggregate(true)
+	assert.Nil(t, err)
+}
+
+func TestSlaverSupervisor_Aggregate_FuzzTesting(t *testing.T) {
+	srv := newSlaveSupervisor()
+	ctx, cancel := context.WithCancel(context.Background())
+	timer := time.NewTimer(3 * time.Second)
 	go func() {
 		<-timer.C
 		timer.Stop()
@@ -95,104 +140,54 @@ func Test_ultronServer_Submit(t *testing.T) {
 	sa := srv.Get(session.SlaveId)
 	assert.NotNil(t, sa)
 
+	// get ready
+	sg := statistics.NewStatisticianGroup()
+	sg.Record(statistics.AttackResult{Name: "foobar", Duration: 10 * time.Millisecond})
+	dto, err := statistics.ConvertStatisticianGroup(sg)
+	assert.Nil(t, err)
+
+	var submitted uint32
+	var canceled uint32
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(batch uint32) {
+			defer wg.Done()
+			_, err := srv.Aggregate(true)
+			if err != nil {
+				canceled++
+			} else {
+				submitted++
+			}
+		}(uint32(i))
+	}
+
 	go func() {
 		<-time.After(1 * time.Second)
-		sg := statistics.NewStatisticianGroup()
-		sg.Record(statistics.AttackResult{Name: "foobar", Duration: 10 * time.Millisecond})
-		dto, err := statistics.ConvertStatisticianGroup(sg)
-		ultron.Logger.Info("ready to submit", zap.Any("report", sg.Report(true)))
-		if err != nil {
-			ultron.Logger.Error("bad sg", zap.Error(err))
+		block := make(chan struct{}, 3)
+		for {
+			block <- struct{}{}
+			go func() {
+				defer func() {
+					<-block
+				}()
+
+				batch := uint32(rand.Intn(10))
+				slaveID := session.GetSlaveId()
+				if rand.Float64() <= 0.15 {
+					slaveID = uuid.NewString()
+				}
+				client.Submit(context.Background(), &genproto.SubmitRequest{
+					SlaveId: slaveID,
+					BatchId: batch,
+					Stats:   dto,
+				})
+			}()
 		}
-		assert.Nil(t, err)
-		_, err = client.Submit(context.Background(), &genproto.SubmitRequest{
-			SlaveId: session.GetSlaveId(),
-			BatchId: 0,
-			Stats:   dto,
-		})
-		assert.Nil(t, err)
 	}()
-
-	report, err := srv.Aggregate(true)
-	assert.Nil(t, err)
-	ultron.Logger.Info("accepted report", zap.Any("report", report))
+	wg.Wait()
+	assert.LessOrEqual(t, submitted, uint32(5))
+	assert.Greater(t, submitted, uint32(0))
+	assert.EqualValues(t, submitted+canceled, 10)
 }
-
-// func Test_ultronServer_Submit_FuzzTesting(t *testing.T) {
-// 	srv := NewUltronServer()
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	timer := time.NewTimer(3 * time.Second)
-// 	go func() {
-// 		<-timer.C
-// 		timer.Stop()
-// 		cancel()
-// 	}()
-// 	conn, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithContextDialer(dialer(srv)))
-// 	assert.Nil(t, err)
-
-// 	client := genproto.NewUltronAPIClient(conn)
-// 	session := &genproto.SubscribeRequest{SlaveId: uuid.NewString()}
-// 	streams, err := client.Subscribe(context.Background(), session)
-// 	assert.Nil(t, err)
-// 	msg, err := streams.Recv()
-// 	assert.Nil(t, err)
-// 	assert.EqualValues(t, msg.Type, genproto.EventType_CONNECTED)
-
-// 	sa, exists := srv.(*ultronServer).slaves[session.SlaveId]
-// 	assert.True(t, exists)
-// 	assert.NotNil(t, sa)
-
-// 	// get ready
-// 	sg := statistics.NewStatisticianGroup()
-// 	sg.Record(statistics.AttackResult{Name: "foobar", Duration: 10 * time.Millisecond})
-// 	dto, err := statistics.ConvertStatisticianGroup(sg)
-// 	assert.Nil(t, err)
-
-// 	var submitted uint32
-// 	var canceled uint32
-
-// 	var wg sync.WaitGroup
-// 	for i := 0; i < 10; i++ {
-// 		wg.Add(1)
-// 		go func(batch uint32) {
-// 			defer wg.Done()
-// 			accepted, err := sa.Submit(ctx, batch)
-// 			if err == nil {
-// 				atomic.AddUint32(&submitted, 1)
-// 				report := accepted.Report(true)
-// 				assert.EqualValues(t, report.TotalRequests, 1)
-// 				assert.EqualValues(t, report.Reports["foobar"].Min, 10*time.Millisecond)
-// 				assert.EqualValues(t, report.Reports["foobar"].Max, 10*time.Millisecond)
-// 			} else {
-// 				atomic.AddUint32(&canceled, 1)
-// 			}
-// 		}(uint32(i))
-// 	}
-
-// 	go func() {
-// 		// <-time.After(1 * time.Second)
-// 		block := make(chan struct{}, 3)
-// 		for {
-// 			block <- struct{}{}
-// 			go func() {
-// 				defer func() {
-// 					<-block
-// 				}()
-
-// 				batch := uint32(rand.Intn(10))
-// 				slaveID := session.GetSlaveId()
-// 				if rand.Float64() <= 0.15 {
-// 					slaveID = uuid.NewString()
-// 				}
-// 				client.Submit(context.Background(), &genproto.SubmitRequest{
-// 					SlaveId: slaveID,
-// 					BatchId: batch,
-// 					Stats:   dto,
-// 				})
-// 			}()
-// 		}
-// 	}()
-// 	wg.Wait()
-// 	assert.LessOrEqual(t, submitted, uint32(5))
-// 	assert.EqualValues(t, submitted+canceled, 10)
-// }

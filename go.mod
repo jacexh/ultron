@@ -2,6 +2,7 @@ module github.com/wosai/ultron/v2
 
 require (
 	github.com/go-chi/chi/v5 v5.0.4
+	github.com/golang/protobuf v1.5.0
 	github.com/google/uuid v1.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/stretchr/testify v1.7.0
@@ -15,7 +16,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

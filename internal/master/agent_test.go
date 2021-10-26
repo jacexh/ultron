@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/genproto"
+	"go.uber.org/zap"
 )
 
 func Test_slaveAgent_close(t *testing.T) {
@@ -14,10 +16,12 @@ func Test_slaveAgent_close(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		func() {
+		go func() {
 			defer wg.Done()
 			agent.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING})
-			agent.close()
+			if err := agent.close(); err != nil {
+				ultron.Logger.Info("no consumer for the slave agent", zap.Error(err))
+			}
 		}()
 	}
 	wg.Wait()

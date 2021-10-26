@@ -1,6 +1,7 @@
 package master
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -42,11 +43,16 @@ func (sa *slaveAgent) Extras() map[string]string {
 	return ret
 }
 
-func (sa *slaveAgent) close() {
+func (sa *slaveAgent) close() error {
 	if atomic.CompareAndSwapUint32(&sa.closed, 0, 1) {
-		sa.input <- &genproto.SubscribeResponse{Type: genproto.EventType_DISCONNECT}
-		close(sa.input)
+		select {
+		case sa.input <- &genproto.SubscribeResponse{Type: genproto.EventType_DISCONNECT}:
+			close(sa.input)
+		case <-time.After(3 * time.Second):
+			return fmt.Errorf("the input channel is blocked: %s", sa.ID())
+		}
 	}
+	return nil
 }
 
 // send 返回是否发送（不代表发送成功）

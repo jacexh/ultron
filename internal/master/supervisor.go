@@ -87,7 +87,9 @@ func (sup *slaveSupervisor) Subscribe(req *genproto.SubscribeRequest, stream gen
 
 	defer func() {
 		sup.Remove(agent.ID())
-		agent.close()
+		if err := agent.close(); err != nil {
+			ultron.Logger.Error("failed to close slave agent", zap.String("slave_id", agent.ID()), zap.Error(err))
+		}
 	}()
 
 	go func() {
@@ -196,16 +198,18 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 		return statistics.SummaryReport{}, fmt.Errorf("batch-%d: %w", batch, err)
 	}
 
-	sup.mu.RLock()
-	defer sup.mu.RUnlock()
-
+	sup.mu.Lock()
 	if (sup.counter - (batch + 1)) > sup.toleranceForDelay { // too late
+		sup.mu.Unlock()
 		return statistics.SummaryReport{}, fmt.Errorf("batch-%d: too late to accept summary report", batch)
 	}
+	callbacker := sup.buffer[batch]
+	delete(sup.buffer, batch)
+	sup.mu.Unlock()
 
 	// 检查是否完成
 	sg := statistics.NewStatisticianGroup()
-	for _, callback := range sup.buffer[batch] {
+	for _, callback := range callbacker {
 		if callback.stats == nil {
 			return statistics.SummaryReport{}, fmt.Errorf("not submitted by the deadline: batch-%d, slave: %s", batch, callback.id())
 		} else {
