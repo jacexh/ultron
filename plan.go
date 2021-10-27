@@ -2,8 +2,6 @@ package ultron
 
 import (
 	"errors"
-
-	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 type (
@@ -14,12 +12,14 @@ type (
 		Stages() []Stage
 		Current() (int, Stage)
 		Status() PlanStatus
-		Start() error
-		StopCurrentAndStartNext(int, statistics.SummaryReport) (bool, int, Stage, error)
+		// Start() error
+		// StopCurrentAndStartNext(int, statistics.SummaryReport) (bool, int, Stage, error)
 	}
 
 	// PlanStatus 定义测试计划状态
 	PlanStatus int
+
+	PlanBuilder func(string) Plan
 )
 
 const (
@@ -35,4 +35,16 @@ const (
 
 var (
 	ErrPlanClosed = errors.New("plan was finished or interrupted")
+	planBuilder   PlanBuilder
 )
+
+func RegisterPlanBulder(pb PlanBuilder) {
+	planBuilder = pb
+}
+
+func NewPlan(name string) Plan {
+	if planBuilder == nil {
+		panic("missing plan builder function")
+	}
+	return planBuilder(name)
+}

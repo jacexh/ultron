@@ -27,7 +27,7 @@ var (
 	_ ultron.Plan = (*plan)(nil)
 )
 
-func NewPlan(name string) ultron.Plan {
+func newPlan(name string) *plan {
 	if name == "" {
 		name = faker.App().Name()
 	}
@@ -63,7 +63,7 @@ func (p *plan) AddStages(stages ...ultron.Stage) {
 	}
 }
 
-func (p *plan) Start() error {
+func (p *plan) start() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -88,7 +88,7 @@ func (p *plan) Start() error {
 	return nil
 }
 
-func (p *plan) StopCurrentAndStartNext(n int, report statistics.SummaryReport) (stopped bool, stageID int, s ultron.Stage, err error) {
+func (p *plan) stopCurrentAndStartNext(n int, report statistics.SummaryReport) (stopped bool, stageID int, s ultron.Stage, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -173,4 +173,10 @@ func (p *plan) Current() (int, ultron.Stage) {
 	defer p.mu.Unlock()
 
 	return p.current, p.stages[p.current]
+}
+
+func init() {
+	ultron.RegisterPlanBulder(func(name string) ultron.Plan {
+		return ultron.Plan(newPlan(name))
+	})
 }

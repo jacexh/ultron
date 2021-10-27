@@ -17,7 +17,7 @@ type (
 	Scheduler struct {
 		planCtx    context.Context
 		planCancel context.CancelFunc
-		plan       ultron.Plan
+		plan       *plan
 		supervisor *slaveSupervisor
 		eventbus   ultron.ReportBus
 		mu         sync.Mutex
@@ -42,7 +42,7 @@ func (s *Scheduler) CreateNewPlan(name string) error {
 		s.planCancel()
 	}
 	s.planCtx, s.planCancel = context.WithCancel(context.Background())
-	s.plan = NewPlan(name)
+	s.plan = newPlan(name)
 	return nil
 }
 
@@ -52,7 +52,7 @@ func (s *Scheduler) Start() error {
 	if s.plan == nil {
 		return errors.New("cannot start empty plan")
 	}
-	if err := s.plan.Start(); err != nil {
+	if err := s.plan.start(); err != nil {
 		return err
 	}
 
@@ -60,7 +60,7 @@ func (s *Scheduler) Start() error {
 		return err
 	}
 
-	_, _, stage, err := s.plan.StopCurrentAndStartNext(-1, statistics.SummaryReport{})
+	_, _, stage, err := s.plan.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (s *Scheduler) FinishPlan() {
 
 func (s *Scheduler) nextStage(stage ultron.Stage) {}
 
-func (s *Scheduler) patrol(ctx context.Context, every time.Duration, plan ultron.Plan) error {
+func (s *Scheduler) patrol(ctx context.Context, every time.Duration, plan *plan) error {
 	ticker := time.NewTimer(every)
 	defer ticker.Stop()
 
@@ -98,7 +98,7 @@ patrol:
 				ultron.Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
 			}
-			stopped, next, stage, err := plan.StopCurrentAndStartNext(stageIndex, report)
+			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 
 			switch {
 			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了

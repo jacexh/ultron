@@ -6,25 +6,25 @@ import (
 
 type (
 	MasterRunner interface {
-		StartNewPlan()
-		FinishCurrentPlan()
-		Append(...Stage)
-		SubscribeReport(...ReportHandleFunc)
-		Run(bool)
+		Launch(interface{})                  // 服务启动
+		StartPlan(Plan)                      // 开始执行某个测试计划
+		StopPlan()                           // 停止当前计划
+		SubscribeReport(...ReportHandleFunc) // 订阅聚合报告
 	}
 
 	SlaveRunner interface {
-		Assign(*Task)
-		SubscriberResult(...ResultHandleFunc)
-		Connect(string, ...grpc.DialOption) error
+		Connect(string, ...grpc.DialOption) error // 连接master
+		SubscriberResult(...ResultHandleFunc)     // 订阅Attacker的执行结果
+		Assign(*Task)                             // 指派压测任务
 	}
 
 	LocalRunner interface {
-		Append(...Stage)
+		Launch(interface{})
 		Assign(*Task)
 		SubscribeReport(...ReportHandleFunc)
 		SubscriberResult(...ResultHandleFunc)
-		Run(bool)
+		StartPlan(Plan)
+		StopPlan()
 	}
 )
 
