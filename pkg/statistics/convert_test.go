@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -12,7 +13,10 @@ func TestConvertStatisticianGroup(t *testing.T) {
 	entity.Record(AttackResult{Name: "foobar", Duration: 3 * time.Millisecond})
 	dto, err := ConvertStatisticianGroup(entity)
 	assert.Nil(t, err)
-	assert.EqualValues(t, dto.Container["foobar"].Requests, 1)
-	assert.EqualValues(t, dto.Container["foobar"].MinResponseTime, 3*time.Millisecond)
-	assert.EqualValues(t, dto.Container["foobar"].MinResponseTime, dto.Container["foobar"].MaxResponseTime)
+
+	entity1, err := NewStatisticianGroupFromDTO(dto)
+	assert.Nil(t, err)
+	d1, _ := json.Marshal(entity.Report(true))
+	d2, _ := json.Marshal(entity1.Report(true))
+	assert.EqualValues(t, d1, d2)
 }

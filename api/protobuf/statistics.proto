@@ -4,20 +4,23 @@ package wosai.ultron;
 
 option go_package = "github.com/wosai/ultron/v2/pkg/statistics";
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
 message AttackStatisticsDTO  {
     string name = 1;
     uint64 requests = 2;
     uint64 failures = 3;
-    int64 total_response_time = 4;
-    int64 min_response_time = 5;
-    int64 max_response_time = 6;
+    google.protobuf.Duration total_response_time = 4;
+    google.protobuf.Duration min_response_time = 5;
+    google.protobuf.Duration max_response_time = 6;
     map<int64, int64> recent_success_bucket = 7;
     map<int64, int64> recent_failure_bucket = 8;
     map<int64, uint64> response_bucket = 9;
     map<string, uint64> failure_bucket = 10;
-    int64 first_attack = 11;
-    int64 last_attack = 12;
-    int64 interval =13;
+    google.protobuf.Timestamp first_attack = 11;
+    google.protobuf.Timestamp last_attack = 12;
+    google.protobuf.Duration interval =13;
 }
 
 message TagDTO {

@@ -3,6 +3,9 @@ package statistics
 import (
 	"errors"
 	"time"
+
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func ConvertStatisticianGroup(entity *StatisticianGroup) (*StatisticianGroupDTO, error) {
@@ -55,16 +58,16 @@ func ConvertAttackStatistician(as *AttackStatistician) (*AttackStatisticsDTO, er
 		Name:                as.name,
 		Requests:            as.requests,
 		Failures:            as.failures,
-		TotalResponseTime:   int64(as.totalResponseTime),
-		MinResponseTime:     int64(as.minResponseTime),
-		MaxResponseTime:     int64(as.maxResponseTime),
+		TotalResponseTime:   durationpb.New(as.totalResponseTime),
+		MinResponseTime:     durationpb.New(as.minResponseTime),
+		MaxResponseTime:     durationpb.New(as.maxResponseTime),
 		RecentSuccessBucket: make(map[int64]int64),
 		RecentFailureBucket: make(map[int64]int64),
 		ResponseBucket:      make(map[int64]uint64),
 		FailureBucket:       make(map[string]uint64),
-		FirstAttack:         as.firstAttack.UnixNano(),
-		LastAttack:          as.lastAttack.UnixNano(),
-		Interval:            int64(as.interval),
+		FirstAttack:         timestamppb.New(as.firstAttack),
+		LastAttack:          timestamppb.New(as.lastAttack),
+		Interval:            durationpb.New(as.interval),
 	}
 
 	for k, v := range as.recentSuccessBucket.container {
@@ -89,9 +92,9 @@ func NewAttackStatisticianFromDTO(dto *AttackStatisticsDTO) (*AttackStatistician
 	as := NewAttackStatistician(dto.Name)
 	as.requests = dto.Requests
 	as.failures = dto.Failures
-	as.totalResponseTime = time.Duration(dto.TotalResponseTime)
-	as.minResponseTime = time.Duration(dto.MinResponseTime)
-	as.maxResponseTime = time.Duration(dto.MaxResponseTime)
+	as.totalResponseTime = dto.TotalResponseTime.AsDuration()
+	as.minResponseTime = dto.MinResponseTime.AsDuration()
+	as.maxResponseTime = dto.MaxResponseTime.AsDuration()
 	for k, v := range dto.RecentSuccessBucket {
 		as.recentSuccessBucket.accumulate(k, v)
 	}
@@ -104,8 +107,8 @@ func NewAttackStatisticianFromDTO(dto *AttackStatisticsDTO) (*AttackStatistician
 	for k, v := range dto.FailureBucket {
 		as.failureBucket[k] = v
 	}
-	as.firstAttack = time.Unix(0, dto.FirstAttack)
-	as.lastAttack = time.Unix(0, dto.LastAttack)
+	as.firstAttack = dto.FirstAttack.AsTime()
+	as.lastAttack = dto.LastAttack.AsTime()
 
 	return as, nil
 }
