@@ -1,12 +1,11 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/wosai/ultron/v2/transport/rest"
+	"github.com/wosai/ultron/v2"
+	_ "github.com/wosai/ultron/v2/internal/master"
 )
 
 func main() {
-	handler := rest.BuildHTTPRouter()
-	http.ListenAndServe(":2017", handler)
+	runner := ultron.BuildMasterRunner()
+	_ = runner.Launch(ultron.RunnerConfig{})
 }

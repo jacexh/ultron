@@ -93,16 +93,6 @@ func (bus *IEventBus) Start() {
 				bus.Close()
 			}()
 
-			// for {
-			// 	select {
-			// 	case <-ctx.Done():
-			// 		return
-			// 	case report := <-bus.reportBus:
-			// 		for _, fn := range bus.reportHandlers {
-			// 			fn(ctx, report)
-			// 		}
-			// 	}
-			// }
 			for report := range bus.reportBus {
 				for _, fn := range bus.reportHandlers {
 					fn(ctx, report)
@@ -122,16 +112,6 @@ func (bus *IEventBus) Start() {
 					bus.Close()
 				}()
 
-				// for {
-				// 	select {
-				// 	case <-ctx.Done():
-				// 		return
-				// 	case result := <-c:
-				// 		for _, handler := range bus.resultHandlers {
-				// 			handler(ctx, result)
-				// 		}
-				// 	}
-				// }
 				for result := range c {
 					for _, handler := range bus.resultHandlers {
 						handler(ctx, result)
