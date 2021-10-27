@@ -21,7 +21,7 @@ func TestPlan_AddStages(t *testing.T) {
 		ultron.V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
 	)
 
-	assert.Nil(t, plan.start())
+	assert.Nil(t, plan.check())
 }
 
 func TestPlan_startNextStage(t *testing.T) {
@@ -32,7 +32,7 @@ func TestPlan_startNextStage(t *testing.T) {
 		ultron.BuildStage().WithExitConditions(&ultron.UniversalExitConditions{Requests: 1024 * 1024}).
 			WithAttackStrategy(&ultron.FixedConcurrentUsers{ConcurrentUsers: 200}),
 	)
-	assert.Nil(t, p1.start())
+	assert.Nil(t, p1.check())
 	assert.EqualValues(t, p1.Status(), ultron.StatusReady)
 
 	stopped, i, stage, err := p1.stopCurrentAndStartNext(-1, statistics.SummaryReport{})

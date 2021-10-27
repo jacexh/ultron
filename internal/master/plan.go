@@ -63,7 +63,15 @@ func (p *plan) AddStages(stages ...ultron.Stage) {
 	}
 }
 
-func (p *plan) start() error {
+func (p *plan) interrupt() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.status != ultron.StatusFinished {
+		p.status = ultron.StatusInterrupted
+	}
+}
+
+func (p *plan) check() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 

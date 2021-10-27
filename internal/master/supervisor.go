@@ -271,40 +271,49 @@ func (sup *slaveSupervisor) Slaves() []ultron.SlaveAgent {
 	return ret
 }
 
-func (sup *slaveSupervisor) StartNewPlan() error {
+func (sup *slaveSupervisor) batchSend(ctx context.Context, event *genproto.SubscribeResponse) error {
 	sup.mu.RLock()
 	defer sup.mu.RUnlock()
 
-	eg, _ := errgroup.WithContext(context.TODO())
+	eg, ctx := errgroup.WithContext(ctx)
 	for _, sa := range sup.slaveAgents {
-		sa := sa
+		agent := sa
 		eg.Go(func() error {
-			if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PLAN_STARTED, Data: &genproto.SubscribeResponse_PlanName{}}); err != nil {
-				return err
-			}
-			return nil
+			return agent.send(event)
 		})
 	}
 	return eg.Wait()
 }
 
-func (sup *slaveSupervisor) Refresh(ultron.AttackStrategy, ultron.Timer) error {
-	return nil
+func (sup *slaveSupervisor) StartNewPlan(ctx context.Context, name string) error {
+	return sup.batchSend(ctx, &genproto.SubscribeResponse{
+		Type: genproto.EventType_PLAN_STARTED,
+		Data: &genproto.SubscribeResponse_PlanName{PlanName: name},
+	})
 }
 
-func (sup *slaveSupervisor) Stop() error {
-	sup.mu.RLock()
-	defer sup.mu.RUnlock()
-
-	eg, _ := errgroup.WithContext(context.TODO())
-	for _, sa := range sup.slaveAgents {
-		sa := sa
-		eg.Go(func() error {
-			if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PLAN_FINISHED}); err != nil {
-				return err
-			}
-			return nil
-		})
+func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy ultron.AttackStrategy, t ultron.Timer) error {
+	if t == nil {
+		t = ultron.NonstopTimer{}
 	}
-	return eg.Wait()
+	var err error
+	event := &genproto.SubscribeResponse{Type: genproto.EventType_NEXT_STAGE_STARTED}
+	event.Timer, err = ultron.DefaultTimerConverter.ConvertTimer(t)
+	if err != nil {
+		return err
+	}
+	as, err := ultron.DefaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
+	if err != nil {
+		return err
+	}
+	event.Data = &genproto.SubscribeResponse_AttackStrategy{AttackStrategy: as}
+	return sup.batchSend(ctx, event)
+}
+
+func (sup *slaveSupervisor) Stop(ctx context.Context, done bool) error {
+	event := &genproto.SubscribeResponse{Type: genproto.EventType_PLAN_FINISHED}
+	if !done {
+		event.Type = genproto.EventType_PLAN_INTERRUPTED
+	}
+	return sup.batchSend(ctx, event)
 }

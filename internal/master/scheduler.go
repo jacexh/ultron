@@ -3,7 +3,7 @@ package master
 import (
 	"context"
 	"errors"
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/wosai/ultron/v2"
@@ -13,50 +13,33 @@ import (
 )
 
 type (
-	// Scheduler master进程任务调度者
-	Scheduler struct {
-		planCtx    context.Context
-		planCancel context.CancelFunc
+	// scheduler master进程任务调度者
+	scheduler struct {
+		ctx        context.Context
+		cancel     context.CancelFunc
 		plan       *plan
 		supervisor *slaveSupervisor
 		eventbus   ultron.ReportBus
-		mu         sync.Mutex
 	}
 )
 
-func NewScheduler() *Scheduler {
-	return &Scheduler{
+func NewScheduler() *scheduler {
+	return &scheduler{
 		supervisor: newSlaveSupervisor(),
 		eventbus:   eventbus.DefaultEventBus,
 	}
 }
 
-func (s *Scheduler) CreateNewPlan(name string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.plan.Status() == ultron.StatusRunning {
-		return errors.New("failed to create a new plan until stop current running plan")
+func (s *scheduler) start(plan *plan) error {
+	if plan == nil {
+		return errors.New("cannot start with an empty plan")
 	}
-
-	if s.planCancel != nil {
-		s.planCancel()
-	}
-	s.planCtx, s.planCancel = context.WithCancel(context.Background())
-	s.plan = newPlan(name)
-	return nil
-}
-
-func (s *Scheduler) Start() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.plan == nil {
-		return errors.New("cannot start empty plan")
-	}
-	if err := s.plan.start(); err != nil {
+	if err := plan.check(); err != nil {
 		return err
 	}
+	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	if err := s.supervisor.StartNewPlan(); err != nil {
+	if err := s.supervisor.StartNewPlan(s.ctx, plan.Name()); err != nil {
 		return err
 	}
 
@@ -65,21 +48,51 @@ func (s *Scheduler) Start() error {
 		return err
 	}
 
-	if err := s.supervisor.Refresh(stage.GetStrategy(), stage.GetTimer()); err != nil {
+	if err := s.supervisor.NextStage(s.ctx, stage.GetStrategy(), stage.GetTimer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Scheduler) FinishPlan() {
+func (s *scheduler) stop(done bool) error {
+	if !done {
+		s.plan.interrupt()
+	}
 
+	var err error
+	if err = s.supervisor.Stop(s.ctx, done); err != nil {
+		ultron.Logger.Warn("failed to stop slaves", zap.Error(err))
+	}
+	s.cancel()
+	ultron.Logger.Info("canceled all master running jobs")
+
+	report, aggErr := s.supervisor.Aggregate(true)
+	switch {
+	case err == nil && aggErr != nil:
+		return aggErr
+
+	case err != nil && aggErr == nil:
+		return err
+
+	case err != nil && aggErr != nil:
+		return fmt.Errorf("recent error: %w \tlast error:%s", aggErr, err.Error())
+
+	default:
+		s.eventbus.PublishReport(report)
+		return nil
+	}
 }
 
-func (s *Scheduler) nextStage(stage ultron.Stage) {}
+func (s *scheduler) nextStage(stage ultron.Stage) error {
+	return s.supervisor.NextStage(s.ctx, stage.GetStrategy(), stage.GetTimer())
+}
 
-func (s *Scheduler) patrol(ctx context.Context, every time.Duration, plan *plan) error {
+// patrol scheduler核心逻辑
+func (s *scheduler) patrol(every time.Duration) error {
 	ticker := time.NewTimer(every)
 	defer ticker.Stop()
+
+	plan := s.plan
 
 	if plan.Status() != ultron.StatusRunning {
 		return errors.New("failed to patrol cause the plan is not running")
@@ -89,20 +102,22 @@ func (s *Scheduler) patrol(ctx context.Context, every time.Duration, plan *plan)
 patrol:
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-s.ctx.Done():
+			return s.ctx.Err()
 
 		case <-ticker.C:
-			report, err := s.supervisor.Aggregate(true)
+			report, err := s.supervisor.Aggregate(false)
 			if err != nil {
 				ultron.Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
 			}
-			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
+			s.eventbus.PublishReport(report)
 
+			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {
 			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了
-				s.FinishPlan()
+				s.stop(true) // TODO： 是否还要做点什么？不做的话会拿到下一次聚合报告？
+				return nil
 
 			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && !stopped: // 计划早已经结束，不干了
 				ultron.Logger.Info("this plan is complete, stop patrol")
@@ -113,7 +128,9 @@ patrol:
 				continue patrol
 
 			case err == nil && stopped: // 下一阶段
-				s.nextStage(stage)
+				if err := s.nextStage(stage); err != nil {
+					ultron.Logger.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
+				}
 				stageIndex = next
 
 			default: // 继续巡查
