@@ -55,7 +55,9 @@ func (s *scheduler) start(plan *plan) error {
 
 func (s *scheduler) stop(done bool) error {
 	if !done {
-		s.plan.interrupt()
+		if s.plan != nil {
+			s.plan.interrupt()
+		}
 	}
 
 	var err error

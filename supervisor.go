@@ -275,6 +275,10 @@ func (sup *slaveSupervisor) batchSend(ctx context.Context, event *genproto.Subsc
 	sup.mu.RLock()
 	defer sup.mu.RUnlock()
 
+	if len(sup.slaveAgents) == 0 {
+		return errors.New("cannot batch send event to empty slave agent")
+	}
+	log.Info("start to batch send event", zap.Int32("event_type", int32(event.GetType())))
 	eg, _ := errgroup.WithContext(ctx)
 	for _, sa := range sup.slaveAgents {
 		agent := sa

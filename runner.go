@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/wosai/ultron/v2/log"
@@ -57,20 +59,12 @@ const (
 	DefaultREST = "127.0.0.1:2017"
 )
 
-// BuildSlaveRunner todo:
-func BuildSlaveRunner() SlaveRunner {
-	return nil
-}
-
-// BuildLocalRunner todo:
-func BuildLocalRunner() LocalRunner {
-	return nil
-}
-
 func NewMasterRunner() MasterRunner {
-	return &masterRunner{
+	runner := &masterRunner{
 		eventbus: defaultEventBus,
 	}
+
+	return runner
 }
 
 // Launch 主线程，如果发生错误则关闭
@@ -99,6 +93,22 @@ func (r *masterRunner) Launch(con RunnerConfig, opts ...grpc.ServerOption) error
 	block := make(chan error, 1)
 	go func() {
 		block <- grpcServer.Serve(lis)
+	}()
+
+	go func() {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		log.Warn("caught quit signal, try to shutdown ultron server", zap.String("signal", sig.String()))
+
+		if r.scheduler != nil {
+			if err := r.scheduler.stop(false); err != nil {
+				log.Error("failed to interrupt current test plan", zap.Error(err))
+				os.Exit(1)
+			}
+		}
+		grpcServer.GracefulStop()
+		os.Exit(0)
 	}()
 	err = <-block
 	log.Fatal("ultron runner is shutdown", zap.Error(err))

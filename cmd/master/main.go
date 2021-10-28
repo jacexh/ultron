@@ -10,12 +10,13 @@ import (
 
 func main() {
 	runner := ultron.NewMasterRunner()
-	go runner.Launch(ultron.RunnerConfig{})
-
-	<-time.After(3 * time.Second)
-	plan := ultron.NewPlan("foobar")
-	plan.AddStages(&ultron.V1StageConfig{})
-	if err := runner.StartPlan(plan); err != nil {
-		log.Error("failed", zap.Error(err))
-	}
+	go func() {
+		<-time.After(2 * time.Second)
+		plan := ultron.NewPlan("foobar")
+		plan.AddStages(&ultron.V1StageConfig{ConcurrentUsers: 100})
+		if err := runner.StartPlan(plan); err != nil {
+			log.Error("failed to start a new plan", zap.Error(err))
+		}
+	}()
+	runner.Launch(ultron.RunnerConfig{})
 }
