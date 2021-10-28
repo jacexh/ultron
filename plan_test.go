@@ -17,7 +17,7 @@ func TestFakePlanName(t *testing.T) {
 func TestPlan_AddStages(t *testing.T) {
 	plan := NewPlan("")
 	plan.AddStages(
-		V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
+		&V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
 	)
 
 	assert.Nil(t, plan.check())
