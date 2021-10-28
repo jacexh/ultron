@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/ultron/v2/log"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +33,7 @@ func TestTask_PickUp2(t *testing.T) {
 		attacker := task.PickUp()
 		counter[attacker.Name()] += 1
 	}
-	Logger.Info("attacker picked up", zap.Any("attackers", counter))
+	log.Info("attacker picked up", zap.Any("attackers", counter))
 }
 
 func BenchmarkTest_PickUp(b *testing.B) {

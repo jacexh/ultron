@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/ultron/v2/log"
 	"go.uber.org/zap"
 )
 
@@ -45,7 +46,7 @@ func BenchmarkHTTPAttacker_Fire(b *testing.B) {
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
 			if err := attacker.Fire(context.Background()); err != nil {
-				Logger.Error("occur error", zap.Error(err))
+				log.Error("occur error", zap.Error(err))
 			}
 		}
 	})
@@ -60,7 +61,7 @@ func TestHTTPAttacker_Fire(t *testing.T) {
 		WithCheckFuncs(
 			CheckHTTPStatusCode,
 			func(r *http.Response, b []byte) error {
-				Logger.Info("body", zap.ByteString("body", b))
+				log.Info("body", zap.ByteString("body", b))
 				return nil
 			}),
 	)

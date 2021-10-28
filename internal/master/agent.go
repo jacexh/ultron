@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 )
@@ -70,7 +71,7 @@ func (sa *slaveAgent) keepAlives() {
 
 	for range ticker.C {
 		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}); err != nil {
-			ultron.Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
+			log.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/internal/eventbus"
+	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -61,10 +62,10 @@ func (s *scheduler) stop(done bool) error {
 
 	var err error
 	if err = s.supervisor.Stop(s.ctx, done); err != nil {
-		ultron.Logger.Warn("failed to stop slaves", zap.Error(err))
+		log.Warn("failed to stop slaves", zap.Error(err))
 	}
 	s.cancel()
-	ultron.Logger.Info("canceled all master running jobs")
+	log.Info("canceled all master running jobs")
 
 	report, aggErr := s.supervisor.Aggregate(true)
 	switch {
@@ -108,7 +109,7 @@ patrol:
 		case <-ticker.C:
 			report, err := s.supervisor.Aggregate(false)
 			if err != nil {
-				ultron.Logger.Warn("failed to aggregate stats report", zap.Error(err))
+				log.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
 			}
 			s.eventbus.PublishReport(report)
@@ -120,16 +121,16 @@ patrol:
 				return nil
 
 			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && !stopped: // 计划早已经结束，不干了
-				ultron.Logger.Info("this plan is complete, stop patrol")
+				log.Info("this plan is complete, stop patrol")
 				return nil
 
 			case err != nil && !errors.Is(err, ultron.ErrPlanClosed):
-				ultron.Logger.Error("occur error on checking the test plan", zap.Error(err))
+				log.Error("occur error on checking the test plan", zap.Error(err))
 				continue patrol
 
 			case err == nil && stopped: // 下一阶段
 				if err := s.nextStage(stage); err != nil {
-					ultron.Logger.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
+					log.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
 				}
 				stageIndex = next
 

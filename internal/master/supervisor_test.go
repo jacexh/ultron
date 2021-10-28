@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
@@ -31,7 +31,7 @@ func dialer(srv genproto.UltronAPIServer) func(context.Context, string) (net.Con
 
 	go func() {
 		if err := server.Serve(listener); err != nil {
-			ultron.Logger.Error("shutdown ultron server", zap.Error(err))
+			log.Error("shutdown ultron server", zap.Error(err))
 		}
 	}()
 	return func(c context.Context, s string) (net.Conn, error) {
@@ -104,7 +104,7 @@ func TestSlaverSupervisor_Aggregate(t *testing.T) {
 		sg.Record(statistics.AttackResult{Name: "foobar", Duration: 10 * time.Millisecond})
 		dto, err := statistics.ConvertStatisticianGroup(sg)
 		if err != nil {
-			ultron.Logger.Error("bad sg", zap.Error(err))
+			log.Error("bad sg", zap.Error(err))
 		}
 		assert.Nil(t, err)
 		_, err = client.Submit(context.Background(), &genproto.SubmitRequest{
@@ -119,7 +119,7 @@ func TestSlaverSupervisor_Aggregate(t *testing.T) {
 	_, err = srv.Aggregate(true)
 	duration := time.Since(start)
 	assert.Nil(t, err)
-	ultron.Logger.Info(fmt.Sprintf("Aggregate() coast %s", duration.String()))
+	log.Info(fmt.Sprintf("Aggregate() coast %s", duration.String()))
 }
 
 func TestSlaverSupervisor_Aggregate_FuzzTesting(t *testing.T) {

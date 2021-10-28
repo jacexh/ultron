@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -100,7 +101,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d ultron.AttackS
 			commander.mu.Unlock()
 
 			killed -= step.N
-			ultron.Logger.Info(fmt.Sprintf("killed %d users in ramp-up peroid", killed))
+			log.Info(fmt.Sprintf("killed %d users in ramp-up peroid", killed))
 			time.Sleep(step.Interval)
 
 		case step.N > 0: // 增压策略
@@ -123,7 +124,7 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d ultron.AttackS
 				}(executor, commander.wg)
 			}
 			spawned += step.N
-			ultron.Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
+			log.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
 			time.Sleep(step.Interval)
 
 		default:
@@ -164,7 +165,7 @@ func (e *fcuExecutor) start(ctx context.Context, task *ultron.Task, output chan<
 	defer func() {
 		if rec := recover(); rec != nil {
 			debug.PrintStack()
-			ultron.Logger.DPanic("recovered", zap.Any("panic", rec))
+			log.DPanic("recovered", zap.Any("panic", rec))
 		}
 	}()
 

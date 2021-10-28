@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -87,7 +88,7 @@ func (bus *IEventBus) Start() {
 			defer func() {
 				if rec := recover(); rec != nil {
 					debug.PrintStack()
-					ultron.Logger.DPanic("report bus is quit", zap.Any("recover", rec))
+					log.DPanic("report bus is quit", zap.Any("recover", rec))
 				}
 				bus.wg.Done()
 				bus.Close()
@@ -106,7 +107,7 @@ func (bus *IEventBus) Start() {
 				defer func() {
 					if rec := recover(); rec != nil {
 						debug.PrintStack()
-						ultron.Logger.DPanic("one result bus is quit", zap.Any("recover", rec))
+						log.DPanic("one result bus is quit", zap.Any("recover", rec))
 					}
 					bus.wg.Done()
 					bus.Close()
