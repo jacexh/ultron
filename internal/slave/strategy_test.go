@@ -10,6 +10,7 @@ import (
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
+	"github.com/wosai/ultron/v2/types"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +38,7 @@ func (fs *fakeAttacker) Fire(ctx context.Context) error {
 	return nil
 }
 
-func newBenchmarkAttacker(n string, wait time.Duration) ultron.Attacker {
+func newBenchmarkAttacker(n string, wait time.Duration) types.Attacker {
 	return &benchmarkAttacker{name: n, wait: wait}
 }
 

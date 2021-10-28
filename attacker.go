@@ -9,15 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/wosai/ultron/v2/types"
 )
 
 type (
-	// Attacker 定义一个事务、请求，需要确保实现上是goroutine-safe
-	Attacker interface {
-		Name() string
-		Fire(context.Context) error
-	}
-
 	// HTTPPrepareFunc 构造http.Request函数，需要调用方定义，由HTTPAttacker来发送
 	HTTPPrepareFunc func() (*http.Request, error)
 
@@ -61,7 +57,7 @@ var (
 		},
 	}
 
-	_ Attacker = (*HTTPAttacker)(nil)
+	_ types.Attacker = (*HTTPAttacker)(nil)
 )
 
 func NewHTTPAttacker(name string) *HTTPAttacker {

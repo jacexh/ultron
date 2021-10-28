@@ -3,6 +3,8 @@ package ultron
 import (
 	"sync"
 	"sync/atomic"
+
+	"github.com/wosai/ultron/v2/types"
 )
 
 type (
@@ -10,13 +12,13 @@ type (
 		attacker    []*swrrAttacker
 		totalWeight uint32
 		counts      uint32
-		preempted   []Attacker
+		preempted   []types.Attacker
 		once        sync.Once
 	}
 
 	// swrrAttacker 平滑的加权请求
 	swrrAttacker struct {
-		attacker Attacker
+		attacker types.Attacker
 		weight   uint32
 		current  int32
 	}
@@ -28,7 +30,7 @@ func NewTask() *Task {
 	}
 }
 
-func (t *Task) Add(a Attacker, weight uint32) {
+func (t *Task) Add(a types.Attacker, weight uint32) {
 	t.totalWeight += weight
 	t.attacker = append(t.attacker, &swrrAttacker{
 		attacker: a,
@@ -37,7 +39,7 @@ func (t *Task) Add(a Attacker, weight uint32) {
 }
 
 // https://tenfy.cn/2018/11/12/smooth-weighted-round-robin/
-func (t *Task) swrr() Attacker {
+func (t *Task) swrr() types.Attacker {
 	var best *swrrAttacker
 
 	for _, attacker := range t.attacker {
@@ -51,9 +53,9 @@ func (t *Task) swrr() Attacker {
 	return best.attacker
 }
 
-func (t *Task) PickUp() Attacker {
+func (t *Task) PickUp() types.Attacker {
 	t.once.Do(func() {
-		t.preempted = make([]Attacker, int(t.totalWeight))
+		t.preempted = make([]types.Attacker, int(t.totalWeight))
 		for i := 0; i < int(t.totalWeight); i++ {
 			t.preempted[i] = t.swrr()
 		}
