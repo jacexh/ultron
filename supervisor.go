@@ -1,4 +1,4 @@
-package master
+package ultron
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"github.com/wosai/ultron/v2/pkg/statistics"
@@ -235,7 +234,7 @@ func (sup *slaveSupervisor) Remove(id string) {
 	delete(sup.slaveAgents, id)
 }
 
-func (sup *slaveSupervisor) Get(id string) ultron.SlaveAgent {
+func (sup *slaveSupervisor) Get(id string) SlaveAgent {
 	sup.mu.RLock()
 	defer sup.mu.RUnlock()
 	sa, exists := sup.slaveAgents[id]
@@ -260,10 +259,10 @@ func (sup *slaveSupervisor) Add(sa *slaveAgent) error {
 	return nil
 }
 
-func (sup *slaveSupervisor) Slaves() []ultron.SlaveAgent {
+func (sup *slaveSupervisor) Slaves() []SlaveAgent {
 	sup.mu.RLock()
 	defer sup.mu.RUnlock()
-	ret := make([]ultron.SlaveAgent, len(sup.slaveAgents))
+	ret := make([]SlaveAgent, len(sup.slaveAgents))
 	i := 0
 	for _, agent := range sup.slaveAgents {
 		ret[i] = agent
@@ -293,17 +292,17 @@ func (sup *slaveSupervisor) StartNewPlan(ctx context.Context, name string) error
 	})
 }
 
-func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy ultron.AttackStrategy, t ultron.Timer) error {
+func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy AttackStrategy, t Timer) error {
 	if t == nil {
-		t = ultron.NonstopTimer{}
+		t = NonstopTimer{}
 	}
 	var err error
 	event := &genproto.SubscribeResponse{Type: genproto.EventType_NEXT_STAGE_STARTED}
-	event.Timer, err = ultron.DefaultTimerConverter.ConvertTimer(t)
+	event.Timer, err = DefaultTimerConverter.ConvertTimer(t)
 	if err != nil {
 		return err
 	}
-	as, err := ultron.DefaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
+	as, err := DefaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
 	if err != nil {
 		return err
 	}

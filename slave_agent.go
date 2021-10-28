@@ -1,17 +1,22 @@
-package master
+package ultron
 
 import (
 	"fmt"
 	"sync/atomic"
 	"time"
 
-	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 )
 
 type (
+	// SlaveAgent 定义master侧的slave对象
+	SlaveAgent interface {
+		ID() string
+		Extras() map[string]string
+	}
+
 	slaveAgent struct {
 		slaveID string
 		extras  map[string]string // todo: 之后再实现
@@ -21,7 +26,7 @@ type (
 )
 
 var (
-	_ ultron.SlaveAgent = (*slaveAgent)(nil)
+	_ SlaveAgent = (*slaveAgent)(nil)
 )
 
 func newSlaveAgent(req *genproto.SubscribeRequest) *slaveAgent {

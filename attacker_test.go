@@ -10,13 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-type fakeAttacker struct{}
+type mockAttacker struct{}
 
-func (fs *fakeAttacker) Name() string {
+func (fs *mockAttacker) Name() string {
 	return "fake"
 }
 
-func (fs *fakeAttacker) Fire(ctx context.Context) error {
+func (fs *mockAttacker) Fire(ctx context.Context) error {
 	req, _ := http.NewRequest(http.MethodGet, "https://www.google.com", nil)
 	_ = req.WithContext(ctx)
 	select {

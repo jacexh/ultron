@@ -1,4 +1,4 @@
-package master
+package ultron
 
 import (
 	"sync"
@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Test_slaveAgent_close(t *testing.T) {
+func TestSlaveAgent_close(t *testing.T) {
 	agent := newSlaveAgent(&genproto.SubscribeRequest{SlaveId: uuid.NewString()})
 
 	var wg sync.WaitGroup

@@ -1,4 +1,4 @@
-package master
+package ultron
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wosai/ultron/v2"
-	"github.com/wosai/ultron/v2/internal/eventbus"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
@@ -27,7 +25,7 @@ type (
 func NewScheduler() *scheduler {
 	return &scheduler{
 		supervisor: newSlaveSupervisor(),
-		eventbus:   eventbus.DefaultEventBus,
+		eventbus:   DefaultEventBus,
 	}
 }
 
@@ -84,7 +82,7 @@ func (s *scheduler) stop(done bool) error {
 	}
 }
 
-func (s *scheduler) nextStage(stage ultron.Stage) error {
+func (s *scheduler) nextStage(stage Stage) error {
 	return s.supervisor.NextStage(s.ctx, stage.GetStrategy(), stage.GetTimer())
 }
 
@@ -95,7 +93,7 @@ func (s *scheduler) patrol(every time.Duration) error {
 
 	plan := s.plan
 
-	if plan.Status() != ultron.StatusRunning {
+	if plan.Status() != StatusRunning {
 		return errors.New("failed to patrol cause the plan is not running")
 	}
 
@@ -116,15 +114,15 @@ patrol:
 
 			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {
-			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了
+			case err != nil && errors.Is(err, ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了
 				s.stop(true) // TODO： 是否还要做点什么？不做的话会拿到下一次聚合报告？
 				return nil
 
-			case err != nil && errors.Is(err, ultron.ErrPlanClosed) && !stopped: // 计划早已经结束，不干了
+			case err != nil && errors.Is(err, ErrPlanClosed) && !stopped: // 计划早已经结束，不干了
 				log.Info("this plan is complete, stop patrol")
 				return nil
 
-			case err != nil && !errors.Is(err, ultron.ErrPlanClosed):
+			case err != nil && !errors.Is(err, ErrPlanClosed):
 				log.Error("occur error on checking the test plan", zap.Error(err))
 				continue patrol
 
