@@ -9,7 +9,6 @@ import (
 
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
-	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -19,20 +18,20 @@ type (
 		Launch(RunnerConfig, ...grpc.ServerOption) error // 服务启动
 		StartPlan(Plan) error                            // 开始执行某个测试计划
 		StopPlan()                                       // 停止当前计划
-		SubscribeReport(...statistics.ReportHandleFunc)  // 订阅聚合报告
+		SubscribeReport(...ReportHandleFunc)             // 订阅聚合报告
 	}
 
 	SlaveRunner interface {
-		Connect(string, ...grpc.DialOption) error        // 连接master
-		SubscriberResult(...statistics.ResultHandleFunc) // 订阅Attacker的执行结果
-		Assign(*Task)                                    // 指派压测任务
+		Connect(string, ...grpc.DialOption) error // 连接master
+		SubscriberResult(...ResultHandleFunc)     // 订阅Attacker的执行结果
+		Assign(*Task)                             // 指派压测任务
 	}
 
 	LocalRunner interface {
 		Launch(RunnerConfig) error
 		Assign(*Task)
-		SubscribeReport(...statistics.ReportHandleFunc)
-		SubscriberResult(...statistics.ResultHandleFunc)
+		SubscribeReport(...ReportHandleFunc)
+		SubscriberResult(...ResultHandleFunc)
 		StartPlan(Plan)
 		StopPlan()
 	}
@@ -47,7 +46,7 @@ type (
 	masterRunner struct {
 		scheduler  *scheduler
 		plan       Plan
-		eventbus   *IEventBus
+		eventbus   *eventbus
 		supervisor *slaveSupervisor
 		mu         sync.RWMutex
 	}
@@ -83,7 +82,7 @@ func RegisterMasterRunnerBuilder(fn func() MasterRunner) {
 
 func NewMasterRunner() MasterRunner {
 	return &masterRunner{
-		eventbus: DefaultEventBus,
+		eventbus: defaultEventBus,
 	}
 }
 
@@ -106,8 +105,8 @@ func (r *masterRunner) Launch(con RunnerConfig, opts ...grpc.ServerOption) error
 	log.Info("ultron grpc server is running", zap.String("connect_address", con.GRPCAddr))
 
 	// eventbus初始化
-	r.eventbus.SubscribeReport(PrintReportToConsole(os.Stdout))
-	r.eventbus.Start()
+	r.eventbus.subscribeReport(PrintReportToConsole(os.Stdout))
+	r.eventbus.start()
 	log.Info("report bus is working")
 
 	block := make(chan error, 1)
@@ -157,8 +156,8 @@ func (r *masterRunner) StopPlan() {
 	}
 }
 
-func (r *masterRunner) SubscribeReport(fns ...statistics.ReportHandleFunc) {
+func (r *masterRunner) SubscribeReport(fns ...ReportHandleFunc) {
 	for _, fn := range fns {
-		r.eventbus.SubscribeReport(fn)
+		r.eventbus.subscribeReport(fn)
 	}
 }

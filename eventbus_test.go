@@ -16,13 +16,13 @@ func testResultHandleFunc(ctx context.Context, ret statistics.AttackResult) {
 }
 
 func BenchmarkIEventBus_PublishResult(b *testing.B) {
-	bus := DefaultEventBus
-	bus.SubscribeResult(testResultHandleFunc)
-	go bus.Start()
+	bus := defaultEventBus
+	bus.subscribeResult(testResultHandleFunc)
+	go bus.start()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			bus.PublishResult(statistics.AttackResult{Name: "benchmark", Duration: 100 * time.Millisecond})
+			bus.publishResult(statistics.AttackResult{Name: "benchmark", Duration: 100 * time.Millisecond})
 		}
 	})
 }

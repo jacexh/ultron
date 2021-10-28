@@ -18,14 +18,14 @@ type (
 		cancel     context.CancelFunc
 		plan       *plan
 		supervisor *slaveSupervisor
-		eventbus   statistics.ReportBus
+		eventbus   reportBus
 	}
 )
 
 func NewScheduler() *scheduler {
 	return &scheduler{
 		supervisor: newSlaveSupervisor(),
-		eventbus:   DefaultEventBus,
+		eventbus:   defaultEventBus,
 	}
 }
 
@@ -77,7 +77,7 @@ func (s *scheduler) stop(done bool) error {
 		return fmt.Errorf("recent error: %w \tlast error:%s", aggErr, err.Error())
 
 	default:
-		s.eventbus.PublishReport(report)
+		s.eventbus.publishReport(report)
 		return nil
 	}
 }
@@ -110,7 +110,7 @@ patrol:
 				log.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
 			}
-			s.eventbus.PublishReport(report)
+			s.eventbus.publishReport(report)
 
 			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {

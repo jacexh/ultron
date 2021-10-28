@@ -275,7 +275,7 @@ func (sup *slaveSupervisor) batchSend(ctx context.Context, event *genproto.Subsc
 	sup.mu.RLock()
 	defer sup.mu.RUnlock()
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, _ := errgroup.WithContext(ctx)
 	for _, sa := range sup.slaveAgents {
 		agent := sa
 		eg.Go(func() error {

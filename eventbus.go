@@ -12,13 +12,30 @@ import (
 )
 
 type (
-	// IEventBus 对eventbus的实现
-	IEventBus struct {
+	// ReportHandleFunc 聚合报告处理函数
+	ReportHandleFunc func(context.Context, statistics.SummaryReport)
+
+	// reportBus 聚合报告事件总线
+	reportBus interface {
+		subscribeReport(ReportHandleFunc)
+		publishReport(statistics.SummaryReport)
+	}
+
+	// ResultHandleFunc 请求结果处理函数
+	ResultHandleFunc func(context.Context, statistics.AttackResult)
+
+	// resultBus 压测结果事件总线
+	resultBus interface {
+		subscribeResult(ResultHandleFunc)
+		publishResult(statistics.AttackResult)
+	}
+
+	eventbus struct {
 		cancel                context.CancelFunc
 		reportBus             chan statistics.SummaryReport
 		resultBuses           []chan statistics.AttackResult
-		reportHandlers        []statistics.ReportHandleFunc
-		resultHandlers        []statistics.ResultHandleFunc
+		reportHandlers        []ReportHandleFunc
+		resultHandlers        []ResultHandleFunc
 		numberOfSubchannels   uint32
 		counterForSubchannels uint32
 		closed                uint32
@@ -27,20 +44,27 @@ type (
 	}
 )
 
-var (
-	DefaultEventBus *IEventBus
+type ()
+
+type (
+// eventbus 对eventbus的实现
+
 )
 
 var (
-	_ statistics.ReportBus = (*IEventBus)(nil)
-	_ statistics.ResultBus = (*IEventBus)(nil)
+	defaultEventBus *eventbus
 )
 
-func newEventBus() *IEventBus {
-	bus := &IEventBus{
+var (
+	_ reportBus = (*eventbus)(nil)
+	_ resultBus = (*eventbus)(nil)
+)
+
+func newEventBus() *eventbus {
+	bus := &eventbus{
 		reportBus:           make(chan statistics.SummaryReport, 3), // 低频通道
-		reportHandlers:      make([]statistics.ReportHandleFunc, 0),
-		resultHandlers:      make([]statistics.ResultHandleFunc, 0),
+		reportHandlers:      make([]ReportHandleFunc, 0),
+		resultHandlers:      make([]ResultHandleFunc, 0),
 		numberOfSubchannels: 25,
 	}
 	bus.resultBuses = make([]chan statistics.AttackResult, bus.numberOfSubchannels)
@@ -50,34 +74,34 @@ func newEventBus() *IEventBus {
 	return bus
 }
 
-func (bus *IEventBus) SubscribeReport(fn statistics.ReportHandleFunc) {
+func (bus *eventbus) subscribeReport(fn ReportHandleFunc) {
 	if fn == nil {
 		return
 	}
 	bus.reportHandlers = append(bus.reportHandlers, fn)
 }
 
-func (bus *IEventBus) PublishReport(report statistics.SummaryReport) {
+func (bus *eventbus) publishReport(report statistics.SummaryReport) {
 	if atomic.LoadUint32(&bus.closed) == 0 {
 		bus.reportBus <- report
 	}
 }
 
-func (bus *IEventBus) SubscribeResult(fn statistics.ResultHandleFunc) {
+func (bus *eventbus) subscribeResult(fn ResultHandleFunc) {
 	if fn == nil {
 		return
 	}
 	bus.resultHandlers = append(bus.resultHandlers, fn)
 }
 
-func (bus *IEventBus) PublishResult(ret statistics.AttackResult) {
+func (bus *eventbus) publishResult(ret statistics.AttackResult) {
 	if atomic.LoadUint32(&bus.closed) == 0 {
 		v := atomic.AddUint32(&bus.counterForSubchannels, 1)
 		bus.resultBuses[int((v-1)%bus.numberOfSubchannels)] <- ret
 	}
 }
 
-func (bus *IEventBus) Start() {
+func (bus *eventbus) start() {
 	bus.once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		bus.cancel = cancel
@@ -90,7 +114,7 @@ func (bus *IEventBus) Start() {
 					log.DPanic("report bus is quit", zap.Any("recover", rec))
 				}
 				bus.wg.Done()
-				bus.Close()
+				bus.close()
 			}()
 
 			for report := range bus.reportBus {
@@ -109,7 +133,7 @@ func (bus *IEventBus) Start() {
 						log.DPanic("one result bus is quit", zap.Any("recover", rec))
 					}
 					bus.wg.Done()
-					bus.Close()
+					bus.close()
 				}()
 
 				for result := range c {
@@ -122,7 +146,7 @@ func (bus *IEventBus) Start() {
 	})
 }
 
-func (bus *IEventBus) Close() {
+func (bus *eventbus) close() {
 	if atomic.CompareAndSwapUint32(&bus.closed, 0, 1) {
 		if bus.cancel != nil {
 			bus.cancel()
@@ -137,5 +161,5 @@ func (bus *IEventBus) Close() {
 }
 
 func init() {
-	DefaultEventBus = newEventBus()
+	defaultEventBus = newEventBus()
 }

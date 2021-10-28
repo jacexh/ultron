@@ -28,7 +28,7 @@ func (fs *mockAttacker) Fire(ctx context.Context) error {
 }
 
 func BenchmarkFakeAttacker(b *testing.B) {
-	attacker := &fakeAttacker{}
+	attacker := &mockAttacker{}
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
