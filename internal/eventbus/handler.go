@@ -7,11 +7,10 @@ import (
 	"strconv"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
-func PrintReportToConsole(output io.Writer) ultron.ReportHandleFunc {
+func PrintReportToConsole(output io.Writer) statistics.ReportHandleFunc {
 	return func(ctx context.Context, report statistics.SummaryReport) {
 		table := tablewriter.NewWriter(output)
 		header := []string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"}

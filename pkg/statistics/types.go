@@ -1,28 +1,26 @@
-package ultron
+package statistics
 
-import (
-	"context"
-
-	"github.com/wosai/ultron/v2/pkg/statistics"
-)
+import "context"
 
 type (
 	// ReportHandleFunc 聚合报告处理函数
-	ReportHandleFunc func(context.Context, statistics.SummaryReport)
+	ReportHandleFunc func(context.Context, SummaryReport)
+
 	// ReportBus 聚合报告事件总线
 	ReportBus interface {
 		SubscribeReport(ReportHandleFunc)
-		PublishReport(statistics.SummaryReport)
+		PublishReport(SummaryReport)
 	}
 )
 
 type (
+
 	// ResultHandleFunc 请求结果处理函数
-	ResultHandleFunc func(context.Context, statistics.AttackResult)
+	ResultHandleFunc func(context.Context, AttackResult)
 
 	// ResultBus 压测结果事件总线
 	ResultBus interface {
 		SubscribeResult(ResultHandleFunc)
-		PublishResult(statistics.AttackResult)
+		PublishResult(AttackResult)
 	}
 )

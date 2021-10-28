@@ -11,6 +11,7 @@ import (
 	"github.com/wosai/ultron/v2/internal/eventbus"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -105,7 +106,7 @@ func (r *MasterRunner) StopPlan() {
 	}
 }
 
-func (r *MasterRunner) SubscribeReport(fns ...ultron.ReportHandleFunc) {
+func (r *MasterRunner) SubscribeReport(fns ...statistics.ReportHandleFunc) {
 	for _, fn := range fns {
 		r.eventbus.SubscribeReport(fn)
 	}

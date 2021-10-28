@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
@@ -18,8 +17,8 @@ type (
 		cancel                context.CancelFunc
 		reportBus             chan statistics.SummaryReport
 		resultBuses           []chan statistics.AttackResult
-		reportHandlers        []ultron.ReportHandleFunc
-		resultHandlers        []ultron.ResultHandleFunc
+		reportHandlers        []statistics.ReportHandleFunc
+		resultHandlers        []statistics.ResultHandleFunc
 		numberOfSubchannels   uint32
 		counterForSubchannels uint32
 		closed                uint32
@@ -33,15 +32,15 @@ var (
 )
 
 var (
-	_ ultron.ReportBus = (*IEventBus)(nil)
-	_ ultron.ResultBus = (*IEventBus)(nil)
+	_ statistics.ReportBus = (*IEventBus)(nil)
+	_ statistics.ResultBus = (*IEventBus)(nil)
 )
 
 func newEventBus() *IEventBus {
 	bus := &IEventBus{
 		reportBus:           make(chan statistics.SummaryReport, 3), // 低频通道
-		reportHandlers:      make([]ultron.ReportHandleFunc, 0),
-		resultHandlers:      make([]ultron.ResultHandleFunc, 0),
+		reportHandlers:      make([]statistics.ReportHandleFunc, 0),
+		resultHandlers:      make([]statistics.ResultHandleFunc, 0),
 		numberOfSubchannels: 25,
 	}
 	bus.resultBuses = make([]chan statistics.AttackResult, bus.numberOfSubchannels)
@@ -51,7 +50,7 @@ func newEventBus() *IEventBus {
 	return bus
 }
 
-func (bus *IEventBus) SubscribeReport(fn ultron.ReportHandleFunc) {
+func (bus *IEventBus) SubscribeReport(fn statistics.ReportHandleFunc) {
 	if fn == nil {
 		return
 	}
@@ -64,7 +63,7 @@ func (bus *IEventBus) PublishReport(report statistics.SummaryReport) {
 	}
 }
 
-func (bus *IEventBus) SubscribeResult(fn ultron.ResultHandleFunc) {
+func (bus *IEventBus) SubscribeResult(fn statistics.ResultHandleFunc) {
 	if fn == nil {
 		return
 	}

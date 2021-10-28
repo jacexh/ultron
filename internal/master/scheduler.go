@@ -20,7 +20,7 @@ type (
 		cancel     context.CancelFunc
 		plan       *plan
 		supervisor *slaveSupervisor
-		eventbus   ultron.ReportBus
+		eventbus   statistics.ReportBus
 	}
 )
 
