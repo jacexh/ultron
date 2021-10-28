@@ -15,7 +15,7 @@ func TestFakePlanName(t *testing.T) {
 	fmt.Println(faker.App().Name())
 }
 func TestPlan_AddStages(t *testing.T) {
-	plan := newPlan("")
+	plan := NewPlan("")
 	plan.AddStages(
 		V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
 	)
@@ -24,7 +24,7 @@ func TestPlan_AddStages(t *testing.T) {
 }
 
 func TestPlan_startNextStage(t *testing.T) {
-	p1 := newPlan("")
+	p1 := NewPlan("")
 	p1.AddStages(
 		BuildStage().WithAttackStrategy(&FixedConcurrentUsers{ConcurrentUsers: 100}).
 			WithExitConditions(&UniversalExitConditions{Duration: 1 * time.Hour}),

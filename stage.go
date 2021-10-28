@@ -41,11 +41,11 @@ type (
 	}
 )
 
-func (sec UniversalExitConditions) Check(actual ExitConditions) bool {
+func (sec *UniversalExitConditions) Check(actual ExitConditions) bool {
 	if sec.NeverStop() {
 		return false
 	}
-	if a, ok := actual.(UniversalExitConditions); ok {
+	if a, ok := actual.(*UniversalExitConditions); ok {
 		if sec.Duration > 0 && sec.Duration <= a.Duration {
 			return true
 		}
@@ -56,7 +56,7 @@ func (sec UniversalExitConditions) Check(actual ExitConditions) bool {
 	return false
 }
 
-func (sec UniversalExitConditions) NeverStop() bool {
+func (sec *UniversalExitConditions) NeverStop() bool {
 	if sec.Duration <= 0 && sec.Requests <= 0 {
 		return true
 	}
@@ -78,7 +78,7 @@ func (s *stage) WithTimer(t Timer) *stage {
 
 func (s *stage) WithExitConditions(ec ExitConditions) *stage {
 	if ec == nil {
-		s.checker = UniversalExitConditions{}
+		s.checker = &UniversalExitConditions{}
 	} else {
 		s.checker = ec
 	}
@@ -105,14 +105,14 @@ func (s *stage) GetStrategy() AttackStrategy {
 	return s.strategy
 }
 
-func (v1 V1StageConfig) GetTimer() Timer {
+func (v1 *V1StageConfig) GetTimer() Timer {
 	return &UniformRandomTimer{MinWait: v1.MinWait, MaxWait: v1.MaxWait}
 }
 
-func (v1 V1StageConfig) GetExitConditions() ExitConditions {
-	return UniversalExitConditions{Requests: v1.Requests, Duration: v1.Duration}
+func (v1 *V1StageConfig) GetExitConditions() ExitConditions {
+	return &UniversalExitConditions{Requests: v1.Requests, Duration: v1.Duration}
 }
 
-func (v1 V1StageConfig) GetStrategy() AttackStrategy {
+func (v1 *V1StageConfig) GetStrategy() AttackStrategy {
 	return &FixedConcurrentUsers{ConcurrentUsers: v1.ConcurrentUsers, RampUpPeriod: v1.RampUpPeriod}
 }

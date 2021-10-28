@@ -58,7 +58,7 @@ type (
 var (
 	_ AttackStrategy = (*FixedConcurrentUsers)(nil)
 
-	DefaultAttackStrategyConverter *AttackStrategyConverter
+	defaultAttackStrategyConverter *AttackStrategyConverter
 )
 
 func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) []*RampUpStep {

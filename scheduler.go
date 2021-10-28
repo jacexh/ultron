@@ -22,9 +22,9 @@ type (
 	}
 )
 
-func NewScheduler() *scheduler {
+func newScheduler(sup *slaveSupervisor) *scheduler {
 	return &scheduler{
-		supervisor: newSlaveSupervisor(),
+		supervisor: sup,
 		eventbus:   defaultEventBus,
 	}
 }
@@ -36,12 +36,12 @@ func (s *scheduler) start(plan *plan) error {
 	if err := plan.check(); err != nil {
 		return err
 	}
-	s.ctx, s.cancel = context.WithCancel(context.Background())
 
+	s.ctx, s.cancel = context.WithCancel(context.Background())
 	if err := s.supervisor.StartNewPlan(s.ctx, plan.Name()); err != nil {
 		return err
 	}
-
+	s.plan = plan
 	_, _, stage, err := s.plan.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
 	if err != nil {
 		return err

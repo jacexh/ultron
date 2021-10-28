@@ -57,15 +57,6 @@ const (
 	DefaultREST = "127.0.0.1:2017"
 )
 
-var (
-	masterRunnerBuilder func() MasterRunner
-)
-
-// BuildMasterRunner 构造master相关服务
-func BuildMasterRunner() MasterRunner {
-	return masterRunnerBuilder()
-}
-
 // BuildSlaveRunner todo:
 func BuildSlaveRunner() SlaveRunner {
 	return nil
@@ -74,10 +65,6 @@ func BuildSlaveRunner() SlaveRunner {
 // BuildLocalRunner todo:
 func BuildLocalRunner() LocalRunner {
 	return nil
-}
-
-func RegisterMasterRunnerBuilder(fn func() MasterRunner) {
-	masterRunnerBuilder = fn
 }
 
 func NewMasterRunner() MasterRunner {
@@ -105,7 +92,7 @@ func (r *masterRunner) Launch(con RunnerConfig, opts ...grpc.ServerOption) error
 	log.Info("ultron grpc server is running", zap.String("connect_address", con.GRPCAddr))
 
 	// eventbus初始化
-	r.eventbus.subscribeReport(PrintReportToConsole(os.Stdout))
+	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
 	r.eventbus.start()
 	log.Info("report bus is working")
 
@@ -120,14 +107,13 @@ func (r *masterRunner) Launch(con RunnerConfig, opts ...grpc.ServerOption) error
 
 func (r *masterRunner) StartPlan(p Plan) error {
 	r.mu.Lock()
-
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()
 		err := errors.New("cannot start a new plan before shutdown current running plan")
 		log.Error("failed to start a new plan", zap.Error(err))
 		return err
 	}
-	scheduler := NewScheduler()
+	scheduler := newScheduler(r.supervisor)
 	r.scheduler = scheduler
 	r.plan = p
 	r.mu.Unlock()

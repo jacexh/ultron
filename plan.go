@@ -31,7 +31,7 @@ type (
 		name         string
 		stages       []Stage
 		status       PlanStatus
-		actualStages []UniversalExitConditions
+		actualStages []*UniversalExitConditions
 		mu           sync.Mutex
 	}
 )
@@ -52,7 +52,7 @@ var (
 	_             Plan = (*plan)(nil)
 )
 
-func newPlan(name string) *plan {
+func NewPlan(name string) *plan {
 	if name == "" {
 		name = faker.App().Name()
 	}
@@ -109,6 +109,13 @@ func (p *plan) check() error {
 	}
 
 	for index, stage := range p.stages {
+		strategy := stage.GetStrategy()
+		switch v := strategy.(type) {
+		case *FixedConcurrentUsers:
+			if v.ConcurrentUsers <= 0 {
+				return errors.New("concurrent users must greater than 0")
+			}
+		}
 		// 非最后阶段
 		if index < len(p.stages)-1 {
 			if stage.GetExitConditions().NeverStop() {
@@ -117,7 +124,7 @@ func (p *plan) check() error {
 		}
 	}
 	p.locked = true
-	p.actualStages = make([]UniversalExitConditions, len(p.stages))
+	p.actualStages = make([]*UniversalExitConditions, len(p.stages))
 	return nil
 }
 
@@ -176,7 +183,7 @@ func (p *plan) isFinishedCurrentStage(n int, report statistics.SummaryReport) bo
 	currentStageRequests = totalRequests - previousRequests
 
 	// todo 暂时不支持其他ExitConditions
-	condition := UniversalExitConditions{Requests: currentStageRequests, Duration: currentStageDuration}
+	condition := &UniversalExitConditions{Requests: currentStageRequests, Duration: currentStageDuration}
 	if p.stages[n].GetExitConditions().Check(condition) {
 		p.actualStages[n] = condition
 		return true

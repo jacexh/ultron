@@ -302,7 +302,7 @@ func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy AttackStrate
 	if err != nil {
 		return err
 	}
-	as, err := DefaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
+	as, err := defaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
 	if err != nil {
 		return err
 	}

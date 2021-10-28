@@ -44,20 +44,10 @@ type (
 	}
 )
 
-type ()
-
-type (
-// eventbus 对eventbus的实现
-
-)
-
 var (
 	defaultEventBus *eventbus
-)
-
-var (
-	_ reportBus = (*eventbus)(nil)
-	_ resultBus = (*eventbus)(nil)
+	_               reportBus = (*eventbus)(nil)
+	_               resultBus = (*eventbus)(nil)
 )
 
 func newEventBus() *eventbus {
