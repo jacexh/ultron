@@ -43,7 +43,7 @@ type (
 )
 
 var (
-	DefaultTimerConverter *TimerConverter
+	defaultTimerConverter *TimerConverter
 )
 
 func (urt *UniformRandomTimer) Sleep() {
@@ -113,5 +113,5 @@ func (tc *TimerConverter) ConvertTimer(t Timer) (*genproto.TimerDTO, error) {
 }
 
 func init() {
-	DefaultTimerConverter = newTimeConveter()
+	defaultTimerConverter = newTimeConveter()
 }

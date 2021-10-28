@@ -278,7 +278,6 @@ func (sup *slaveSupervisor) batchSend(ctx context.Context, event *genproto.Subsc
 	if len(sup.slaveAgents) == 0 {
 		return errors.New("cannot batch send event to empty slave agent")
 	}
-	log.Info("start to batch send event", zap.Int32("event_type", int32(event.GetType())))
 	eg, _ := errgroup.WithContext(ctx)
 	for _, sa := range sup.slaveAgents {
 		agent := sa
@@ -300,18 +299,37 @@ func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy AttackStrate
 	if t == nil {
 		t = NonstopTimer{}
 	}
-	var err error
-	event := &genproto.SubscribeResponse{Type: genproto.EventType_NEXT_STAGE_STARTED}
-	event.Timer, err = DefaultTimerConverter.ConvertTimer(t)
-	if err != nil {
-		return err
+
+	sup.mu.RLock()
+	slaves := make([]*slaveAgent, len(sup.slaveAgents))
+	i := 0
+	for _, sa := range sup.slaveAgents {
+		slaves[i] = sa
+		i++
 	}
-	as, err := defaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
-	if err != nil {
-		return err
+	sup.mu.RUnlock()
+
+	strategies := strategy.Split(len(slaves)) // 数量可能少于 len(slaves)
+	eg, _ := errgroup.WithContext(ctx)
+	for i, strategy := range strategies {
+		i := i
+		strategy := strategy
+		eg.Go(func() error {
+			var err error
+			event := &genproto.SubscribeResponse{Type: genproto.EventType_NEXT_STAGE_STARTED}
+			event.Timer, err = defaultTimerConverter.ConvertTimer(t)
+			if err != nil {
+				return err
+			}
+			as, err := defaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
+			if err != nil {
+				return err
+			}
+			event.Data = &genproto.SubscribeResponse_AttackStrategy{AttackStrategy: as}
+			return slaves[i].send(event)
+		})
 	}
-	event.Data = &genproto.SubscribeResponse_AttackStrategy{AttackStrategy: as}
-	return sup.batchSend(ctx, event)
+	return eg.Wait()
 }
 
 func (sup *slaveSupervisor) Stop(ctx context.Context, done bool) error {
