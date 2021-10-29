@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/wosai/ultron/v2/pkg/genproto"
@@ -26,7 +24,6 @@ type (
 		stats     *statistics.StatisticianGroup
 		task      Task
 		eventbus  resultBus
-		mu        sync.RWMutex
 	}
 )
 
@@ -67,36 +64,47 @@ func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	}
 
 	sr.client = client
+	go sr.working(streams)
+	return nil
+}
 
+func (sr *slaveRunner) Assign(t Task) {
+	sr.task = t
+}
+
+func (sr *slaveRunner) SubscribeResult(fns ...ResultHandleFunc) {
+	for _, fn := range fns {
+		sr.eventbus.subscribeResult(fn)
+	}
+}
+
+func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 stream:
 	for {
 		event, err := streams.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				Logger.Warn("ultron server shutdown this connection", zap.Error(err))
-				os.Exit(1)
-				return nil
+				return
 			}
 			Logger.Fatal("failed to receive events from ultron server", zap.Error(err))
-			return err
+			return
 		}
 
-		Logger.Info("received a new event", zap.String("slave_id", sr.id), zap.Any("event", event))
+		Logger.Info("received a new event", zap.Any("event", event))
 		switch event.GetType() {
 		case genproto.EventType_DISCONNECT:
 			Logger.Warn("ultron server ask me to shutdown connection")
-			return nil
+			return
 
 		case genproto.EventType_STATS_AGGREGATE:
 			dto, err := statistics.ConvertStatisticianGroup(sr.stats)
 			if err != nil {
-				Logger.Error("failed to convert StatisticianGroup", zap.String("slave_id", sr.id), zap.Uint32("batch", event.GetBatchId()), zap.Error(err))
+				Logger.Error("failed to convert StatisticianGroup", zap.Uint32("batch", event.GetBatchId()), zap.Error(err))
 				continue stream
 			}
 			go func() {
-				if _, err := sr.client.Submit(sr.ctx,
-					&genproto.SubmitRequest{SlaveId: sr.id, BatchId: event.GetBatchId(), Stats: dto},
-					grpc.MaxCallSendMsgSize(32*1024*1024)); err != nil {
+				if _, err := sr.client.Submit(sr.ctx, &genproto.SubmitRequest{SlaveId: sr.id, BatchId: event.GetBatchId(), Stats: dto}); err != nil {
 					Logger.Error("failed to submit stats", zap.Error(err))
 				}
 			}()
@@ -130,15 +138,5 @@ stream:
 		default:
 			continue
 		}
-	}
-}
-
-func (sr *slaveRunner) Assign(t Task) {
-	sr.task = t
-}
-
-func (sr *slaveRunner) SubscribeResult(fns ...ResultHandleFunc) {
-	for _, fn := range fns {
-		sr.eventbus.subscribeResult(fn)
 	}
 }

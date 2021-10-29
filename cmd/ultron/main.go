@@ -23,4 +23,7 @@ func main() {
 				Timeout: 2 * time.Second,
 			}),
 	)
+
+	block := make(chan struct{})
+	<-block
 }

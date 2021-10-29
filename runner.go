@@ -86,24 +86,28 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 	r.eventbus.start()
 	Logger.Info("report bus is working")
 
-	block := make(chan error, 1)
-
+	start := make(chan struct{}, 1)
 	go func() { // http server
 		httpHandler := buildHTTPRouter()
 		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
-		block <- http.ListenAndServe(conf.RESTAddr, httpHandler)
+		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
+			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
+		}
 	}()
 
 	go func() { // grpc server
 		lis, err := net.Listen("tcp", conf.GRPCAddr)
 		if err != nil {
-			Logger.Fatal("failed to launch ultron server", zap.Error(err))
+			Logger.Fatal("failed to launch grpc server", zap.Error(err))
 		}
 		grpcServer := grpc.NewServer(opts...)
 		r.supervisor = newSlaveSupervisor()
 		genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
 		Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
-		block <- grpcServer.Serve(lis)
+		start <- struct{}{}
+		if err := grpcServer.Serve(lis); err != nil {
+			Logger.Fatal("a error has occurend inside grpc server", zap.Error(err))
+		}
 	}()
 
 	go func() { // 捕捉系统信号
@@ -121,12 +125,12 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 		}
 		os.Exit(0)
 	}()
-	err := <-block
-	Logger.Fatal("ultron runner is shutdown", zap.Error(err))
-	return err
+	<-start
+	return nil
 }
 
 func (r *masterRunner) StartPlan(p Plan) error {
+	Logger.Info("start plan")
 	r.mu.Lock()
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()
@@ -179,8 +183,9 @@ func NewLocalRunner() LocalRunner {
 }
 
 func (lr *localRunner) Launch() error {
-	go lr.master.Launch()
-	<-time.After(1 * time.Second)
+	if err := lr.master.Launch(); err != nil {
+		return err
+	}
 	return lr.slave.Connect(":2021", grpc.WithInsecure())
 }
 

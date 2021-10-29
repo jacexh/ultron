@@ -26,15 +26,21 @@ func main() {
 	task.Add(&benchmarkAttacker{name: "benchmark"}, 1)
 	runner.Assign(task)
 
-	go func() {
-		plan := ultron.NewPlan("benchmark test")
-		plan.AddStages(
-			&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second},
-			&ultron.V1StageConfig{ConcurrentUsers: 300},
-		)
-		<-time.After(4 * time.Second)
-		runner.StartPlan(plan)
-	}()
+	plan := ultron.NewPlan("benchmark test")
+	plan.AddStages(
+		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second},
+		&ultron.V1StageConfig{ConcurrentUsers: 300},
+	)
 
-	runner.Launch()
+	err := runner.Launch()
+	if err != nil {
+		panic(err)
+	}
+	err = runner.StartPlan(plan)
+	if err != nil {
+		panic(err)
+	}
+
+	block := make(chan struct{}, 1)
+	<-block
 }
