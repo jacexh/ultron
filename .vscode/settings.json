@@ -41,5 +41,6 @@
             "--proto_path=${workspaceRoot}/api/protobuf/",
             "--proto_path=${workspaceRoot}/api/google/protobuf/",
         ]
-    }
+    },
+    "git.ignoreLimitWarning": true
 }

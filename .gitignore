@@ -28,3 +28,4 @@ _testmain.go
 coverage.txt
 vendor/
 .DS_Store
+
