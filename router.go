@@ -14,7 +14,7 @@ import (
 var statics embed.FS
 
 func homepage(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello, ultron"))
+	w.Write([]byte("hello, ultron!"))
 }
 
 func buildHTTPRouter() http.Handler {

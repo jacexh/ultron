@@ -18,7 +18,7 @@ func buildLogger() {
 	cfg.Sampling = nil
 
 	var err error
-	Logger, err = cfg.Build(zap.AddCallerSkip(1))
+	Logger, err = cfg.Build() //zap.AddCallerSkip(1)
 	if err != nil {
 		panic(err)
 	}

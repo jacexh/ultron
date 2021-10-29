@@ -77,29 +77,27 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 	r.eventbus.start()
 	Logger.Info("report bus is working")
 
-	// grpc
-	lis, err := net.Listen("tcp", conf.GRPCAddr)
-	if err != nil {
-		Logger.Fatal("failed to launch ultron server", zap.Error(err))
-	}
-	grpcServer := grpc.NewServer(opts...)
-	r.supervisor = newSlaveSupervisor()
-	genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
-	Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
-
 	block := make(chan error, 1)
+
 	go func() { // http server
 		httpHandler := buildHTTPRouter()
-		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
-			block <- err
-		}
+		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
+		block <- http.ListenAndServe(conf.RESTAddr, httpHandler)
 	}()
 
-	go func() {
+	go func() { // grpc server
+		lis, err := net.Listen("tcp", conf.GRPCAddr)
+		if err != nil {
+			Logger.Fatal("failed to launch ultron server", zap.Error(err))
+		}
+		grpcServer := grpc.NewServer(opts...)
+		r.supervisor = newSlaveSupervisor()
+		genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
+		Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
 		block <- grpcServer.Serve(lis)
 	}()
 
-	go func() {
+	go func() { // 捕捉系统信号
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 		sig := <-sigs
@@ -111,10 +109,9 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 				os.Exit(1)
 			}
 		}
-		grpcServer.GracefulStop()
 		os.Exit(0)
 	}()
-	err = <-block
+	err := <-block
 	Logger.Fatal("ultron runner is shutdown", zap.Error(err))
 	return err
 }
