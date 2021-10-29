@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/jacexh/multiconfig"
-	"github.com/wosai/ultron/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

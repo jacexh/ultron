@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/wosai/ultron/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 )
 

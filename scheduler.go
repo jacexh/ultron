@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
 
