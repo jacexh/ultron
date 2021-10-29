@@ -16,14 +16,15 @@ import (
 type (
 	// slaveRunner ultron slave的实现
 	slaveRunner struct {
-		id        string
-		ctx       context.Context
-		cancel    context.CancelFunc
-		client    genproto.UltronAPIClient
-		commander AttackStrategyCommander
-		stats     *statistics.StatisticianGroup
-		task      Task
-		eventbus  resultBus
+		id              string
+		ctx             context.Context
+		cancel          context.CancelFunc
+		client          genproto.UltronAPIClient
+		commander       AttackStrategyCommander
+		stats           *statistics.StatisticianGroup
+		task            Task
+		eventbus        resultBus
+		subscribeStream genproto.UltronAPI_SubscribeClient
 	}
 )
 
@@ -40,6 +41,10 @@ func newSlaveRunner() *slaveRunner {
 }
 
 func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
+	if sr.task == nil {
+		Logger.Error("you should assign a task before call connect function")
+		return errors.New("you should assgin task before connect")
+	}
 	sr.ctx, sr.cancel = context.WithCancel(context.Background())
 	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
 	if err != nil {
@@ -66,7 +71,9 @@ func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	}
 
 	sr.client = client
+	sr.subscribeStream = streams
 	go sr.working(streams)
+	Logger.Info("salve is subscribing ultron server", zap.String("slave_id", sr.id))
 	return nil
 }
 
@@ -92,9 +99,7 @@ func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 			return
 		}
 
-		if event.Type != genproto.EventType_PING {
-			Logger.Info("received a new event", zap.Any("event", event))
-		}
+		Logger.Info("received a new event", zap.Any("event", event))
 
 		switch event.GetType() {
 		case genproto.EventType_DISCONNECT:
