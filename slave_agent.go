@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 )
@@ -64,7 +63,7 @@ func (sa *slaveAgent) close() error {
 // send 返回是否发送（不代表发送成功）
 func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 	if atomic.LoadUint32(&sa.closed) == 0 {
-		log.Info("a new event arrived", zap.Any("event", event), zap.String("slave_id", sa.slaveID))
+		Logger.Info("a new event arrived", zap.Any("event", event), zap.String("slave_id", sa.slaveID))
 		sa.input <- event
 		return nil
 	}
@@ -77,7 +76,7 @@ func (sa *slaveAgent) keepAlives() {
 
 	for range ticker.C {
 		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}); err != nil {
-			log.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
+			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}
 	}

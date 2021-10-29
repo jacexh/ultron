@@ -21,6 +21,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
+	github.com/jacexh/gopkg/chi-middleware v0.0.0-20210825023717-c4d755320c90 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

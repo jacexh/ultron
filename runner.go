@@ -3,6 +3,7 @@ package ultron
 import (
 	"errors"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jacexh/multiconfig"
-	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -54,37 +54,47 @@ type (
 	}
 )
 
+func loadRunnerConfigrations() *RunnerConfig {
+	conf := new(RunnerConfig)
+	loader := multiconfig.NewWithPathAndEnvPrefix("", "ULTRON")
+	loader.MustLoad(conf)
+	return conf
+}
+
 func NewMasterRunner() MasterRunner {
-	runner := &masterRunner{
+	return &masterRunner{
 		eventbus: defaultEventBus,
 	}
-
-	return runner
 }
 
 // Launch 主线程，如果发生错误则关闭
 func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
-	conf := new(RunnerConfig)
-	loader := multiconfig.NewWithPathAndEnvPrefix("", "ULTRON")
-	loader.MustLoad(conf)
-
-	log.Info("loaded configurations", zap.Any("configrations", conf))
-
-	lis, err := net.Listen("tcp", conf.GRPCAddr)
-	if err != nil {
-		log.Fatal("failed to launch ultron server", zap.Error(err))
-	}
-	grpcServer := grpc.NewServer(opts...)
-	r.supervisor = newSlaveSupervisor()
-	genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
-	log.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
+	conf := loadRunnerConfigrations()
+	Logger.Info("loaded configurations", zap.Any("configrations", conf))
 
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
 	r.eventbus.start()
-	log.Info("report bus is working")
+	Logger.Info("report bus is working")
+
+	// grpc
+	lis, err := net.Listen("tcp", conf.GRPCAddr)
+	if err != nil {
+		Logger.Fatal("failed to launch ultron server", zap.Error(err))
+	}
+	grpcServer := grpc.NewServer(opts...)
+	r.supervisor = newSlaveSupervisor()
+	genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
+	Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
 
 	block := make(chan error, 1)
+	go func() { // http server
+		httpHandler := buildHTTPRouter()
+		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
+			block <- err
+		}
+	}()
+
 	go func() {
 		block <- grpcServer.Serve(lis)
 	}()
@@ -93,11 +103,11 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 		sig := <-sigs
-		log.Warn("caught quit signal, try to shutdown ultron server", zap.String("signal", sig.String()))
+		Logger.Warn("caught quit signal, try to shutdown ultron server", zap.String("signal", sig.String()))
 
 		if r.scheduler != nil {
 			if err := r.scheduler.stop(false); err != nil {
-				log.Error("failed to interrupt current test plan", zap.Error(err))
+				Logger.Error("failed to interrupt current test plan", zap.Error(err))
 				os.Exit(1)
 			}
 		}
@@ -105,7 +115,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 		os.Exit(0)
 	}()
 	err = <-block
-	log.Fatal("ultron runner is shutdown", zap.Error(err))
+	Logger.Fatal("ultron runner is shutdown", zap.Error(err))
 	return err
 }
 
@@ -114,7 +124,7 @@ func (r *masterRunner) StartPlan(p Plan) error {
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()
 		err := errors.New("cannot start a new plan before shutdown current running plan")
-		log.Error("failed to start a new plan", zap.Error(err))
+		Logger.Error("failed to start a new plan", zap.Error(err))
 		return err
 	}
 	scheduler := newScheduler(r.supervisor)
@@ -123,12 +133,12 @@ func (r *masterRunner) StartPlan(p Plan) error {
 	r.mu.Unlock()
 
 	if err := scheduler.start(p.(*plan)); err != nil {
-		log.Error("failed to start a new plan", zap.Error(err))
+		Logger.Error("failed to start a new plan", zap.Error(err))
 		return err
 	}
 	go func() {
 		if err := scheduler.patrol(5 * time.Second); err != nil {
-			log.Warn("patrol mission is complete", zap.Error(err))
+			Logger.Warn("patrol mission is complete", zap.Error(err))
 		}
 	}()
 	return nil
@@ -142,7 +152,7 @@ func (r *masterRunner) StopPlan() {
 	}
 	r.mu.RUnlock()
 	if err := r.scheduler.stop(false); err != nil {
-		log.Error("failed to stop plan", zap.Error(err))
+		Logger.Error("failed to stop plan", zap.Error(err))
 	}
 }
 

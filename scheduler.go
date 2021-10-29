@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
@@ -62,10 +61,10 @@ func (s *scheduler) stop(done bool) error {
 
 	var err error
 	if err = s.supervisor.Stop(s.ctx, done); err != nil {
-		log.Warn("failed to stop slaves", zap.Error(err))
+		Logger.Warn("failed to stop slaves", zap.Error(err))
 	}
 	s.cancel()
-	log.Info("canceled all master running jobs")
+	Logger.Info("canceled all master running jobs")
 
 	report, aggErr := s.supervisor.Aggregate(true)
 	switch {
@@ -109,7 +108,7 @@ patrol:
 		case <-ticker.C:
 			report, err := s.supervisor.Aggregate(false)
 			if err != nil {
-				log.Warn("failed to aggregate stats report", zap.Error(err))
+				Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
 			}
 			s.eventbus.publishReport(report)
@@ -121,16 +120,16 @@ patrol:
 				return nil
 
 			case err != nil && errors.Is(err, ErrPlanClosed) && !stopped: // 计划早已经结束，不干了
-				log.Info("this plan is complete, stop patrol")
+				Logger.Info("this plan is complete, stop patrol")
 				return nil
 
 			case err != nil && !errors.Is(err, ErrPlanClosed):
-				log.Error("occur error on checking the test plan", zap.Error(err))
+				Logger.Error("occur error on checking the test plan", zap.Error(err))
 				continue patrol
 
 			case err == nil && stopped: // 下一阶段
 				if err := s.nextStage(stage); err != nil {
-					log.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
+					Logger.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
 				}
 				stageIndex = next
 

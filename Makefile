@@ -38,7 +38,7 @@ tools:
 
 .PHONY: server
 server:
-	@go run cmd/main.go
+	@go run cmd/master/main.go
 
 .PHONY: gomod
 gomod: 

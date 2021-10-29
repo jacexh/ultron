@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 )
@@ -20,7 +19,7 @@ func TestSlaveAgent_close(t *testing.T) {
 			defer wg.Done()
 			agent.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING})
 			if err := agent.close(); err != nil {
-				log.Info("no consumer for the slave agent", zap.Error(err))
+				Logger.Info("no consumer for the slave agent", zap.Error(err))
 			}
 		}()
 	}
