@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jacexh/multiconfig"
 	"github.com/wosai/ultron/v2/log"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
@@ -17,10 +18,10 @@ import (
 
 type (
 	MasterRunner interface {
-		Launch(RunnerConfig, ...grpc.ServerOption) error // 服务启动
-		StartPlan(Plan) error                            // 开始执行某个测试计划
-		StopPlan()                                       // 停止当前计划
-		SubscribeReport(...ReportHandleFunc)             // 订阅聚合报告
+		Launch(...grpc.ServerOption) error   // 服务启动
+		StartPlan(Plan) error                // 开始执行某个测试计划
+		StopPlan()                           // 停止当前计划
+		SubscribeReport(...ReportHandleFunc) // 订阅聚合报告
 	}
 
 	SlaveRunner interface {
@@ -30,7 +31,7 @@ type (
 	}
 
 	LocalRunner interface {
-		Launch(RunnerConfig) error
+		Launch() error
 		Assign(*Task)
 		SubscribeReport(...ReportHandleFunc)
 		SubscriberResult(...ResultHandleFunc)
@@ -39,10 +40,9 @@ type (
 	}
 
 	RunnerConfig struct {
-		WebConsole bool   `json:"web_console"`            // 是否打开启web控制台
-		GRPCAddr   string `json:"listern_addr,omitempty"` // 服务监听地址
-		RESTAddr   string `json:"rest_addr,omitempty"`    // restful监听地址
-		RunOnce    bool   `json:"run_once"`               // 作用于LocalRunner，如果true，则执行完后退出ultron
+		GRPCAddr string `json:"listern_addr,omitempty" default:":2021"` // 服务监听地址
+		RESTAddr string `json:"rest_addr,omitempty" default:":2017"`    // restful监听地址
+		RunOnce  bool   `json:"run_once"`                               // 作用于LocalRunner，如果true，则执行完后退出ultron
 	}
 
 	masterRunner struct {
@@ -54,11 +54,6 @@ type (
 	}
 )
 
-const (
-	DefaultGRPC = ":2021"
-	DefaultREST = "127.0.0.1:2017"
-)
-
 func NewMasterRunner() MasterRunner {
 	runner := &masterRunner{
 		eventbus: defaultEventBus,
@@ -68,22 +63,21 @@ func NewMasterRunner() MasterRunner {
 }
 
 // Launch 主线程，如果发生错误则关闭
-func (r *masterRunner) Launch(con RunnerConfig, opts ...grpc.ServerOption) error {
-	if con.GRPCAddr == "" {
-		con.GRPCAddr = DefaultGRPC
-	}
-	if con.RESTAddr == "" {
-		con.RESTAddr = DefaultREST
-	}
+func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
+	conf := new(RunnerConfig)
+	loader := multiconfig.NewWithPathAndEnvPrefix("", "ULTRON")
+	loader.MustLoad(conf)
 
-	lis, err := net.Listen("tcp", con.GRPCAddr)
+	log.Info("loaded configurations", zap.Any("configrations", conf))
+
+	lis, err := net.Listen("tcp", conf.GRPCAddr)
 	if err != nil {
 		log.Fatal("failed to launch ultron server", zap.Error(err))
 	}
 	grpcServer := grpc.NewServer(opts...)
 	r.supervisor = newSlaveSupervisor()
 	genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
-	log.Info("ultron grpc server is running", zap.String("connect_address", con.GRPCAddr))
+	log.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
 
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))

@@ -28,8 +28,9 @@
         "FCUS",
         "olekukonko",
         "stretchr",
-        "wosai",
-        "valyala"
+        "syreclabs",
+        "valyala",
+        "wosai"
     ],
     "go.coverMode": "atomic",
     "go.coverOnSingleTestFile": true,

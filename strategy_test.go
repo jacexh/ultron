@@ -62,9 +62,9 @@ func TestFixedConcurrentUsers_Spilt(t *testing.T) {
 func TestAttackStrategyConverter(t *testing.T) {
 	converter := newAttackStrategyConverter()
 	as := &FixedConcurrentUsers{ConcurrentUsers: 200, RampUpPeriod: 4}
-	dto, err := converter.ConvertAttackStrategy(as)
+	dto, err := converter.convertAttackStrategy(as)
 	assert.Nil(t, err)
-	as2, err := converter.ConvertDTO(dto)
+	as2, err := converter.convertDTO(dto)
 	assert.Nil(t, err)
 	assert.EqualValues(t, as, as2)
 }

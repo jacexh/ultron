@@ -317,11 +317,11 @@ func (sup *slaveSupervisor) NextStage(ctx context.Context, strategy AttackStrate
 		eg.Go(func() error {
 			var err error
 			event := &genproto.SubscribeResponse{Type: genproto.EventType_NEXT_STAGE_STARTED}
-			event.Timer, err = defaultTimerConverter.ConvertTimer(t)
+			event.Timer, err = defaultTimerConverter.convertTimer(t)
 			if err != nil {
 				return err
 			}
-			as, err := defaultAttackStrategyConverter.ConvertAttackStrategy(strategy)
+			as, err := defaultAttackStrategyConverter.convertAttackStrategy(strategy)
 			if err != nil {
 				return err
 			}

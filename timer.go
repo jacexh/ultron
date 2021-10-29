@@ -15,7 +15,7 @@ type (
 		Sleep()
 	}
 
-	NamedTimer interface {
+	namedTimer interface {
 		Timer
 		Name() string
 	}
@@ -35,7 +35,7 @@ type (
 	// NonstopTimer 不中断
 	NonstopTimer struct{}
 
-	TimerConverter struct {
+	timerConverter struct {
 		convertDTOFuncs map[string]ConvertDTOFunc
 	}
 
@@ -43,7 +43,7 @@ type (
 )
 
 var (
-	defaultTimerConverter *TimerConverter
+	defaultTimerConverter *timerConverter
 )
 
 func (urt *UniformRandomTimer) Sleep() {
@@ -73,8 +73,8 @@ func (ns NonstopTimer) Name() string {
 	return "non-stop-timer"
 }
 
-func newTimeConveter() *TimerConverter {
-	return &TimerConverter{
+func newTimeConveter() *timerConverter {
+	return &timerConverter{
 		convertDTOFuncs: map[string]ConvertDTOFunc{
 			"non-stop-timer": func([]byte) (Timer, error) { return NonstopTimer{}, nil },
 			"gaussion-random-timer": func(data []byte) (Timer, error) {
@@ -91,7 +91,7 @@ func newTimeConveter() *TimerConverter {
 	}
 }
 
-func (tc *TimerConverter) ConvertDTO(dto *genproto.TimerDTO) (Timer, error) {
+func (tc *timerConverter) convertDTO(dto *genproto.TimerDTO) (Timer, error) {
 	fn, ok := tc.convertDTOFuncs[dto.Type]
 	if !ok {
 		return nil, errors.New("cannot find convert func")
@@ -99,8 +99,8 @@ func (tc *TimerConverter) ConvertDTO(dto *genproto.TimerDTO) (Timer, error) {
 	return fn(dto.Timer)
 }
 
-func (tc *TimerConverter) ConvertTimer(t Timer) (*genproto.TimerDTO, error) {
-	nt, ok := t.(NamedTimer)
+func (tc *timerConverter) convertTimer(t Timer) (*genproto.TimerDTO, error) {
+	nt, ok := t.(namedTimer)
 	if !ok {
 		return nil, errors.New("cannot convert timer")
 	}

@@ -49,7 +49,7 @@ type (
 
 	AttackStrategyConvertDTOFunc func([]byte) (AttackStrategy, error)
 
-	NamedAttackStrategy interface {
+	namedAttackStrategy interface {
 		AttackStrategy
 		Name() string
 	}
@@ -146,7 +146,7 @@ func newAttackStrategyConverter() *AttackStrategyConverter {
 	}
 }
 
-func (c *AttackStrategyConverter) ConvertDTO(dto *genproto.AttackStrategyDTO) (AttackStrategy, error) {
+func (c *AttackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (AttackStrategy, error) {
 	fn, ok := c.convertDTOFunc[dto.Type]
 	if !ok {
 		return nil, errors.New("cannot found convertion function")
@@ -154,8 +154,8 @@ func (c *AttackStrategyConverter) ConvertDTO(dto *genproto.AttackStrategyDTO) (A
 	return fn(dto.AttackStrategy)
 }
 
-func (c *AttackStrategyConverter) ConvertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
-	na, ok := as.(NamedAttackStrategy)
+func (c *AttackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
+	na, ok := as.(namedAttackStrategy)
 	if !ok {
 		return nil, errors.New("cannot convert attack strategy")
 	}

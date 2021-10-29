@@ -18,5 +18,5 @@ func main() {
 			log.Error("failed to start a new plan", zap.Error(err))
 		}
 	}()
-	runner.Launch(ultron.RunnerConfig{})
+	runner.Launch()
 }
