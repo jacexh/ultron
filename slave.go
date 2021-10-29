@@ -113,9 +113,9 @@ stream:
 			sr.commander.Close()
 
 		case genproto.EventType_PLAN_STARTED:
+			sr.commander = newFixedConcurrentUsersStrategyCommander()
+			retC := sr.commander.Open(sr.ctx, sr.task)
 			go func() {
-				sr.commander = newFixedConcurrentUsersStrategyCommander()
-				retC := sr.commander.Open(sr.ctx, sr.task)
 				for ret := range retC {
 					sr.stats.Record(ret)
 					sr.eventbus.publishResult(ret)

@@ -54,7 +54,7 @@ func newEventBus() *eventbus {
 		reportBus:           make(chan statistics.SummaryReport, 3), // 低频通道
 		reportHandlers:      make([]ReportHandleFunc, 0),
 		resultHandlers:      make([]ResultHandleFunc, 0),
-		numberOfSubchannels: 25,
+		numberOfSubchannels: 30,
 	}
 	bus.resultBuses = make([]chan statistics.AttackResult, bus.numberOfSubchannels)
 	for i := 0; i < int(bus.numberOfSubchannels); i++ {
