@@ -71,7 +71,7 @@ func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 }
 
 func (sa *slaveAgent) keepAlives() {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {

@@ -26,16 +26,16 @@ type (
 
 	SlaveRunner interface {
 		Connect(string, ...grpc.DialOption) error // 连接master
-		SubscriberResult(...ResultHandleFunc)     // 订阅Attacker的执行结果
-		Assign(*Task)                             // 指派压测任务
+		SubscribeResult(...ResultHandleFunc)      // 订阅Attacker的执行结果
+		Assign(Task)                              // 指派压测任务
 	}
 
 	LocalRunner interface {
 		Launch() error
-		Assign(*Task)
+		Assign(Task)
 		SubscribeReport(...ReportHandleFunc)
-		SubscriberResult(...ResultHandleFunc)
-		StartPlan(Plan)
+		SubscribeResult(...ResultHandleFunc)
+		StartPlan(Plan) error
 		StopPlan()
 	}
 
@@ -52,6 +52,11 @@ type (
 		supervisor *slaveSupervisor
 		mu         sync.RWMutex
 	}
+
+	localRunner struct {
+		master *masterRunner
+		slave  *slaveRunner
+	}
 )
 
 func loadRunnerConfigrations() *RunnerConfig {
@@ -62,6 +67,10 @@ func loadRunnerConfigrations() *RunnerConfig {
 }
 
 func NewMasterRunner() MasterRunner {
+	return newMasterRunner()
+}
+
+func newMasterRunner() *masterRunner {
 	return &masterRunner{
 		eventbus: defaultEventBus,
 	}
@@ -157,4 +166,39 @@ func (r *masterRunner) SubscribeReport(fns ...ReportHandleFunc) {
 	for _, fn := range fns {
 		r.eventbus.subscribeReport(fn)
 	}
+}
+
+var _ LocalRunner = (*localRunner)(nil)
+
+func NewLocalRunner() LocalRunner {
+	return &localRunner{
+		master: newMasterRunner(),
+		slave:  newSlaveRunner(),
+	}
+}
+
+func (lr *localRunner) Launch() error {
+	go lr.master.Launch()
+	<-time.After(1 * time.Second)
+	return lr.slave.Connect(":2021", grpc.WithInsecure())
+}
+
+func (lr *localRunner) Assign(t Task) {
+	lr.slave.Assign(t)
+}
+
+func (lr *localRunner) SubscribeResult(fns ...ResultHandleFunc) {
+	lr.slave.SubscribeResult(fns...)
+}
+
+func (lr *localRunner) SubscribeReport(fns ...ReportHandleFunc) {
+	lr.master.SubscribeReport(fns...)
+}
+
+func (lr *localRunner) StartPlan(p Plan) error {
+	return lr.master.StartPlan(p)
+}
+
+func (lr *localRunner) StopPlan() {
+	lr.master.StopPlan()
 }

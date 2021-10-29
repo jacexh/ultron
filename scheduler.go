@@ -89,7 +89,7 @@ func (s *scheduler) nextStage(stage Stage) error {
 
 // patrol scheduler核心逻辑
 func (s *scheduler) patrol(every time.Duration) error {
-	ticker := time.NewTimer(every)
+	ticker := time.NewTicker(every)
 	defer ticker.Stop()
 
 	plan := s.plan
@@ -135,6 +135,7 @@ patrol:
 
 			default: // 继续巡查
 			}
+		default:
 		}
 	}
 }

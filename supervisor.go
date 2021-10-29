@@ -113,7 +113,7 @@ subscribing:
 			}
 			if event.Type == genproto.EventType_DISCONNECT {
 				Logger.Warn("ultron server would disconnect from slave", zap.String("slave_id", agent.ID()))
-				return nil
+				return io.EOF
 			}
 		}
 	}

@@ -42,7 +42,7 @@ type (
 		RampUpPeriod    int `json:"ramp_up_period,omitempty"` // 增压周期时长
 	}
 
-	AttackStrategyConverter struct {
+	attackStrategyConverter struct {
 		convertDTOFunc map[string]AttackStrategyConvertDTOFunc
 	}
 
@@ -57,7 +57,7 @@ type (
 var (
 	_ AttackStrategy = (*FixedConcurrentUsers)(nil)
 
-	defaultAttackStrategyConverter *AttackStrategyConverter
+	defaultAttackStrategyConverter *attackStrategyConverter
 )
 
 func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) []*RampUpStep {
@@ -133,8 +133,8 @@ func (fx *FixedConcurrentUsers) Name() string {
 	return "fixed-concurrent-users"
 }
 
-func newAttackStrategyConverter() *AttackStrategyConverter {
-	return &AttackStrategyConverter{
+func newAttackStrategyConverter() *attackStrategyConverter {
+	return &attackStrategyConverter{
 		convertDTOFunc: map[string]AttackStrategyConvertDTOFunc{
 			"fixed-concurrent-users": func(data []byte) (AttackStrategy, error) {
 				as := new(FixedConcurrentUsers)
@@ -145,7 +145,7 @@ func newAttackStrategyConverter() *AttackStrategyConverter {
 	}
 }
 
-func (c *AttackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (AttackStrategy, error) {
+func (c *attackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (AttackStrategy, error) {
 	fn, ok := c.convertDTOFunc[dto.Type]
 	if !ok {
 		return nil, errors.New("cannot found convertion function")
@@ -153,7 +153,7 @@ func (c *AttackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (A
 	return fn(dto.AttackStrategy)
 }
 
-func (c *AttackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
+func (c *attackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
 	na, ok := as.(namedAttackStrategy)
 	if !ok {
 		return nil, errors.New("cannot convert attack strategy")
@@ -341,4 +341,8 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 		e.mu.RUnlock()
 		t.Sleep()
 	}
+}
+
+func init() {
+	defaultAttackStrategyConverter = newAttackStrategyConverter()
 }
