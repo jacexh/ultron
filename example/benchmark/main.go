@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron"
 )
 
 type benchmarkAttacker struct {

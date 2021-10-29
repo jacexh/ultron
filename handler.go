@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/wosai/ultron/v2/pkg/statistics"
+	"github.com/wosai/ultron/pkg/statistics"
 )
 
 func printReportToConsole(output io.Writer) ReportHandleFunc {

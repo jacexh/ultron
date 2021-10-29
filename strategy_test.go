@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wosai/ultron/v2/pkg/statistics"
+	"github.com/wosai/ultron/pkg/statistics"
 	"go.uber.org/zap"
 )
 
