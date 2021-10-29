@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/wosai/ultron/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/genproto"
 )
 
 type (

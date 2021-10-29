@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 )
 
 func testResultHandleFunc(ctx context.Context, ret statistics.AttackResult) {

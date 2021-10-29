@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 	"syreclabs.com/go/faker"
 )
 

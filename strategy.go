@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/wosai/ultron/pkg/genproto"
-	"github.com/wosai/ultron/pkg/statistics"
+	"github.com/wosai/ultron/v2/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 )
 
