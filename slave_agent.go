@@ -63,7 +63,6 @@ func (sa *slaveAgent) close() error {
 // send 返回是否发送（不代表发送成功）
 func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 	if atomic.LoadUint32(&sa.closed) == 0 {
-		Logger.Info("a new event arrived", zap.Any("event", event), zap.String("slave_id", sa.slaveID))
 		sa.input <- event
 		return nil
 	}

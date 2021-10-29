@@ -111,7 +111,7 @@ func (ls *timeRangeContainer) accumulate(k, v int64) {
 
 func findResponseBucket(t time.Duration) time.Duration {
 	if t <= 100*time.Millisecond {
-		return t / 1e6 * 1e6
+		return (t + 500*time.Microsecond) / 1e6 * 1e6
 	}
 	if t <= 1000*time.Millisecond {
 		return (t + 5*time.Millisecond) / 1e7 * 1e7
