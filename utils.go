@@ -4,14 +4,6 @@ import (
 	"fmt"
 )
 
-func abs(i int) int {
-	if i < 0 {
-		return -i
-	} else {
-		return i
-	}
-}
-
 func ShowLogo() {
 	fmt.Println(`
       ___           ___       ___           ___           ___           ___     

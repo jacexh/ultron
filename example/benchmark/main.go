@@ -1,40 +1,46 @@
 package main
 
 import (
+	"context"
 	"time"
 
-	"github.com/wosai/ultron"
+	"github.com/wosai/ultron/v2"
 )
 
-type (
-	benchmark struct {
-		name string
-	}
-)
+type benchmarkAttacker struct {
+	name string
+}
 
-func (b *benchmark) Name() string {
+func (b *benchmarkAttacker) Name() string {
 	return b.name
 }
 
-func (b *benchmark) Fire() error {
+func (b *benchmarkAttacker) Fire(_ context.Context) error {
 	time.Sleep(10 * time.Millisecond)
 	return nil
 }
 
 func main() {
+	runner := ultron.NewLocalRunner()
 	task := ultron.NewTask()
-	task.Add(&benchmark{"test-1"}, 1)
-	task.Add(&benchmark{"test-2"}, 2)
+	task.Add(&benchmarkAttacker{name: "benchmark"}, 1)
+	runner.Assign(task)
 
-	ultron.LocalEventHook.Concurrency = 200
-	ultron.LocalRunner.WithTask(task)
-	ultron.LocalRunner.Config.AppendStages(
-		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 1000, HatchRate: 200},
-		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 500, HatchRate: 100},
-		&ultron.Stage{Duration: 1 * time.Minute, Concurrence: 2000, HatchRate: 300},
+	plan := ultron.NewPlan("benchmark test")
+	plan.AddStages(
+		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second},
+		&ultron.V1StageConfig{ConcurrentUsers: 300},
 	)
-	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
-	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
 
-	ultron.LocalRunner.Start()
+	err := runner.Launch()
+	if err != nil {
+		panic(err)
+	}
+	err = runner.StartPlan(plan)
+	if err != nil {
+		panic(err)
+	}
+
+	block := make(chan struct{}, 1)
+	<-block
 }

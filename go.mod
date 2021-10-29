@@ -1,24 +1,42 @@
-module github.com/wosai/ultron
+module github.com/wosai/ultron/v2
 
 require (
-	github.com/golang/protobuf v1.2.0
-	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc
-	github.com/json-iterator/go v1.1.6
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/pkg/errors v0.8.0 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
-	github.com/stretchr/testify v1.3.0
-	github.com/valyala/fasthttp v1.6.0
-	go.uber.org/atomic v1.3.2 // indirect
-	go.uber.org/multierr v1.1.0 // indirect
-	go.uber.org/zap v1.10.0
-	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
-	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
-	google.golang.org/grpc v1.17.0
+	github.com/go-chi/chi/v5 v5.0.4
+	github.com/golang/protobuf v1.5.0
+	github.com/google/uuid v1.3.0
+	github.com/jacexh/multiconfig v0.1.2
+	github.com/olekukonko/tablewriter v0.0.5
+	github.com/stretchr/testify v1.7.0
+	github.com/wosai/ultron/v2/pkg/genproto v0.0.0-00010101000000-000000000000
+	github.com/wosai/ultron/v2/pkg/statistics v0.0.0-00010101000000-000000000000
+	go.uber.org/zap v1.19.1
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	google.golang.org/grpc v1.41.0
+	google.golang.org/protobuf v1.27.1
+	syreclabs.com/go/faker v1.2.3
 )
 
-go 1.13
+require (
+	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/camelcase v1.0.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/jacexh/gopkg/chi-middleware v0.0.0-20210825023717-c4d755320c90 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
+	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
+	golang.org/x/text v0.3.6 // indirect
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+)
+
+replace (
+	github.com/wosai/ultron/v2/pkg/genproto => ./pkg/genproto
+	github.com/wosai/ultron/v2/pkg/statistics => ./pkg/statistics
+)
+
+go 1.17

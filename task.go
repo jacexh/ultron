@@ -1,88 +1,68 @@
 package ultron
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 )
 
 type (
-	// Task Attacker集合
-	Task struct {
-		attackers   []*smoothAttack
-		totalWeight uint64
-		once        sync.Once
-		counts      uint64
+	task struct {
+		attacker    []*swrrAttacker
+		totalWeight uint32
+		counts      uint32
 		preempted   []Attacker
+		once        sync.Once
 	}
 
-	// smoothAttack 平滑的加权请求
-	smoothAttack struct {
-		attacker      Attacker
-		weight        int
-		currentWeight int
+	// swrrAttacker 平滑的加权请求
+	swrrAttacker struct {
+		attacker Attacker
+		weight   uint32
+		current  int32
+	}
+
+	Task interface {
+		Add(Attacker, uint32)
+		PickUp() Attacker
 	}
 )
 
-// NewTask 创建一个Task对象
-func NewTask() *Task {
-	return &Task{attackers: []*smoothAttack{}, totalWeight: 0}
-}
-
-// Add 往Task中添加一个Attacker对象, weight 表示该Attacker的权重
-func (t *Task) Add(a Attacker, weight int) {
-	if weight <= 0 {
-		Logger.Warn(fmt.Sprintf("Attacker named %s with invalid weight: %d", a.Name(), weight))
-		return
+func NewTask() *task {
+	return &task{
+		attacker: make([]*swrrAttacker, 0),
 	}
-
-	t.totalWeight += uint64(weight)
-	sa := &smoothAttack{attacker: a, weight: weight}
-	t.attackers = append(t.attackers, sa)
 }
 
-// Del 从Task中移除一个Attacker对象
-func (t *Task) Del(a Attacker) {
-	for i, attacker := range t.attackers {
-		if attacker.attacker == a {
-			switch i {
-			case 0:
-				t.attackers = t.attackers[i+1:]
-			case len(t.attackers) - 1:
-				t.attackers = t.attackers[:i]
-			default:
-				t.attackers = append(t.attackers[:i], t.attackers[i+1:]...)
-			}
-			t.totalWeight -= uint64(attacker.weight)
-			return
+func (t *task) Add(a Attacker, weight uint32) {
+	t.totalWeight += weight
+	t.attacker = append(t.attacker, &swrrAttacker{
+		attacker: a,
+		weight:   weight,
+	})
+}
+
+// https://tenfy.cn/2018/11/12/smooth-weighted-round-robin/
+func (t *task) swrr() Attacker {
+	var best *swrrAttacker
+
+	for _, attacker := range t.attacker {
+		attacker.current += int32(attacker.weight)
+		if best == nil || attacker.current > best.current {
+			best = attacker
 		}
 	}
+
+	best.current -= int32(t.totalWeight)
+	return best.attacker
 }
 
-func (t *Task) smoothWeigh() Attacker {
-	maxIndex := 0
-	maxWeight := 0
-	for i, attacker := range t.attackers {
-		attacker.currentWeight += attacker.weight
-		if attacker.currentWeight > maxWeight {
-			maxWeight = attacker.currentWeight
-			maxIndex = i
-		}
-	}
-	sa := t.attackers[maxIndex]
-	sa.currentWeight -= int(t.totalWeight)
-	return sa.attacker
-}
-
-// pickUp 按照权重获取attacker
-func (t *Task) pickUp() Attacker {
+func (t *task) PickUp() Attacker {
 	t.once.Do(func() {
 		t.preempted = make([]Attacker, int(t.totalWeight))
 		for i := 0; i < int(t.totalWeight); i++ {
-			t.preempted[i] = t.smoothWeigh()
+			t.preempted[i] = t.swrr()
 		}
 	})
-	attacker := t.preempted[atomic.LoadUint64(&t.counts)%t.totalWeight]
-	atomic.AddUint64(&t.counts, 1)
-	return attacker
+	v := atomic.AddUint32(&t.counts, 1)
+	return t.preempted[(v-1)%t.totalWeight]
 }
