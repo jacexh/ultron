@@ -111,7 +111,7 @@ func (ls *timeRangeContainer) accumulate(k, v int64) {
 
 func findResponseBucket(t time.Duration) time.Duration {
 	if t <= 100*time.Millisecond {
-		return t
+		return t / 1e6 * 1e6
 	}
 	if t <= 1000*time.Millisecond {
 		return (t + 5*time.Millisecond) / 1e7 * 1e7
@@ -127,8 +127,8 @@ func (ar *AttackResult) IsFailure() bool {
 func NewAttackStatistician(name string) *AttackStatistician {
 	return &AttackStatistician{
 		name:                name,
-		recentSuccessBucket: newTimeRangeContainer(20),
-		recentFailureBucket: newTimeRangeContainer(20),
+		recentSuccessBucket: newTimeRangeContainer(15),
+		recentFailureBucket: newTimeRangeContainer(15),
 		responseBucket:      make(map[time.Duration]uint64),
 		failureBucket:       make(map[string]uint64),
 		interval:            CurrentTPSTimeRange,
@@ -210,7 +210,7 @@ func (ara *AttackStatistician) currentTPS() float64 {
 	}
 
 	end := time.Now().Add(-1 * time.Second) // 当前一秒未完成，往前推一秒作为统计终点
-	if end.Before(ara.lastAttack) {         // 尚未执行满一秒，不统计
+	if end.Before(ara.firstAttack) {        // 尚未执行满一秒，不统计
 		return 0
 	}
 	start := end.Add(-1 * (ara.interval - time.Second))

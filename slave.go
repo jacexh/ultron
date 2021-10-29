@@ -94,7 +94,9 @@ stream:
 				continue stream
 			}
 			go func() {
-				if _, err := sr.client.Submit(sr.ctx, &genproto.SubmitRequest{SlaveId: sr.id, BatchId: event.GetBatchId(), Stats: dto}); err != nil {
+				if _, err := sr.client.Submit(sr.ctx,
+					&genproto.SubmitRequest{SlaveId: sr.id, BatchId: event.GetBatchId(), Stats: dto},
+					grpc.MaxCallSendMsgSize(32*1024*1024)); err != nil {
 					Logger.Error("failed to submit stats", zap.Error(err))
 				}
 			}()

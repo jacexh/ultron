@@ -52,6 +52,7 @@ func (s *scheduler) start(plan *plan) error {
 	return nil
 }
 
+// stop todo: 要根据当前状态判断下发的信息
 func (s *scheduler) stop(done bool) error {
 	if !done {
 		if s.plan != nil {

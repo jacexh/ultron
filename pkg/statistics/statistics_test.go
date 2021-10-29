@@ -1,10 +1,13 @@
 package statistics
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -40,6 +43,33 @@ func TestAttackStatistician_Record(t *testing.T) {
 	assert.EqualValues(t, report.Requests, 1)
 	assert.EqualValues(t, report.Failures, 1)
 	assert.EqualValues(t, report.FailRation, .5)
+}
+
+func TestAttackStatistician_SyncRecord(t *testing.T) {
+	as := NewAttackStatistician("foobar")
+	ctx, cancel := context.WithTimeout(context.Background(), 18*time.Second)
+	defer cancel()
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					as.Record(AttackResult{Name: "foobar", Duration: 150 * time.Second})
+				}
+			}
+
+		}()
+	}
+	wg.Wait()
+	report := as.Report(true)
+	data, err := json.Marshal(report)
+	assert.Nil(t, err)
+	fmt.Println(string(data))
 }
 
 func BenchmarkAttackResultAggregator_RecordSuccess(b *testing.B) {
@@ -147,88 +177,3 @@ func TestAttackResultAggregator_MergeEmptry(t *testing.T) {
 	data, _ := json.Marshal(report)
 	log.Println(string(data))
 }
-
-// todo: remove this case
-// func TestAttackResultAggregator_Report(t *testing.T) {
-// 	s := NewStatisticianGroup()
-// 	for i := 0; i < 400*400; i++ {
-// 		s.Record(AttackResult{Name: "/api/foobar", Duration: time.Duration(rand.Int63n(1200)+1) * time.Millisecond})
-// 	}
-// 	report := s.Report(true)
-// 	data := [][]string{
-// 		{
-// 			report.Reports["/api/foobar"].Name,
-// 			report.Reports["/api/foobar"].Min.String(),
-// 			report.Reports["/api/foobar"].Distributions["0.50"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.60"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.70"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.80"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.90"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.95"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.97"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.98"].String(),
-// 			report.Reports["/api/foobar"].Distributions["0.99"].String(),
-// 			report.Reports["/api/foobar"].Max.String(),
-// 			report.Reports["/api/foobar"].Average.String(),
-// 			strconv.FormatUint(report.Reports["/api/foobar"].Requests, 10),
-// 			strconv.FormatUint(report.Reports["/api/foobar"].Failures, 10),
-// 			strconv.FormatFloat(report.Reports["/api/foobar"].TPS, 'f', 2, 64)},
-// 	}
-// 	table := tablewriter.NewWriter(os.Stdout)
-// 	header := []string{"Attacker", "Min", "P50", "P60", "P70", "P80", "P90", "P95", "P97", "P98", "P99", "Max", "Avg", "Requests", "Failures", "TPS"}
-
-// 	table.SetHeader(header)
-// 	table.SetHeaderColor(
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlackColor},
-// 	)
-
-// 	footer := make([]string, 16)
-// 	if report.FullHistory {
-// 		footer[11] = "Full History"
-// 	}
-// 	footer[12] = "Total"
-// 	footer[13] = strconv.FormatUint(report.TotalRequests, 10)
-// 	footer[14] = strconv.FormatUint(report.TotalFailures, 10)
-// 	footer[15] = strconv.FormatFloat(report.TotalTPS, 'f', 2, 64)
-
-// 	table.SetFooter(footer)
-// 	table.SetFooterColor(
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.FgRedColor},
-// 		tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlueColor},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 		tablewriter.Colors{},
-// 	)
-// 	table.SetBorder(false)
-// 	table.SetAlignment(tablewriter.ALIGN_CENTER)
-// 	table.AppendBulk(data)
-// 	table.Render()
-
-// 	fmt.Fprint(os.Stdout, "\n")
-// }
