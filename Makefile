@@ -36,9 +36,9 @@ tools:
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 	@go install github.com/cweill/gotests/gotests@v1.6.0
 
-.PHONY: server
-server:
-	@go run cmd/master/main.go
+.PHONY: ultron
+ultron:
+	@go run cmd/ultron/main.go
 
 .PHONY: gomod
 gomod: 

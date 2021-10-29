@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	ultron.ShowLogo()
+
 	runner := ultron.NewMasterRunner()
 	runner.Launch(
 		grpc.KeepaliveEnforcementPolicy(
