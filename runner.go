@@ -70,6 +70,10 @@ func NewMasterRunner() MasterRunner {
 	return newMasterRunner()
 }
 
+func NewSlaveRunner() SlaveRunner {
+	return newSlaveRunner()
+}
+
 func newMasterRunner() *masterRunner {
 	return &masterRunner{
 		eventbus: defaultEventBus,
@@ -84,7 +88,6 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
 	r.eventbus.start()
-	Logger.Info("report bus is working")
 
 	start := make(chan struct{}, 1)
 	go func() { // http server

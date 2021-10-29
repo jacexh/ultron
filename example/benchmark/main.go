@@ -32,12 +32,11 @@ func main() {
 		&ultron.V1StageConfig{ConcurrentUsers: 300},
 	)
 
-	err := runner.Launch()
-	if err != nil {
+	if err := runner.Launch(); err != nil {
 		panic(err)
 	}
-	err = runner.StartPlan(plan)
-	if err != nil {
+
+	if err := runner.StartPlan(plan); err != nil {
 		panic(err)
 	}
 
