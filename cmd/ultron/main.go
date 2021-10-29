@@ -3,14 +3,12 @@ package main
 import (
 	"time"
 
-	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
 func main() {
-	ultron.ShowLogo()
-
 	runner := ultron.NewMasterRunner()
 	runner.Launch(
 		grpc.KeepaliveEnforcementPolicy(

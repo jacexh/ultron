@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/wosai/ultron/v2/pkg/genproto"
-	"github.com/wosai/ultron/v2/pkg/statistics"
+	"github.com/wosai/ultron/pkg/genproto"
+	"github.com/wosai/ultron/pkg/statistics"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/emptypb"

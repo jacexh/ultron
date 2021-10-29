@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package wosai.ultron;
 
-option go_package = "github.com/wosai/ultron/v2/pkg/statistics";
+option go_package = "github.com/wosai/ultron/pkg/statistics";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";

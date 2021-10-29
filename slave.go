@@ -7,8 +7,8 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-	"github.com/wosai/ultron/v2/pkg/genproto"
-	"github.com/wosai/ultron/v2/pkg/statistics"
+	"github.com/wosai/ultron/pkg/genproto"
+	"github.com/wosai/ultron/pkg/statistics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -16,18 +16,21 @@ import (
 type (
 	// slaveRunner ultron slave的实现
 	slaveRunner struct {
-		id        string
-		ctx       context.Context
-		cancel    context.CancelFunc
-		client    genproto.UltronAPIClient
-		commander AttackStrategyCommander
-		stats     *statistics.StatisticianGroup
-		task      Task
-		eventbus  resultBus
+		id              string
+		ctx             context.Context
+		cancel          context.CancelFunc
+		client          genproto.UltronAPIClient
+		commander       AttackStrategyCommander
+		stats           *statistics.StatisticianGroup
+		task            Task
+		eventbus        resultBus
+		subscribeStream genproto.UltronAPI_SubscribeClient
 	}
 )
 
 var _ SlaveRunner = (*slaveRunner)(nil)
+
+const planKey = "plan"
 
 func newSlaveRunner() *slaveRunner {
 	return &slaveRunner{
@@ -38,6 +41,10 @@ func newSlaveRunner() *slaveRunner {
 }
 
 func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
+	if sr.task == nil {
+		Logger.Error("you should assign a task before call connect function")
+		return errors.New("you should assgin task before connect")
+	}
 	sr.ctx, sr.cancel = context.WithCancel(context.Background())
 	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
 	if err != nil {
@@ -64,7 +71,9 @@ func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	}
 
 	sr.client = client
+	sr.subscribeStream = streams
 	go sr.working(streams)
+	Logger.Info("salve is subscribing ultron server", zap.String("slave_id", sr.id))
 	return nil
 }
 
@@ -79,7 +88,6 @@ func (sr *slaveRunner) SubscribeResult(fns ...ResultHandleFunc) {
 }
 
 func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
-stream:
 	for {
 		event, err := streams.Recv()
 		if err != nil {
@@ -92,51 +100,77 @@ stream:
 		}
 
 		Logger.Info("received a new event", zap.Any("event", event))
+
 		switch event.GetType() {
 		case genproto.EventType_DISCONNECT:
 			Logger.Warn("ultron server ask me to shutdown connection")
 			return
 
 		case genproto.EventType_STATS_AGGREGATE:
-			dto, err := statistics.ConvertStatisticianGroup(sr.stats)
-			if err != nil {
-				Logger.Error("failed to convert StatisticianGroup", zap.Uint32("batch", event.GetBatchId()), zap.Error(err))
-				continue stream
-			}
-			go func() {
-				if _, err := sr.client.Submit(sr.ctx, &genproto.SubmitRequest{SlaveId: sr.id, BatchId: event.GetBatchId(), Stats: dto}); err != nil {
-					Logger.Error("failed to submit stats", zap.Error(err))
-				}
-			}()
+			sr.submit(event.GetBatchId())
 
 		case genproto.EventType_PLAN_FINISHED, genproto.EventType_PLAN_INTERRUPTED:
-			sr.commander.Close()
+			sr.stopPlan()
 
 		case genproto.EventType_PLAN_STARTED:
-			sr.commander = newFixedConcurrentUsersStrategyCommander()
-			retC := sr.commander.Open(sr.ctx, sr.task)
-			go func() {
-				for ret := range retC {
-					sr.stats.Record(ret)
-					sr.eventbus.publishResult(ret)
-				}
-			}()
+			sr.startPlan(event.GetPlanName())
 
 		case genproto.EventType_NEXT_STAGE_STARTED:
-			strategy, err := defaultAttackStrategyConverter.convertDTO(event.GetAttackStrategy())
-			if err != nil {
-				Logger.Error("failed to convert attack strategy", zap.Error(err))
-				continue stream
-			}
-			timer, err := defaultTimerConverter.convertDTO(event.GetTimer())
-			if err != nil {
-				Logger.Error("failed to convert timer", zap.Error(err))
-				continue stream
-			}
-			sr.commander.Command(strategy, timer)
+			sr.startNextStage(event.GetAttackStrategy(), event.GetTimer())
 
 		default:
 			continue
 		}
 	}
+}
+
+func (sr *slaveRunner) startPlan(name string) {
+	if sr.commander != nil {
+		sr.commander.Close()
+	}
+	sr.stats.Reset()
+	sr.stats.Attach(statistics.Tag{Key: planKey, Value: name})
+	sr.commander = newFixedConcurrentUsersStrategyCommander()
+	output := sr.commander.Open(sr.ctx, sr.task)
+
+	go func(c <-chan statistics.AttackResult) {
+		for ret := range c {
+			sr.stats.Record(ret)
+			sr.eventbus.publishResult(ret)
+		}
+	}(output)
+}
+
+func (sr *slaveRunner) submit(batch uint32) {
+	dto, err := statistics.ConvertStatisticianGroup(sr.stats)
+	if err != nil {
+		Logger.Error("failed to convert StatisticianGroup", zap.Uint32("batch", batch), zap.Error(err))
+		return
+	}
+	go func() {
+		if _, err := sr.client.Submit(sr.ctx, &genproto.SubmitRequest{SlaveId: sr.id, BatchId: batch, Stats: dto}); err != nil {
+			Logger.Error("failed to submit stats", zap.Error(err))
+		}
+	}()
+}
+
+func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto.TimerDTO) {
+	strategy, err := defaultAttackStrategyConverter.convertDTO(s)
+	if err != nil {
+		Logger.Error("failed to start next stage", zap.Error(err))
+		return
+	}
+	timer, err := defaultTimerConverter.convertDTO(t)
+	if err != nil {
+		Logger.Error("failed to start next stage", zap.Error(err))
+		return
+	}
+	sr.commander.Command(strategy, timer)
+}
+
+func (sr *slaveRunner) stopPlan() {
+	if sr.commander != nil {
+		sr.commander.Close()
+	}
+	Logger.Info("current plan is stopped")
 }

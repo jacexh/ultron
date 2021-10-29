@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/jacexh/multiconfig"
-	"github.com/wosai/ultron/v2/pkg/genproto"
+	"github.com/wosai/ultron/pkg/genproto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -50,6 +50,7 @@ type (
 		plan       Plan
 		eventbus   *eventbus
 		supervisor *slaveSupervisor
+		rpc        *grpc.Server
 		mu         sync.RWMutex
 	}
 
@@ -67,7 +68,38 @@ func loadRunnerConfigrations() *RunnerConfig {
 }
 
 func NewMasterRunner() MasterRunner {
-	return newMasterRunner()
+	runner := newMasterRunner()
+	go func(r *masterRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to shutdown ultron master server", zap.String("signal", sig.String()))
+
+		if r.scheduler != nil {
+			if err := r.scheduler.stop(false); err != nil {
+				Logger.Error("failed to interrupt current test plan", zap.Error(err))
+				os.Exit(1)
+			}
+			r.eventbus.close()
+		}
+		os.Exit(0)
+	}(runner)
+	return runner
+}
+
+func NewSlaveRunner() SlaveRunner {
+	runner := newSlaveRunner()
+
+	go func(r *slaveRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to disconnect to ultron server", zap.String("signal", sig.String()))
+
+		r.subscribeStream.CloseSend()
+		os.Exit(0)
+	}(runner)
+	return runner
 }
 
 func newMasterRunner() *masterRunner {
@@ -84,7 +116,6 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
 	r.eventbus.start()
-	Logger.Info("report bus is working")
 
 	start := make(chan struct{}, 1)
 	go func() { // http server
@@ -100,31 +131,17 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 		if err != nil {
 			Logger.Fatal("failed to launch grpc server", zap.Error(err))
 		}
-		grpcServer := grpc.NewServer(opts...)
+		r.rpc = grpc.NewServer(opts...)
 		r.supervisor = newSlaveSupervisor()
-		genproto.RegisterUltronAPIServer(grpcServer, r.supervisor)
+		genproto.RegisterUltronAPIServer(r.rpc, r.supervisor)
 		Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
+
 		start <- struct{}{}
-		if err := grpcServer.Serve(lis); err != nil {
+		if err := r.rpc.Serve(lis); err != nil {
 			Logger.Fatal("a error has occurend inside grpc server", zap.Error(err))
 		}
 	}()
 
-	go func() { // 捕捉系统信号
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-		sig := <-sigs
-		Logger.Warn("caught quit signal, try to shutdown ultron server", zap.String("signal", sig.String()))
-
-		if r.scheduler != nil {
-			if err := r.scheduler.stop(false); err != nil {
-				Logger.Error("failed to interrupt current test plan", zap.Error(err))
-				os.Exit(1)
-			}
-			r.eventbus.close()
-		}
-		os.Exit(0)
-	}()
 	<-start
 	return nil
 }
@@ -176,10 +193,27 @@ func (r *masterRunner) SubscribeReport(fns ...ReportHandleFunc) {
 var _ LocalRunner = (*localRunner)(nil)
 
 func NewLocalRunner() LocalRunner {
-	return &localRunner{
+	runner := &localRunner{
 		master: newMasterRunner(),
 		slave:  newSlaveRunner(),
 	}
+
+	go func(r *masterRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to shutdown ultron master server", zap.String("signal", sig.String()))
+
+		if r.scheduler != nil {
+			if err := r.scheduler.stop(false); err != nil {
+				Logger.Error("failed to interrupt current test plan", zap.Error(err))
+				os.Exit(1)
+			}
+			r.eventbus.close()
+		}
+		os.Exit(0)
+	}(runner.master)
+	return runner
 }
 
 func (lr *localRunner) Launch() error {

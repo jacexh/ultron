@@ -1,0 +1,23 @@
+package main
+
+import (
+	"net/http"
+
+	"github.com/wosai/ultron"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	slave := ultron.NewSlaveRunner()
+	task := ultron.NewTask()
+	attacker := ultron.NewHTTPAttacker("google")
+	attacker.Apply(ultron.WithPrepareFunc(func() (*http.Request, error) {
+		return http.NewRequest(http.MethodGet, "https://www.google.com", nil)
+	}))
+	task.Add(attacker, 1)
+	slave.Assign(task)
+
+	slave.Connect("127.0.0.1:2021", grpc.WithInsecure())
+	block := make(chan struct{}, 1)
+	<-block
+}
