@@ -28,7 +28,10 @@ func main() {
 
 	go func() {
 		plan := ultron.NewPlan("benchmark test")
-		plan.AddStages(&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 3 * time.Minute})
+		plan.AddStages(
+			&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second},
+			&ultron.V1StageConfig{ConcurrentUsers: 300},
+		)
 		<-time.After(4 * time.Second)
 		runner.StartPlan(plan)
 	}()

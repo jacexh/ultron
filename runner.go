@@ -117,6 +117,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 				Logger.Error("failed to interrupt current test plan", zap.Error(err))
 				os.Exit(1)
 			}
+			r.eventbus.close()
 		}
 		os.Exit(0)
 	}()

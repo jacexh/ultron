@@ -54,10 +54,24 @@ func (s *scheduler) start(plan *plan) error {
 
 // stop todo: 要根据当前状态判断下发的信息
 func (s *scheduler) stop(done bool) error {
-	if !done {
-		if s.plan != nil {
-			s.plan.interrupt()
-		}
+	if s.plan == nil {
+		return nil
+	}
+
+	ps := s.plan.Status()
+
+	switch {
+	case ps == StatusFinished && done: // 正常结束
+
+	case ps == StatusRunning && !done: // 被中断
+		s.plan.interrupt()
+
+	case !done && (ps == StatusReady || ps == StatusFinished || ps == StatusInterrupted):
+		return nil
+
+	default:
+		Logger.Warn("unexpected parameters", zap.Bool("done", done), zap.Int("plan_status", int(ps)))
+		return errors.New("unknown status")
 	}
 
 	var err error
@@ -76,7 +90,7 @@ func (s *scheduler) stop(done bool) error {
 		return err
 
 	case err != nil && aggErr != nil:
-		return fmt.Errorf("recent error: %w \tlast error:%s", aggErr, err.Error())
+		return fmt.Errorf("recent error: %w last error:%s", aggErr, err.Error())
 
 	default:
 		s.eventbus.publishReport(report)
@@ -116,7 +130,8 @@ patrol:
 
 			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {
-			case err != nil && errors.Is(err, ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了
+			case err != nil && errors.Is(err, ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了，此时plan已经完成
+				Logger.Info("current test plan is complete")
 				s.stop(true) // TODO： 是否还要做点什么？不做的话会拿到下一次聚合报告？
 				return nil
 
@@ -129,6 +144,7 @@ patrol:
 				continue patrol
 
 			case err == nil && stopped: // 下一阶段
+				Logger.Info("start the next stage")
 				if err := s.nextStage(stage); err != nil {
 					Logger.Error("failed to send the configurations of next stage to slaves", zap.Error(err))
 				}
