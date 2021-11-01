@@ -115,6 +115,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
+	r.eventbus.subscribeReport(printJsonReport(os.Stdout))
 	r.eventbus.start()
 
 	start := make(chan struct{}, 1)

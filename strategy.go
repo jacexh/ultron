@@ -175,6 +175,7 @@ type (
 		task      Task
 		counter   uint32
 		pool      map[uint32]*fcuExecutor
+		closed    uint32
 		wg        *sync.WaitGroup
 		mu        sync.Mutex
 	}
@@ -284,9 +285,11 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 }
 
 func (commander *fixedConcurrentUsersStrategyCommander) Close() {
-	commander.cancel()
-	commander.wg.Wait()
-	close(commander.output)
+	if atomic.CompareAndSwapUint32(&commander.closed, 0, 1) {
+		commander.cancel()
+		commander.wg.Wait()
+		close(commander.output)
+	}
 }
 
 func newFCUExecutor(id uint32, parent *fixedConcurrentUsersStrategyCommander, t Timer) *fcuExecutor {

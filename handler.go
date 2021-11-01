@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -88,5 +89,15 @@ func printReportToConsole(output io.Writer) ReportHandleFunc {
 		}
 		table.Render()
 		fmt.Fprintln(output, "")
+	}
+}
+
+func printJsonReport(out io.Writer) ReportHandleFunc {
+	return func(c context.Context, sr statistics.SummaryReport) {
+		if !sr.FullHistory {
+			return
+		}
+		data, _ := json.MarshalIndent(sr, "", "    ")
+		fmt.Fprint(out, string(data))
 	}
 }
