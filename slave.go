@@ -165,7 +165,7 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 		Logger.Error("failed to start next stage", zap.Error(err))
 		return
 	}
-	sr.commander.Command(strategy, timer)
+	go sr.commander.Command(strategy, timer)
 }
 
 func (sr *slaveRunner) stopPlan() {
