@@ -43,10 +43,10 @@ type (
 	}
 
 	attackStrategyConverter struct {
-		convertDTOFunc map[string]AttackStrategyConvertDTOFunc
+		convertDTOFunc map[string]convertAttackStrategyDTOFunc
 	}
 
-	AttackStrategyConvertDTOFunc func([]byte) (AttackStrategy, error)
+	convertAttackStrategyDTOFunc func([]byte) (AttackStrategy, error)
 
 	namedAttackStrategy interface {
 		AttackStrategy
@@ -135,7 +135,7 @@ func (fx *FixedConcurrentUsers) Name() string {
 
 func newAttackStrategyConverter() *attackStrategyConverter {
 	return &attackStrategyConverter{
-		convertDTOFunc: map[string]AttackStrategyConvertDTOFunc{
+		convertDTOFunc: map[string]convertAttackStrategyDTOFunc{
 			"fixed-concurrent-users": func(data []byte) (AttackStrategy, error) {
 				as := new(FixedConcurrentUsers)
 				err := json.Unmarshal(data, as)

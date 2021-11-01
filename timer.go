@@ -36,10 +36,10 @@ type (
 	NonstopTimer struct{}
 
 	timerConverter struct {
-		convertDTOFuncs map[string]ConvertDTOFunc
+		convertDTOFuncs map[string]convertTimerDTOFunc
 	}
 
-	ConvertDTOFunc func([]byte) (Timer, error)
+	convertTimerDTOFunc func([]byte) (Timer, error)
 )
 
 var (
@@ -75,7 +75,7 @@ func (ns NonstopTimer) Name() string {
 
 func newTimeConveter() *timerConverter {
 	return &timerConverter{
-		convertDTOFuncs: map[string]ConvertDTOFunc{
+		convertDTOFuncs: map[string]convertTimerDTOFunc{
 			"non-stop-timer": func([]byte) (Timer, error) { return NonstopTimer{}, nil },
 			"gaussion-random-timer": func(data []byte) (Timer, error) {
 				t := new(GaussianRandomTimer)
