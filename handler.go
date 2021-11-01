@@ -32,7 +32,7 @@ func printReportToConsole(output io.Writer) ReportHandleFunc {
 			tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 			tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
 			tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
-			tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlackColor},
+			tablewriter.Colors{tablewriter.Bold, tablewriter.BgCyanColor},
 		)
 
 		footer := make([]string, 16)
