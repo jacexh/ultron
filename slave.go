@@ -23,7 +23,7 @@ type (
 		commander       AttackStrategyCommander
 		stats           *statistics.StatisticianGroup
 		task            Task
-		eventbus        resultBus
+		eventbus        *eventbus
 		subscribeStream genproto.UltronAPI_SubscribeClient
 	}
 )
@@ -73,6 +73,7 @@ func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	sr.client = client
 	sr.subscribeStream = streams
 	go sr.working(streams)
+	sr.eventbus.start()
 	Logger.Info("salve is subscribing ultron server", zap.String("slave_id", sr.id))
 	return nil
 }
