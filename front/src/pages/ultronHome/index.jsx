@@ -5,7 +5,6 @@ import { UltronBar } from '../ultronBar/index'
 import { connect } from 'dva';
 
 const mapStateToProps = state => {
-  // const home = state['home'];
   return {
     home: state.home
   }
@@ -14,15 +13,12 @@ const mapStateToProps = state => {
 
 const UltronHome = props => {
   const { form, dispatch } = props;
-  console.log(dispatch)
   const { statisticData } = props.home;
   const [value, setValue] = useState(0);
 
   const getChartStatic = () => {
-    // alert(statisticData)
     dispatch({
       type: 'home/getChartsStatisticM',
-      // payload: { a: 1 }
     });
   }
 
