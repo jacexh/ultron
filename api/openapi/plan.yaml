@@ -1,0 +1,61 @@
+openapi: "3.0.1"
+info:
+  title: Ultron HTTP API
+  version: 1.0.0
+servers:
+- url: "http://{hostname}:2017/api"
+  variables:
+    hostname:
+      default: "localhost"
+paths:
+  /v1/plan:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plan'
+      responses:
+        "200":
+          description: "start a new test plan"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+    delete:
+      responses:
+        "200":
+          description: "stop current test plan"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        error_message:
+          type: string
+        result:
+          type: boolean
+    Stage:
+      type: object
+      properties:
+        requests:
+          type: integer
+        duration:
+          type: integer
+        concurrent_users:
+          type: integer
+        ramp_up_period:
+          type: integer
+        min_wait:
+          type: integer
+        max_wait:
+          type: integer
+    Plan:
+      type: array
+      items:
+        type: Stage
+        $ref: '#/components/schemas/Stage'
