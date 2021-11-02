@@ -52,7 +52,7 @@ type (
 		Average        time.Duration            `json:"average,omitempty"`         // 平均数
 		TPS            float64                  `json:"tps,omitempty"`             // 每秒事务数
 		Distributions  map[string]time.Duration `json:"distributions,omitempty"`   // 百分位分布
-		FailRation     float64                  `json:"fail_ration,omitempty"`     // 错误率
+		FailRatio      float64                  `json:"fail_ratio,omitempty"`      // 错误率
 		FailureDetails map[string]uint64        `json:"failure_details,omitempty"` // 错误详情分布
 		FullHistory    bool                     `json:"full_history"`              // 是否是该阶段完整的报告
 		FirstAttack    time.Time                `json:"first_attack,omitempty"`    // 第一请求发生时间
@@ -300,7 +300,7 @@ func (ara *AttackStatistician) Report(full bool) AttackReport {
 		Max:            ara.max(),
 		Average:        ara.average(),
 		Distributions:  make(map[string]time.Duration),
-		FailRation:     ara.failRatio(),
+		FailRatio:      ara.failRatio(),
 		FailureDetails: make(map[string]uint64),
 		FullHistory:    full,
 		FirstAttack:    ara.firstAttack,
