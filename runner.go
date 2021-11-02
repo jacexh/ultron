@@ -120,7 +120,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 
 	start := make(chan struct{}, 1)
 	go func() { // http server
-		httpHandler := buildHTTPRouter()
+		httpHandler := buildHTTPRouter(r)
 		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
 		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
 			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
