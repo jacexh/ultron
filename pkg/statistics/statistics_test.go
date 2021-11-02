@@ -177,3 +177,10 @@ func TestAttackResultAggregator_MergeEmptry(t *testing.T) {
 	data, _ := json.Marshal(report)
 	log.Println(string(data))
 }
+
+func TestStatisticianGroup_Attach(t *testing.T) {
+	sg := NewStatisticianGroup()
+	sg.Attach(Tag{Key: "plan", Value: "hello"})
+	report := sg.Report(true)
+	assert.EqualValues(t, report.Extras["plan"], "hello")
+}

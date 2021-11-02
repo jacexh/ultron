@@ -82,8 +82,8 @@ type (
 	}
 
 	Tag struct {
-		Key   string
-		Value string
+		Key   string `json:"key"`
+		Value string `json:"value"`
 	}
 
 	Tags map[string]Tag
@@ -389,6 +389,7 @@ func (s *StatisticianGroup) Report(full bool) SummaryReport {
 	sr := SummaryReport{
 		FullHistory: full,
 		Reports:     make(map[string]AttackReport),
+		Extras:      make(map[string]string),
 	}
 
 	s.mu.Lock()
@@ -412,6 +413,10 @@ func (s *StatisticianGroup) Report(full bool) SummaryReport {
 		if !sr.LastAttack.IsZero() && sr.LastAttack.Before(sr.Reports[key].LastAttack) {
 			sr.LastAttack = sr.Reports[key].LastAttack
 		}
+	}
+
+	for key, tag := range s.tags {
+		sr.Extras[key] = tag.Value
 	}
 	return sr
 }

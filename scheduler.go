@@ -52,7 +52,6 @@ func (s *scheduler) start(plan *plan) error {
 	return nil
 }
 
-// stop todo: 要根据当前状态判断下发的信息
 func (s *scheduler) stop(done bool) error {
 	if s.plan == nil {
 		return nil
@@ -79,9 +78,9 @@ func (s *scheduler) stop(done bool) error {
 		Logger.Warn("failed to stop slaves", zap.Error(err))
 	}
 	s.cancel()
-	Logger.Info("canceled all master running jobs")
+	Logger.Info("canceled all running jobs")
 
-	report, aggErr := s.supervisor.Aggregate(true)
+	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: planKey, Value: s.plan.Name()})
 	switch {
 	case err == nil && aggErr != nil:
 		return aggErr
@@ -121,7 +120,7 @@ patrol:
 			return s.ctx.Err()
 
 		case <-ticker.C:
-			report, err := s.supervisor.Aggregate(false)
+			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: planKey, Value: plan.Name()})
 			if err != nil {
 				Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
@@ -153,6 +152,7 @@ patrol:
 			default: // 继续巡查
 			}
 		default:
+			continue
 		}
 	}
 }
