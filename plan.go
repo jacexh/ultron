@@ -211,6 +211,8 @@ func (p *plan) Stages() []Stage {
 func (p *plan) Current() (int, Stage) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
+	if p.current == -1 {
+		return -1, nil
+	}
 	return p.current, p.stages[p.current]
 }

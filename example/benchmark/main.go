@@ -55,6 +55,11 @@ func main() {
 	)
 	runner.StartPlan(plan)
 
-	block := make(chan struct{}, 1)
-	<-block
+	for {
+		if plan.Status() == ultron.StatusFinished {
+			<-time.After(1 * time.Second)
+			break
+		}
+		runtime.Gosched()
+	}
 }
