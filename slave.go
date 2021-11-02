@@ -42,8 +42,8 @@ func newSlaveRunner() *slaveRunner {
 
 func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	if sr.task == nil {
-		Logger.Error("you should assign a task before call connect function")
-		return errors.New("you should assgin task before connect")
+		Logger.Fatal("you should assign a task before call connect function")
+		return errors.New("you should assgin a task before connect")
 	}
 	sr.ctx, sr.cancel = context.WithCancel(context.Background())
 	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
