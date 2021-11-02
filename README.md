@@ -20,6 +20,8 @@ go install github.com/wosai/ultron/v2/cmd/ultron
 
 ## Example
 
+### LocalRunner
+
 ```go
 package main
 
@@ -65,6 +67,51 @@ func main() {
 	<-block
 }
 ```
+
+### SlaveRunner
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/wosai/ultron/v2"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	task := ultron.NewTask()
+	attacker := ultron.NewHTTPAttacker("google")
+	attacker.Apply(
+		ultron.WithPrepareFunc(func() (*http.Request, error) { // 压测事务逻辑实现
+			return http.NewRequest(http.MethodGet, "https://www.google.com/ncr", nil)
+		}),
+		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
+	)
+	task.Add(attacker, 1)
+
+	// 启动runner
+	runner := ultron.NewSlaveRunner()
+	runner.Assign(task)
+	runner.SubscribeResult(nil)                                          // 订阅单次压测结果
+	if err := runner.Connect(":2021", grpc.WithInsecure()); err != nil { // 连接master的grpc服务
+		panic(err)
+	}
+
+	// 阻塞当前goroutine，避免程序推出
+	block := make(chan struct{}, 1)
+	<-block
+}
+```
+
+### MasterRunner
+
+```bash
+ultron
+```
+
+![master](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111633.png)
 
 ## Report
 
