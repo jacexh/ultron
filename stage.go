@@ -32,12 +32,12 @@ type (
 	}
 
 	V1StageConfig struct {
-		Requests        uint64
-		Duration        time.Duration
-		ConcurrentUsers int
-		RampUpPeriod    int // 单位秒
-		MinWait         time.Duration
-		MaxWait         time.Duration
+		Requests        uint64        `json:"requests,omitempty"`
+		Duration        time.Duration `json:"duration,omitempty"`
+		ConcurrentUsers int           `json:"concurrent_users"`
+		RampUpPeriod    int           `json:"ramp_up_period"` // 单位秒
+		MinWait         time.Duration `json:"min_wait,omitempty"`
+		MaxWait         time.Duration `json:"max_wait,omitempty"`
 	}
 )
 

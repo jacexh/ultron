@@ -143,7 +143,7 @@ func (sup *slaveSupervisor) Submit(ctx context.Context, req *genproto.SubmitRequ
 	return &emptypb.Empty{}, fmt.Errorf("submittion rejected: %s", req.SlaveId)
 }
 
-func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryReport, error) {
+func (sup *slaveSupervisor) Aggregate(fullHistory bool, tags ...statistics.Tag) (statistics.SummaryReport, error) {
 	sup.mu.Lock()
 	batch := sup.counter
 	sup.counter++
@@ -209,6 +209,9 @@ func (sup *slaveSupervisor) Aggregate(fullHistory bool) (statistics.SummaryRepor
 
 	// 检查是否完成
 	sg := statistics.NewStatisticianGroup()
+	for _, tag := range tags {
+		sg.Attach(tag)
+	}
 	for _, callback := range callbacker {
 		if callback.stats == nil {
 			return statistics.SummaryReport{}, fmt.Errorf("not submitted by the deadline: batch-%d, slave: %s", batch, callback.id())

@@ -42,7 +42,7 @@ func TestAttackStatistician_Record(t *testing.T) {
 	report := as.Report(false)
 	assert.EqualValues(t, report.Requests, 1)
 	assert.EqualValues(t, report.Failures, 1)
-	assert.EqualValues(t, report.FailRation, .5)
+	assert.EqualValues(t, report.FailRatio, .5)
 }
 
 func TestAttackStatistician_SyncRecord(t *testing.T) {
@@ -176,4 +176,11 @@ func TestAttackResultAggregator_MergeEmptry(t *testing.T) {
 	report := a1.Report(true)
 	data, _ := json.Marshal(report)
 	log.Println(string(data))
+}
+
+func TestStatisticianGroup_Attach(t *testing.T) {
+	sg := NewStatisticianGroup()
+	sg.Attach(Tag{Key: "plan", Value: "hello"})
+	report := sg.Report(true)
+	assert.EqualValues(t, report.Extras["plan"], "hello")
 }

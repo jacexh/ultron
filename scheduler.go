@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/wosai/ultron/v2/pkg/statistics"
@@ -18,6 +19,7 @@ type (
 		plan       *plan
 		supervisor *slaveSupervisor
 		eventbus   reportBus
+		mu         sync.RWMutex
 	}
 )
 
@@ -36,12 +38,15 @@ func (s *scheduler) start(plan *plan) error {
 		return err
 	}
 
+	s.mu.Lock()
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	if err := s.supervisor.StartNewPlan(s.ctx, plan.Name()); err != nil {
 		return err
 	}
 	s.plan = plan
-	_, _, stage, err := s.plan.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
+	s.mu.Unlock()
+
+	_, _, stage, err := plan.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
 	if err != nil {
 		return err
 	}
@@ -52,19 +57,23 @@ func (s *scheduler) start(plan *plan) error {
 	return nil
 }
 
-// stop todo: 要根据当前状态判断下发的信息
 func (s *scheduler) stop(done bool) error {
-	if s.plan == nil {
+	s.mu.RLock()
+	plan := s.plan
+	cancel := s.cancel
+	s.mu.RUnlock()
+
+	if plan == nil {
 		return nil
 	}
 
-	ps := s.plan.Status()
+	ps := plan.Status()
 
 	switch {
 	case ps == StatusFinished && done: // 正常结束
 
 	case ps == StatusRunning && !done: // 被中断
-		s.plan.interrupt()
+		plan.interrupt()
 
 	case !done && (ps == StatusReady || ps == StatusFinished || ps == StatusInterrupted):
 		return nil
@@ -78,10 +87,10 @@ func (s *scheduler) stop(done bool) error {
 	if err = s.supervisor.Stop(s.ctx, done); err != nil {
 		Logger.Warn("failed to stop slaves", zap.Error(err))
 	}
-	s.cancel()
-	Logger.Info("canceled all master running jobs")
+	cancel()
+	Logger.Info("canceled all running jobs")
 
-	report, aggErr := s.supervisor.Aggregate(true)
+	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: PlanKey, Value: plan.Name()})
 	switch {
 	case err == nil && aggErr != nil:
 		return aggErr
@@ -107,7 +116,10 @@ func (s *scheduler) patrol(every time.Duration) error {
 	ticker := time.NewTicker(every)
 	defer ticker.Stop()
 
+	s.mu.RLock()
 	plan := s.plan
+	ctx := s.ctx
+	s.mu.RUnlock()
 
 	if plan.Status() != StatusRunning {
 		return errors.New("failed to patrol cause the plan is not running")
@@ -117,11 +129,11 @@ func (s *scheduler) patrol(every time.Duration) error {
 patrol:
 	for {
 		select {
-		case <-s.ctx.Done():
-			return s.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 
 		case <-ticker.C:
-			report, err := s.supervisor.Aggregate(false)
+			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: PlanKey, Value: plan.Name()})
 			if err != nil {
 				Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
@@ -153,6 +165,7 @@ patrol:
 			default: // 继续巡查
 			}
 		default:
+			continue
 		}
 	}
 }

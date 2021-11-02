@@ -1,62 +1,160 @@
 # Ultron
-a http load testing tool in go
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/wosai/ultron)](https://goreportcard.com/report/github.com/wosai/ultron) 
 ![.github/workflows/ci.yml](https://github.com/WoSai/ultron/workflows/.github/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/wosai/ultron/branch/master/graph/badge.svg)](https://codecov.io/gh/wosai/ultron) 
 [![GoDoc](https://godoc.org/github.com/wosai/ultron?status.svg)](https://godoc.org/github.com/wosai/ultron)
 
+a http load testing tool in go
+
 ## Requirements
 
-Go 1.12+
+Go 1.16+
+
+## Install
+
+```bash
+go get github.com/wosai/ultron/v2
+go install github.com/wosai/ultron/v2/cmd/ultron
+```
 
 ## Example
 
-### **Script**
-
-file path: `example/http/main.go`
+### LocalRunner
 
 ```go
-attacker := ultron.NewHTTPAttacker("benchmark", func() (*http.Request, error) { return http.NewRequest(http.MethodGet, "http://127.0.0.1/", nil) })
-task := ultron.NewTask()
-task.Add(attacker, 1)
+package main
 
-ultron.LocalRunner.Config.Concurrence = 1000
-ultron.LocalRunner.Config.HatchRate = 10
-ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
-ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
+import (
+	"net/http"
+	"time"
 
-ultron.LocalRunner.WithTask(task)
-ultron.LocalRunner.Start()
+	"github.com/wosai/ultron/v2"
+)
+
+func main() {
+	task := ultron.NewTask()
+	attacker := ultron.NewHTTPAttacker("google")
+	attacker.Apply(
+		ultron.WithPrepareFunc(func() (*http.Request, error) { // 压测事务逻辑实现
+			return http.NewRequest(http.MethodGet, "https://www.google.com/ncr", nil)
+		}),
+		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
+	)
+	task.Add(attacker, 1)
+
+	plan := ultron.NewPlan("google homepage")
+	plan.AddStages(
+		&ultron.V1StageConfig{
+			Duration:        10 * time.Minute,
+			ConcurrentUsers: 200,
+			RampUpPeriod:    10,
+		}
+	)
+
+	runner := ultron.NewLocalRunner()
+	runner.Assign(task)   
+
+	if err := runner.Launch(); err != nil {
+		panic(err)
+	}
+
+	if err := runner.StartPlan(plan); err != nil {
+		panic(err)
+	}
+
+	block := make(chan struct{}, 1)
+	<-block
+}
 ```
 
-### Report
+### SlaveRunner
 
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/wosai/ultron/v2"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	task := ultron.NewTask()
+	attacker := ultron.NewHTTPAttacker("google")
+	attacker.Apply(
+		ultron.WithPrepareFunc(func() (*http.Request, error) { // 压测事务逻辑实现
+			return http.NewRequest(http.MethodGet, "https://www.google.com/ncr", nil)
+		}),
+		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
+	)
+	task.Add(attacker, 1)
+
+	// 启动runner
+	runner := ultron.NewSlaveRunner()
+	runner.Assign(task)
+	runner.SubscribeResult(nil)                                          // 订阅单次压测结果
+	if err := runner.Connect(":2021", grpc.WithInsecure()); err != nil { // 连接master的grpc服务
+		panic(err)
+	}
+
+	// 阻塞当前goroutine，避免程序推出
+	block := make(chan struct{}, 1)
+	<-block
+}
+```
+
+### MasterRunner
+
+```bash
+ultron
+```
+
+![master](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111633.png)
+
+## Report
+
+### Terminal Table
+
+![stats report](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111021.png)
+
+### JSON Format
 ```json
 {
-  "benchmark": {
-    "name": "benchmark",
-    "requests": 1917994,
-    "failures": 0,
-    "min": 0,
-    "max": 23,
-    "median": 2,
-    "average": 2,
-    "qps": 50211,
-    "distributions": {
-      "0.50": 2,
-      "0.60": 2,
-      "0.70": 2,
-      "0.80": 2,
-      "0.90": 2,
-      "0.95": 2,
-      "0.97": 2,
-      "0.98": 3,
-      "0.99": 4,
-      "1.00": 23
+    "first_attack": "2021-11-02T03:09:08.419359417Z",
+    "last_attack": "2021-11-02T03:09:21.209236204Z",
+    "total_requests": 139450,
+    "total_tps": 10903.15429322517,
+    "full_history": true,
+    "reports": {
+        "benchmark": {
+            "name": "benchmark",
+            "requests": 139450,
+            "min": 10000253,
+            "max": 40510983,
+            "median": 10000000,
+            "average": 11869156,
+            "tps": 10903.15429322517,
+            "distributions": {
+                "0.50": 10000000,
+                "0.60": 10000000,
+                "0.70": 10000000,
+                "0.80": 10000000,
+                "0.90": 20000000,
+                "0.95": 21000000,
+                "0.97": 26000000,
+                "0.98": 29000000,
+                "0.99": 30000000,
+                "1.00": 40510983
+            },
+            "full_history": true,
+            "first_attack": "2021-11-02T03:09:08.419359417Z",
+            "last_attack": "2021-11-02T03:09:21.209236204Z"
+        }
     },
-    "failure_details": {},
-    "full_history": false
-  }
+    "extras": {
+        "plan": "benchmark test"
+    }
 }
 ```

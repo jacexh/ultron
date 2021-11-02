@@ -115,6 +115,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
+	r.eventbus.subscribeReport(printJsonReport(os.Stdout))
 	r.eventbus.start()
 
 	start := make(chan struct{}, 1)
@@ -147,7 +148,7 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 }
 
 func (r *masterRunner) StartPlan(p Plan) error {
-	Logger.Info("start plan")
+	Logger.Info("start plan", zap.String("plan_name", p.Name()))
 	r.mu.Lock()
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()

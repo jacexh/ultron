@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/wosai/ultron/v2"
@@ -28,8 +29,8 @@ func main() {
 
 	plan := ultron.NewPlan("benchmark test")
 	plan.AddStages(
-		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second},
-		&ultron.V1StageConfig{ConcurrentUsers: 300},
+		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second, RampUpPeriod: 10},
+		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 2000000, RampUpPeriod: 5},
 	)
 
 	if err := runner.Launch(); err != nil {
@@ -40,6 +41,25 @@ func main() {
 		panic(err)
 	}
 
-	block := make(chan struct{}, 1)
-	<-block
+	for {
+		if plan.Status() == ultron.StatusFinished {
+			break
+		}
+		runtime.Gosched()
+	}
+
+	plan = ultron.NewPlan("benchmark-test-2")
+	plan.AddStages(
+		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second, RampUpPeriod: 10},
+		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 2000000, RampUpPeriod: 5},
+	)
+	runner.StartPlan(plan)
+
+	for {
+		if plan.Status() == ultron.StatusFinished {
+			<-time.After(1 * time.Second)
+			break
+		}
+		runtime.Gosched()
+	}
 }

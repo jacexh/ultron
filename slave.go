@@ -23,14 +23,14 @@ type (
 		commander       AttackStrategyCommander
 		stats           *statistics.StatisticianGroup
 		task            Task
-		eventbus        resultBus
+		eventbus        *eventbus
 		subscribeStream genproto.UltronAPI_SubscribeClient
 	}
 )
 
 var _ SlaveRunner = (*slaveRunner)(nil)
 
-const planKey = "plan"
+const PlanKey = "ultron-plan"
 
 func newSlaveRunner() *slaveRunner {
 	return &slaveRunner{
@@ -42,8 +42,8 @@ func newSlaveRunner() *slaveRunner {
 
 func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	if sr.task == nil {
-		Logger.Error("you should assign a task before call connect function")
-		return errors.New("you should assgin task before connect")
+		Logger.Fatal("you should assign a task before call connect function")
+		return errors.New("you should assgin a task before connect")
 	}
 	sr.ctx, sr.cancel = context.WithCancel(context.Background())
 	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
@@ -73,6 +73,7 @@ func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	sr.client = client
 	sr.subscribeStream = streams
 	go sr.working(streams)
+	sr.eventbus.start()
 	Logger.Info("salve is subscribing ultron server", zap.String("slave_id", sr.id))
 	return nil
 }
@@ -129,7 +130,7 @@ func (sr *slaveRunner) startPlan(name string) {
 		sr.commander.Close()
 	}
 	sr.stats.Reset()
-	sr.stats.Attach(statistics.Tag{Key: planKey, Value: name})
+	sr.stats.Attach(statistics.Tag{Key: PlanKey, Value: name})
 	sr.commander = newFixedConcurrentUsersStrategyCommander()
 	output := sr.commander.Open(sr.ctx, sr.task)
 
@@ -165,7 +166,7 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 		Logger.Error("failed to start next stage", zap.Error(err))
 		return
 	}
-	sr.commander.Command(strategy, timer)
+	go sr.commander.Command(strategy, timer)
 }
 
 func (sr *slaveRunner) stopPlan() {

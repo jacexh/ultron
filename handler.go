@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -32,7 +33,7 @@ func printReportToConsole(output io.Writer) ReportHandleFunc {
 			tablewriter.Colors{tablewriter.Bold, tablewriter.FgBlueColor},
 			tablewriter.Colors{tablewriter.Bold, tablewriter.BgGreenColor},
 			tablewriter.Colors{tablewriter.Bold, tablewriter.BgRedColor},
-			tablewriter.Colors{tablewriter.Bold, tablewriter.BgBlackColor},
+			tablewriter.Colors{tablewriter.Bold, tablewriter.BgCyanColor},
 		)
 
 		footer := make([]string, 16)
@@ -88,5 +89,15 @@ func printReportToConsole(output io.Writer) ReportHandleFunc {
 		}
 		table.Render()
 		fmt.Fprintln(output, "")
+	}
+}
+
+func printJsonReport(out io.Writer) ReportHandleFunc {
+	return func(c context.Context, sr statistics.SummaryReport) {
+		if !sr.FullHistory {
+			return
+		}
+		data, _ := json.MarshalIndent(sr, "", "    ")
+		fmt.Fprint(out, string(data))
 	}
 }
