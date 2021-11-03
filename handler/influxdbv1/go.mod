@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
-	github.com/wosai/ultron/v2 v2.0.0-beta3
+	github.com/wosai/ultron/v2 v2.0.0
 	go.uber.org/zap v1.19.1
 )
 
