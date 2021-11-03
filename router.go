@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	chimiddleware "github.com/jacexh/gopkg/chi-middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +22,11 @@ type (
 		Result       bool   `json:"result,omitempty"`
 		ErrorMessage string `json:"error_message,omitempty"`
 	}
+
+	requestStartPlan struct {
+		Name   string           `json:"name"`
+		Stages []*V1StageConfig `json:"stages"`
+	}
 )
 
 //go:embed web/*
@@ -32,7 +38,7 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 
 func (rest *restServer) handleStartNewPlan() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		var req []*V1StageConfig
+		req := new(requestStartPlan)
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			Logger.Error("failed to parse request body", zap.Error(err))
 			renderResponse(err, rw, r)
@@ -40,7 +46,7 @@ func (rest *restServer) handleStartNewPlan() http.HandlerFunc {
 		}
 
 		plan := NewPlan("")
-		for _, stage := range req {
+		for _, stage := range req.Stages {
 			plan.AddStages(stage)
 		}
 		err := rest.runner.StartPlan(plan)
@@ -97,5 +103,6 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 		panic(err)
 	}
 	route.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
+	route.Handle("/metrics", promhttp.Handler())
 	return route
 }

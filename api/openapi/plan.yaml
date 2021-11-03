@@ -55,7 +55,12 @@ components:
         max_wait:
           type: integer
     Plan:
-      type: array
-      items:
-        type: Stage
-        $ref: '#/components/schemas/Stage'
+      type: object
+      properties:
+        name:
+          type: string
+        stages:
+          type: array
+          items:
+            type: Stage
+            $ref: '#/components/schemas/Stage'
