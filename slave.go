@@ -122,6 +122,9 @@ func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 		case genproto.EventType_NEXT_STAGE_STARTED:
 			sr.startNextStage(event.GetAttackStrategy(), event.GetTimer())
 
+		case genproto.EventType_STATUS_REPORT:
+			sr.sendStatus()
+
 		default:
 			continue
 		}
@@ -177,4 +180,16 @@ func (sr *slaveRunner) stopPlan() {
 		sr.commander.Close()
 	}
 	Logger.Info("current plan is stopped")
+}
+
+func (sr *slaveRunner) sendStatus() {
+	req := &genproto.SendStatusRequest{SlaveId: sr.id, ConcurrentUsers: 0}
+	if sr.commander != nil {
+		req.ConcurrentUsers = int32(sr.commander.ConcurrentUsers())
+	}
+	go func() {
+		if _, err := sr.client.SendStatus(sr.ctx, req); err != nil {
+			Logger.Error("failed to send status to ultron master server", zap.Error(err))
+		}
+	}()
 }

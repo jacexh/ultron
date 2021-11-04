@@ -11,6 +11,7 @@ import (
 type (
 	metric struct {
 		report statistics.SummaryReport
+		runner *masterRunner
 		mu     sync.Mutex
 	}
 )
@@ -30,12 +31,12 @@ var (
 	descFailureRatio    = prometheus.NewDesc("ultron_attacker_failure_ratio", "the failure ratio of this attacker", metricTags, nil)
 	descCurrentTPS      = prometheus.NewDesc("ultron_attacker_tps_current", "current TPS of this attacker", metricTags, nil)
 	descTotalTPS        = prometheus.NewDesc("ultron_attacker_tps_total", "total TPS of this attacker", metricTags, nil)
-	descConcurrentUsers = prometheus.NewDesc("ultron_current_users", "the number of current users", []string{KeyPlan}, nil)
-	descSlaves          = prometheus.NewDesc("ultron_slaves", "the number of salves", []string{KeyPlan}, nil)
+	descConcurrentUsers = prometheus.NewDesc("ultron_current_users", "the number of current users", []string{}, nil)
+	descSlaves          = prometheus.NewDesc("ultron_slaves", "the number of salves", []string{}, nil)
 )
 
-func newMetric() *metric {
-	return &metric{}
+func newMetric(runner *masterRunner) *metric {
+	return &metric{runner: runner}
 }
 
 func (m *metric) Describe(ch chan<- *prometheus.Desc) {
@@ -57,6 +58,9 @@ func (m *metric) Collect(ch chan<- prometheus.Metric) {
 	report := m.report
 	plan := m.report.Extras[KeyPlan]
 	m.mu.Unlock()
+
+	ch <- prometheus.MustNewConstMetric(descSlaves, prometheus.GaugeValue, float64(len(m.runner.supervisor.Slaves())))
+	ch <- prometheus.MustNewConstMetric(descConcurrentUsers, prometheus.GaugeValue, float64(m.runner.supervisor.ConcurrentUsers()))
 
 	if report.FirstAttack.IsZero() { // 空的报告
 		return

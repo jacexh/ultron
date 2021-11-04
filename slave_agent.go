@@ -20,6 +20,7 @@ type (
 		slaveID string
 		extras  map[string]string // todo: 之后再实现
 		input   chan *genproto.SubscribeResponse
+		status  *genproto.SendStatusRequest
 		closed  uint32
 	}
 )
@@ -70,11 +71,11 @@ func (sa *slaveAgent) send(event *genproto.SubscribeResponse) error {
 }
 
 func (sa *slaveAgent) keepAlives() {
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_PING}); err != nil {
+		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_STATUS_REPORT}); err != nil {
 			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}

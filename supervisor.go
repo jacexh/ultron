@@ -120,6 +120,20 @@ subscribing:
 	return io.EOF
 }
 
+func (sup *slaveSupervisor) SendStatus(ctx context.Context, req *genproto.SendStatusRequest) (*empty.Empty, error) {
+	sup.mu.RLock()
+	sa, ok := sup.slaveAgents[req.SlaveId]
+	sup.mu.RUnlock()
+
+	if !ok {
+		Logger.Error("cannot find slave agent with provied id", zap.String("slave_id", req.SlaveId))
+		return nil, errors.New("cannot find slave agent with provided id")
+	}
+	sa.status = req
+	Logger.Info("refreshed slave running status", zap.String("slave_id", req.SlaveId))
+	return &emptypb.Empty{}, nil
+}
+
 func (sup *slaveSupervisor) Submit(ctx context.Context, req *genproto.SubmitRequest) (*empty.Empty, error) {
 	sg, err := statistics.NewStatisticianGroupFromDTO(req.GetStats())
 	if err != nil {
@@ -340,4 +354,17 @@ func (sup *slaveSupervisor) Stop(ctx context.Context, done bool) error {
 		event.Type = genproto.EventType_PLAN_INTERRUPTED
 	}
 	return sup.batchSend(ctx, event)
+}
+
+func (sup *slaveSupervisor) ConcurrentUsers() int {
+	var total int
+	sup.mu.RLock()
+	defer sup.mu.RUnlock()
+
+	for _, sa := range sup.slaveAgents {
+		if sa.status != nil {
+			total += int(sa.status.GetConcurrentUsers())
+		}
+	}
+	return total
 }

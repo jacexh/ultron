@@ -106,7 +106,7 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 	route.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
 
 	// prometheus exporter
-	exporter := newMetric()
+	exporter := newMetric(runner)
 	prometheus.MustRegister(exporter)
 	runner.SubscribeReport(exporter.handleReport()) // 订阅report
 	route.Handle("/metrics", promhttp.Handler())

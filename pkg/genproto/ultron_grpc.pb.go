@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 type UltronAPIClient interface {
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (UltronAPI_SubscribeClient, error)
 	Submit(ctx context.Context, in *SubmitRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendStatus(ctx context.Context, in *SendStatusRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type ultronAPIClient struct {
@@ -72,12 +73,22 @@ func (c *ultronAPIClient) Submit(ctx context.Context, in *SubmitRequest, opts ..
 	return out, nil
 }
 
+func (c *ultronAPIClient) SendStatus(ctx context.Context, in *SendStatusRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/wosai.ultron.UltronAPI/SendStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UltronAPIServer is the server API for UltronAPI service.
 // All implementations should embed UnimplementedUltronAPIServer
 // for forward compatibility
 type UltronAPIServer interface {
 	Subscribe(*SubscribeRequest, UltronAPI_SubscribeServer) error
 	Submit(context.Context, *SubmitRequest) (*emptypb.Empty, error)
+	SendStatus(context.Context, *SendStatusRequest) (*emptypb.Empty, error)
 }
 
 // UnimplementedUltronAPIServer should be embedded to have forward compatible implementations.
@@ -89,6 +100,9 @@ func (UnimplementedUltronAPIServer) Subscribe(*SubscribeRequest, UltronAPI_Subsc
 }
 func (UnimplementedUltronAPIServer) Submit(context.Context, *SubmitRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
+}
+func (UnimplementedUltronAPIServer) SendStatus(context.Context, *SendStatusRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendStatus not implemented")
 }
 
 // UnsafeUltronAPIServer may be embedded to opt out of forward compatibility for this service.
@@ -141,6 +155,24 @@ func _UltronAPI_Submit_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UltronAPI_SendStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UltronAPIServer).SendStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wosai.ultron.UltronAPI/SendStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UltronAPIServer).SendStatus(ctx, req.(*SendStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UltronAPI_ServiceDesc is the grpc.ServiceDesc for UltronAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -151,6 +183,10 @@ var UltronAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Submit",
 			Handler:    _UltronAPI_Submit_Handler,
+		},
+		{
+			MethodName: "SendStatus",
+			Handler:    _UltronAPI_SendStatus_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -20,6 +20,7 @@ type (
 	AttackStrategyCommander interface {
 		Open(context.Context, Task) <-chan statistics.AttackResult
 		Command(AttackStrategy, Timer)
+		ConcurrentUsers() int
 		Close()
 	}
 
@@ -52,13 +53,36 @@ type (
 		AttackStrategy
 		Name() string
 	}
+
+	fixedConcurrentUsersStrategyCommander struct {
+		ctx       context.Context
+		cancel    context.CancelFunc
+		describer AttackStrategy
+		output    chan statistics.AttackResult
+		timer     Timer
+		task      Task
+		counter   uint32
+		pool      map[uint32]*fcuExecutor
+		closed    uint32
+		wg        *sync.WaitGroup
+		mu        sync.Mutex
+	}
+
+	// fcuExecutor FixedConcurrentUsers策略的执行者
+	fcuExecutor struct {
+		id     uint32
+		cancel context.CancelFunc
+		timer  Timer
+		mu     sync.RWMutex
+	}
 )
 
 var (
-	_ AttackStrategy = (*FixedConcurrentUsers)(nil)
-
-	defaultAttackStrategyConverter *attackStrategyConverter
+	_ AttackStrategy          = (*FixedConcurrentUsers)(nil)
+	_ AttackStrategyCommander = (*fixedConcurrentUsersStrategyCommander)(nil)
 )
+
+var defaultAttackStrategyConverter *attackStrategyConverter
 
 func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) []*RampUpStep {
 	var ret []*RampUpStep
@@ -165,34 +189,6 @@ func (c *attackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*gen
 	return &genproto.AttackStrategyDTO{Type: na.Name(), AttackStrategy: data}, nil
 }
 
-type (
-	fixedConcurrentUsersStrategyCommander struct {
-		ctx       context.Context
-		cancel    context.CancelFunc
-		describer AttackStrategy
-		output    chan statistics.AttackResult
-		timer     Timer
-		task      Task
-		counter   uint32
-		pool      map[uint32]*fcuExecutor
-		closed    uint32
-		wg        *sync.WaitGroup
-		mu        sync.Mutex
-	}
-
-	// fcuExecutor FixedConcurrentUsers策略的执行者
-	fcuExecutor struct {
-		id     uint32
-		cancel context.CancelFunc
-		timer  Timer
-		mu     sync.RWMutex
-	}
-)
-
-var (
-	_ AttackStrategyCommander = (*fixedConcurrentUsersStrategyCommander)(nil)
-)
-
 func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCommander {
 	return &fixedConcurrentUsersStrategyCommander{
 		ctx:    context.TODO(),
@@ -290,6 +286,10 @@ func (commander *fixedConcurrentUsersStrategyCommander) Close() {
 		commander.wg.Wait()
 		close(commander.output)
 	}
+}
+
+func (commander *fixedConcurrentUsersStrategyCommander) ConcurrentUsers() int {
+	return len(commander.pool)
 }
 
 func newFCUExecutor(id uint32, parent *fixedConcurrentUsersStrategyCommander, t Timer) *fcuExecutor {
