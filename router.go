@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	chimiddleware "github.com/jacexh/gopkg/chi-middleware"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
@@ -103,6 +104,11 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 		panic(err)
 	}
 	route.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
+
+	// prometheus exporter
+	exporter := newMetric()
+	prometheus.MustRegister(exporter)
+	runner.SubscribeReport(exporter.handleReport()) // 订阅report
 	route.Handle("/metrics", promhttp.Handler())
 	return route
 }

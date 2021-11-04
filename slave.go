@@ -30,7 +30,10 @@ type (
 
 var _ SlaveRunner = (*slaveRunner)(nil)
 
-const PlanKey = "ultron-plan"
+const (
+	KeyPlan     = "plan"
+	KeyAttacker = "attacker"
+)
 
 func newSlaveRunner() *slaveRunner {
 	return &slaveRunner{
@@ -130,7 +133,7 @@ func (sr *slaveRunner) startPlan(name string) {
 		sr.commander.Close()
 	}
 	sr.stats.Reset()
-	sr.stats.Attach(statistics.Tag{Key: PlanKey, Value: name})
+	sr.stats.Attach(statistics.Tag{Key: KeyPlan, Value: name})
 	sr.commander = newFixedConcurrentUsersStrategyCommander()
 	output := sr.commander.Open(sr.ctx, sr.task)
 

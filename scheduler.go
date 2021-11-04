@@ -90,7 +90,7 @@ func (s *scheduler) stop(done bool) error {
 	cancel()
 	Logger.Info("canceled all running jobs")
 
-	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: PlanKey, Value: plan.Name()})
+	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: KeyPlan, Value: plan.Name()})
 	switch {
 	case err == nil && aggErr != nil:
 		return aggErr
@@ -133,7 +133,7 @@ patrol:
 			return ctx.Err()
 
 		case <-ticker.C:
-			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: PlanKey, Value: plan.Name()})
+			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: KeyPlan, Value: plan.Name()})
 			if err != nil {
 				Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
