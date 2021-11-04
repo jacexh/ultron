@@ -31,8 +31,8 @@ var (
 	descFailureRatio    = prometheus.NewDesc("ultron_attacker_failure_ratio", "the failure ratio of this attacker", metricTags, nil)
 	descCurrentTPS      = prometheus.NewDesc("ultron_attacker_tps_current", "current TPS of this attacker", metricTags, nil)
 	descTotalTPS        = prometheus.NewDesc("ultron_attacker_tps_total", "total TPS of this attacker", metricTags, nil)
-	descConcurrentUsers = prometheus.NewDesc("ultron_current_users", "the number of current users", []string{}, nil)
-	descSlaves          = prometheus.NewDesc("ultron_slaves", "the number of salves", []string{}, nil)
+	descConcurrentUsers = prometheus.NewDesc("ultron_concurrent_users", "the number of concurrent users", []string{}, nil)
+	descSlaves          = prometheus.NewDesc("ultron_slaves", "the number of subscribing salves", []string{}, nil)
 )
 
 func newMetric(runner *masterRunner) *metric {
