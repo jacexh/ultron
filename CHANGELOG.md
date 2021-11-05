@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v2.1.0
+
+- 添加Web Portal
+- 接入Prometheus
 ## v2.0.0
 
 - 重写了整个项目，对各种可扩展对象进行了抽象
