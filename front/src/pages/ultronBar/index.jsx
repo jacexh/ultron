@@ -33,11 +33,8 @@ export const UltronBar = ({ getChartStatic }, props) => {
     setValue(newValue);
     switch (newValue) {
       case 0: {
-        getChartStatic()
       } break;
       case 1: {
-
-
       } break;
     }
   };
@@ -50,13 +47,12 @@ export const UltronBar = ({ getChartStatic }, props) => {
           <Tabs value={value} onChange={handleChange} centered className={useStyles().root}>
             <Tab label="Statistics" {...a11yProps(0)} />
             <Tab label="Charts" {...a11yProps(1)} />
-            <Tab label="Failures" {...a11yProps(2)} />
+            {/* <Tab label="Failures" {...a11yProps(2)} />
             <Tab label="Exceptions" {...a11yProps(3)} />
-            <Tab label="Download Data" {...a11yProps(4)} />
+            <Tab label="Download Data" {...a11yProps(4)} /> */}
           </Tabs>
         </Box>
         <TabPanel value={value} index={0}>
-
         </TabPanel>
         <TabPanel value={value} index={1}>
           <LineChart />

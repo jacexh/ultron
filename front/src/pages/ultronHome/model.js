@@ -1,37 +1,32 @@
-import {
-  getStatisticList,
-} from '../../../service/chartdataservice';
-import { message } from 'antd';
+import { getMetrics } from '../../../service/chartdataservice';
+import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
 const Model = {
-  namespace: 'home',
-  state: {
-    statisticData: '212'
-  },
+	namespace: 'home',
+	state: {
+		metricsStr: '',
+	},
 
-  effects: {
-    *getChartsStatisticM({ }, { call, put, select }) {
-      console.log('aa')
-      try {
-        // 对接ljdp后端登录
-        const response = yield call(getStatisticList);
-        if (response.code == 200) {
-          yield put({
-            type: 'setStatisticList',
-            payload: response,
-          });
-        }
-      } catch (e) {
-        console.log(e)
-      }
-    }
-  },
+	effects: {
+		*getMetricsM({ payload, callback }, { call, put, select }) {
+			try {
+				const response = yield call(getMetrics);
+				yield put({
+					type: 'setMetrics',
+					payload: response,
+				});
+			} catch (e) {
+				console.log(e);
+			}
+		},
+	},
 
-  reducers: {
-    setStatisticList(state, { payload }) {
-      return { ...state, statisticData: payload.data.list };
-    },
-  },
-}
+	reducers: {
+    setMetrics(state, { payload }) {
+      const metrics = parsePrometheusTextFormat(payload);
+			return { ...state, metricsStr: metrics };
+		},
+	},
+};
 
 export default Model;

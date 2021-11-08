@@ -1,38 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Typography, Tab, Box, TableCell, Paper } from '@material-ui/core';
-import { UltronHeader } from '../ultronHeaderPage/index'
-import { UltronBar } from '../ultronBar/index'
+import { UltronHeader } from '../ultronHeader/index';
+import { UltronBar } from '../ultronBar/index';
 import { connect } from 'dva';
 
 const mapStateToProps = state => {
-  return {
-    home: state.home
-  }
+	return {
+		home: state.home,
+	};
 };
-
 
 const UltronHome = props => {
-  const { form, dispatch } = props;
-  const { statisticData } = props.home;
-  const [value, setValue] = useState(0);
+	const { dispatch } = props;
+	const { metricsStr } = props.home;
 
-  const getChartStatic = () => {
-    dispatch({
-      type: 'home/getChartsStatisticM',
-    });
-  }
+	useEffect(() => {
+		console.log(metricsStr);
+		analysisMetrics(metricsStr);
+	}, [metricsStr]);
 
+	function analysisMetrics(metricsStr) {
+		for (var i of metricsStr) {
+			console.log(i.name);
+		}
+	}
 
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
-  };
+	function getMetrics() {
+		dispatch({
+			type: 'home/getMetricsM',
+		});
+	}
 
-  return (
-    <>
-      <UltronHeader />
-      <UltronBar getChartStatic={getChartStatic} />
-    </>
-  );
+	return (
+		<>
+			<UltronHeader getMetrics={getMetrics} metricsStr={metricsStr} />
+			<UltronBar />
+		</>
+	);
 };
 
-export default connect(mapStateToProps)(UltronHome)
+export default connect(mapStateToProps)(UltronHome);
