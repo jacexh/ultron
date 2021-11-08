@@ -18,17 +18,13 @@ jobs:
       with:
         node-version: "12.x"
     - name: Install dependencies
-      run: |
-         cd front
-         yarn install
+      run: yarn --cwd front install
     - name: Install Protoc
       uses: arduino/setup-protoc@v1
       with:
         version: "3.18.1"
     - name: Build
-      run: |
-        cd front
-        yarn build
+      run: yarn --cwd front build
     - name: Generate Protocol Buff Files
       run: |   
         make proto
