@@ -1,5 +1,5 @@
 import { getMetrics } from '../../../service/chartdataservice';
-// import parsePrometheusTextFormat from 'parse-prometheus-text-format';
+import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
 const Model = {
 	namespace: 'home',
@@ -23,8 +23,8 @@ const Model = {
 
 	reducers: {
     setMetrics(state, { payload }) {
-      // const metrics = parsePrometheusTextFormat(payload);
-			// return { ...state, metricsStr: metrics };
+      const metrics = parsePrometheusTextFormat(payload);
+			return { ...state, metricsStr: metrics };
 		},
 	},
 };
