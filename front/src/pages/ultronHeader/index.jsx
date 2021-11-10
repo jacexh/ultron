@@ -13,10 +13,9 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 				<span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'initial', color: '#666666' }}>{title}</span>
 				<br />
 				<span style={{ fontSize: 17, fontWeight: 600, fontFamily: 'monospace', color: color }}> {textObj}</span>
-				<br />
-				{title == 'STATUS' ? (
+				{title == 'PLAN' ? (
 					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'monospace', color: '#6495ED' }} onClick={() => openEditUser()}>
-						New Test
+						Edit
 					</a>
 				) : (
 					''
@@ -27,7 +26,7 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 	);
 };
 
-export const UltronHeader = ({ getMetrics, metricsStr }) => {
+export const UltronHeader = ({ getMetrics, tableData }) => {
 	const [open, setOpen] = useState(true);
 	const [metrics, setMetrics] = useState();
 	const [stop, setStop] = useState(false);
@@ -41,8 +40,6 @@ export const UltronHeader = ({ getMetrics, metricsStr }) => {
 			clearInterval(timerId);
 		};
 	});
-
-
 
 	useEffect(() => {
 		getMetrics();
@@ -76,13 +73,14 @@ export const UltronHeader = ({ getMetrics, metricsStr }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<img src="./spaceman.png" width="75" style={{ paddingLeft: 30 }}></img>
-							<span style={{ fontSize: 28, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
+							<img src="./spaceman.png" width="75" style={{ paddingLeft: 25 }}></img>
+							<span style={{ fontSize: 20, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
-								{/* <HeaderStatus title='HOST' textObj={host} /> */}
-								<HeaderStatus title="STATUS" textObj="RUNNING(100 users)" openEditUser={openEditUser} />
-								<HeaderStatus title="TPS" textObj="22.5" />
-								<HeaderStatus title="FAILURES" textObj="10%" />
+								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
+								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
+								{/* <HeaderStatus title="REQUESTS" textObj={tableData && tableData.length > 0 ? tableData[0].requests : 0} /> */}
+								<HeaderStatus title="Total TPS" textObj={tableData && tableData.length > 0 ? tableData[0].tpsTotal : 0} />
+								<HeaderStatus title="FAILURES" textObj={tableData && tableData.length > 0 ? tableData[0].failures : 0} />
 								&nbsp;&nbsp;
 								{stop ? (
 									''
