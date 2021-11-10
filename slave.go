@@ -142,6 +142,9 @@ func (sr *slaveRunner) startPlan(name string) {
 
 	go func(c <-chan statistics.AttackResult) {
 		for ret := range c {
+			if ret.IsFailure() {
+				Logger.Warn("received a failed attack result", zap.Error(ret.Error))
+			}
 			sr.stats.Record(ret)
 			sr.eventbus.publishResult(ret)
 		}
