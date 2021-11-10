@@ -10,7 +10,6 @@
 			// Options
 			"INSTALL_NODE": "true",
 			"NODE_VERSION": "lts/*",
-			"UPGRADE_PACKAGES": "true"
 		}
 	},
 	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
@@ -37,7 +36,8 @@
 		"carlos-algms.make-task-provider",
 		"streetsidesoftware.code-spell-checker",
 		"k--kato.intellij-idea-keybindings",
-		"donjayamanne.githistory"
+		"donjayamanne.githistory",
+		"github.vscode-pull-request-github"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -70,5 +70,5 @@
 	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	"workspaceFolder": "/workspace",
-	"workspaceMount": "source=/home/jace/workspace/ultron,target=/workspace,type=bind,consistency=cached"
+	"workspaceMount": "source=/home/lighthouse/workspace/ultron,target=/workspace,type=bind,consistency=cached"
 }
