@@ -50,19 +50,11 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 	const { dispatch } = props;
 	const [value, setValue] = useState(0);
 
+
 	const handleChange = (event, newValue) => {
 		setValue(newValue);
-		switch (newValue) {
-			case 0:
-				{
-				}
-				break;
-			case 1:
-				{
-				}
-				break;
-		}
 	};
+
 	return (
 		<>
 			<br />
@@ -80,19 +72,20 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 							<TableHead>
 								<TableRow>
 									<StyledTableCell>ATTACKER</StyledTableCell>
-									<StyledTableCell align="center">MIN&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P50&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P60&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P70&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P80&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P90&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P95&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P97&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P98&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">P99&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">MAX&nbsp;</StyledTableCell>
-									<StyledTableCell align="center">AVG&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">MIN(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P50(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P60(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P70(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P80(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P90(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P95(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P97(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P98(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">P99(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">MAX(ms)&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">AVG(ms)&nbsp;</StyledTableCell>
 									<StyledTableCell align="center">REQUESTS&nbsp;</StyledTableCell>
+									<StyledTableCell align="center">FAILURES&nbsp;</StyledTableCell>
 									<StyledTableCell align="center">TPS&nbsp;</StyledTableCell>
 								</TableRow>
 							</TableHead>
@@ -115,9 +108,17 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 										<StyledTableCell align="center">{row.MAX}</StyledTableCell>
 										<StyledTableCell align="center">{row.AVG}</StyledTableCell>
 										<StyledTableCell align="center">{row.requests}</StyledTableCell>
+										<StyledTableCell align="center">{row.failures}</StyledTableCell>
 										<StyledTableCell align="center">{row.tpsCurrent}</StyledTableCell>
 									</StyledTableRow>
 								))}
+								<StyledTableRow>
+									<StyledTableCell align="center" colSpan={12}></StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.length > 0 ? <span style={{fontSize:16,fontWeight:500}}>TOTAL</span> : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].requests : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].failures : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].tpsCurrent : ''}</StyledTableCell>
+								</StyledTableRow>
 							</TableBody>
 						</Table>
 					</TableContainer>

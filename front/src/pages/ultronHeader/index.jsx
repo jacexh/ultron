@@ -6,15 +6,15 @@ import styles from './index.css';
 import { UltronUsers } from '../ultronUsers/index';
 import { useEffect, useState } from 'react';
 
-export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', openEditUser = 'null' }) => {
+export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', openEditUser = 'null', fontSize = '20' }) => {
 	return (
 		<>
 			<div style={{ paddingLeft: 20, paddingRight: 20 }}>
-				<span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'initial', color: '#666666' }}>{title}</span>
+				<span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: '#666666' }}>{title}</span>
 				<br />
-				<span style={{ fontSize: 17, fontWeight: 600, fontFamily: 'monospace', color: color }}> {textObj}</span>
+				<span style={{ fontSize: 22, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: color }}> {textObj}</span>
 				{title == 'PLAN' ? (
-					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'monospace', color: '#6495ED' }} onClick={() => openEditUser()}>
+					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'Arial, Helvetica, sans-serif', color: '#6495ED' }} onClick={() => openEditUser()}>
 						Edit
 					</a>
 				) : (
@@ -58,9 +58,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 		})
 			.then(response => response.json())
 			.then(function(res) {
-				console.log(res);
 				if (res && res.result) {
-					setStop(true);
+          setStop(true);
 					<Alert severity="success">success</Alert>;
 				}
 			});
@@ -79,8 +78,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
 								{/* <HeaderStatus title="REQUESTS" textObj={tableData && tableData.length > 0 ? tableData[0].requests : 0} /> */}
-								<HeaderStatus title="Total TPS" textObj={tableData && tableData.length > 0 ? tableData[0].tpsTotal : 0} />
-								<HeaderStatus title="FAILURES" textObj={tableData && tableData.length > 0 ? tableData[0].failures : 0} />
+								{/* <HeaderStatus title="Total TPS" textObj={tableData && tableData.length > 0 ? tableData[0].tpsTotal : 0} /> */}
+								<HeaderStatus title="FAILURES" textObj={tableData && tableData.length > 0 ? tableData[0].failureRatio + '%' : 0} />
 								&nbsp;&nbsp;
 								{stop ? (
 									''

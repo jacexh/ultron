@@ -65,7 +65,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`rampUpPeriod${index}`}
 						value={option.rampUpPeriod}
-						label="ramp_up_period"
+						label="准备时长"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
 					/>
@@ -101,7 +101,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 	</DialogContent>
 );
 
-export const UltronUsers = ({ open, handleClose, setOpen,setStop }) => {
+export const UltronUsers = ({ open, handleClose, setOpen, setStop }) => {
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
 
@@ -152,8 +152,8 @@ export const UltronUsers = ({ open, handleClose, setOpen,setStop }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
-          setOpen(false);
-          setStop(false)
+					setOpen(false);
+          setStop(false);
 				} else setMessage(res.error_message);
 			});
 	}
@@ -164,8 +164,8 @@ export const UltronUsers = ({ open, handleClose, setOpen,setStop }) => {
 			<DialogTitle>Start New Plan</DialogTitle>
 			<OptionsStagesConfig keyValue={planList} handleChange={handleChangeOption} removeOption={removeOption} />
 			<DialogActions>
-        <Button onClick={handleClose}>取消</Button>
-        <Button onClick={addOption}>New Stage</Button>
+				<Button onClick={handleClose}>取消</Button>
+				<Button onClick={addOption}>New Stage</Button>
 				<Button onClick={() => handleSubmmit(planList)}>执行</Button>
 			</DialogActions>
 		</Dialog>
