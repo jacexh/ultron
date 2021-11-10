@@ -36,7 +36,8 @@
 		"carlos-algms.make-task-provider",
 		"streetsidesoftware.code-spell-checker",
 		"k--kato.intellij-idea-keybindings",
-		"donjayamanne.githistory"
+		"donjayamanne.githistory",
+		"github.vscode-pull-request-github"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
