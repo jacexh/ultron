@@ -15,14 +15,14 @@ const UltronHome = props => {
 	const [tableData, setTableData] = useState([]);
 	const [lineData, setLineData] = useState([]);
   const { metricsStr, metricsTime } = props.home;
-  // console.log(metricsStr,metricsTime)
 
 	useEffect(() => {
 		getStatistics(metricsStr);
 	}, [metricsStr]);
 
   //获取列表
-	function getStatistics(metricsStr) {
+  function getStatistics(metricsStr) {
+    console.log(metricsStr)
 		var newResponstTime = [];
     var optionStatistics = {};
     var newLineData=[]

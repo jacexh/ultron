@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { render } from 'react-dom';
 import { Line } from '@ant-design/charts';
 
-var COLOR_PLATE_10 = ['#5B8FF9', '#5AD8A6', '#5D7092', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#FF9D4D', '#269A99', '#FF99C3'];
+var COLOR_PLATE_10 = ['#5B8FF9', '#5AD8A6', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#FF9D4D', '#FF99C3'];
 
 export const LineChart = ({ lineData }) => {
 	const [chartOption, setChartOption] = useState({
@@ -32,11 +32,14 @@ export const LineChart = ({ lineData }) => {
 		},
 	});
 
-  useEffect(() => {
-    //只改变data的值比较顺滑流畅
-    var newData = chartOption.data.concat(lineData)
-    console.log(newData)
-		setChartOption({ data: newData });
+	useEffect(() => {
+		//只改变data的值比较顺滑流畅
+		if (lineData && lineData.length > 0) {
+			var newData = chartOption.data.concat(lineData);
+			setChartOption({ data: newData });
+			console.log(newData);
+			// localStorage.setItem('chartData', newData);
+		}
 	}, [lineData]);
 
 	return <Line {...chartOption} />;

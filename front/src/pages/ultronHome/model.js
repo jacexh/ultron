@@ -26,7 +26,7 @@ const Model = {
 	reducers: {
 		setMetrics(state, { payload }) {
 			const metrics = parsePrometheusTextFormat(payload);
-			return { ...state, metricsStr: metrics, metricsTime: moment(new Date()).format('YYYY-MM-DD HH:mm:ss') };
+			return { ...state, metricsStr: metrics, metricsTime: moment(new Date()).format('HH:mm:ss') };
 		},
 	},
 };
