@@ -5,17 +5,8 @@ import { Line } from '@ant-design/charts';
 var COLOR_PLATE_10 = ['#5B8FF9', '#5AD8A6', '#5D7092', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#FF9D4D', '#269A99', '#FF99C3'];
 
 export const LineChart = ({ lineData }) => {
-	const [data, setData] = useState([]);
-
-	useEffect(() => {
-    var newdata = data.concat(lineData);
-    setData(newdata)
-  }, [lineData]);
-  
-  console.log(data)
-
-	var config = {
-		data: data,
+	const [chartOption, setChartOption] = useState({
+		data: [],
 		xField: 'time',
 		yField: 'value',
 		seriesField: 'category',
@@ -39,7 +30,14 @@ export const LineChart = ({ lineData }) => {
 				return { r: Number(time) % 4 ? 0 : 3 };
 			},
 		},
-	};
+	});
 
-	return <Line {...config} />;
+  useEffect(() => {
+    //只改变data的值比较顺滑流畅
+    var newData = chartOption.data.concat(lineData)
+    console.log(newData)
+		setChartOption({ data: newData });
+	}, [lineData]);
+
+	return <Line {...chartOption} />;
 };
