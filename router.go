@@ -103,7 +103,7 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 	if err != nil {
 		panic(err)
 	}
-	route.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
+	route.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
 
 	// prometheus exporter
 	exporter := newMetric(runner)
