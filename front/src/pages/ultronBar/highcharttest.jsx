@@ -4,9 +4,9 @@ import { Line } from '@ant-design/charts';
 
 var COLOR_PLATE_10 = ['#5B8FF9', '#5AD8A6', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#FF9D4D', '#FF99C3'];
 
-export const LineChart = ({ lineData }) => {
+export const LineChart = ({ lineData,localType }) => {
 	const [chartOption, setChartOption] = useState({
-		data: JSON.parse(localStorage.getItem("chartData"))||[],
+		data: JSON.parse(localStorage.getItem(localType))||[],
 		xField: 'time',
 		yField: 'value',
 		seriesField: 'category',
@@ -37,7 +37,7 @@ export const LineChart = ({ lineData }) => {
 		if (lineData && lineData.length > 0) {
 			var newData = chartOption.data.concat(lineData);
 			setChartOption({ data: newData });
-			localStorage.setItem('chartData', JSON.stringify(newData));
+			localStorage.setItem(localType, JSON.stringify(newData));
 		}
 	}, [lineData]);
 

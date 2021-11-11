@@ -28,12 +28,11 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 
 export const UltronHeader = ({ getMetrics, tableData }) => {
 	const [open, setOpen] = useState(true);
-	const [metrics, setMetrics] = useState();
 	const [stop, setStop] = useState(false);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
-			getMetrics();
+			tableData && tableData.tpsTotal ? '' : getMetrics();
 		}, 5000);
 		return () => {
 			// 组件销毁时，清除定时器
@@ -76,13 +75,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 							<span style={{ fontSize: 20, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
-								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
-								{/* <HeaderStatus title="REQUESTS" textObj={tableData && tableData.length > 0 ? tableData[0].requests : 0} /> */}
-								{/* <HeaderStatus title="Total TPS" textObj={tableData && tableData.length > 0 ? tableData[0].tpsTotal : 0} /> */}
+								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
 								<HeaderStatus
 									title="FAILURES"
-									textObj={tableData && tableData.length > 0 ? (parseFloat(tableData[0].failureRatio) * 100).toFixed(2) + '%' : 0}
+									textObj={tableData && tableData.failureRatio ? (parseFloat(tableData.failureRatio) * 100).toFixed(2) + '%' : 0}
 								/>
+								{tableData && tableData.tpsTotal ? <HeaderStatus title="Total TPS" textObj={tableData.tpsTotal} /> : ''}
 								&nbsp;&nbsp;
 								{stop ? (
 									''

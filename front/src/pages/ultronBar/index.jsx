@@ -4,7 +4,7 @@ import { useStyles } from '../components/makestyle';
 import { styled } from '@material-ui/core/styles';
 import { LineChart } from '../ultronBar/highcharttest';
 import { tableCellClasses } from '@material-ui/core/TableCell';
-import { Spin } from 'antd';
+import { Divider } from 'antd';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
 	[`&.${tableCellClasses.head}`]: {
@@ -46,10 +46,9 @@ function a11yProps(index) {
 	};
 }
 
-export const UltronBar = ({ tableData, lineData }, props) => {
+export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 	const { dispatch } = props;
 	const [value, setValue] = useState(0);
-
 
 	const handleChange = (event, newValue) => {
 		setValue(newValue);
@@ -66,7 +65,6 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 					</Tabs>
 				</Box>
 				<TabPanel value={value} index={0}>
-					{/* <Spin spinning={tableData && tableData.length > 0 ? false : true}> */}
 					<TableContainer component={Paper}>
 						<Table sx={{ minWidth: 650 }} aria-label="simple table">
 							<TableHead>
@@ -90,34 +88,32 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 								</TableRow>
 							</TableHead>
 							<TableBody>
-								{tableData.map((row, index) => (
-									<StyledTableRow key={index}>
-										<StyledTableCell component="th" scope="row">
-											{row.attacker}
-										</StyledTableCell>
-										<StyledTableCell align="center">{row.MIN}</StyledTableCell>
-										<StyledTableCell align="center">{row.P50}</StyledTableCell>
-										<StyledTableCell align="center">{row.P60}</StyledTableCell>
-										<StyledTableCell align="center">{row.P70}</StyledTableCell>
-										<StyledTableCell align="center">{row.P80}</StyledTableCell>
-										<StyledTableCell align="center">{row.P90}</StyledTableCell>
-										<StyledTableCell align="center">{row.P95}</StyledTableCell>
-										<StyledTableCell align="center">{row.P97}</StyledTableCell>
-										<StyledTableCell align="center">{row.P98}</StyledTableCell>
-										<StyledTableCell align="center">{row.P99}</StyledTableCell>
-										<StyledTableCell align="center">{row.MAX}</StyledTableCell>
-										<StyledTableCell align="center">{row.AVG}</StyledTableCell>
-										<StyledTableCell align="center">{row.requests}</StyledTableCell>
-										<StyledTableCell align="center">{row.failures}</StyledTableCell>
-										<StyledTableCell align="center">{row.tpsCurrent}</StyledTableCell>
-									</StyledTableRow>
-								))}
+								<StyledTableRow>
+									<StyledTableCell component="th" scope="row">
+										{tableData.attacker}
+									</StyledTableCell>
+									<StyledTableCell align="center">{tableData.MIN}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P50}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P60}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P70}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P80}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P90}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P95}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P97}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P98}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.P99}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.MAX}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.AVG}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.requests}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.failures}</StyledTableCell>
+									<StyledTableCell align="center">{tableData.tpsCurrent}</StyledTableCell>
+								</StyledTableRow>
 								<StyledTableRow>
 									<StyledTableCell align="center" colSpan={12}></StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.length > 0 ? <span style={{fontSize:16,fontWeight:500}}>TOTAL</span> : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].requests : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].failures : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.length > 0 ? tableData[0].tpsCurrent : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData ? <span style={{ fontSize: 16, fontWeight: 500 }}>TOTAL</span> : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.requests ? tableData.requests : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.failures ? tableData.failures : ''}</StyledTableCell>
+									<StyledTableCell align="center">{tableData && tableData.tpsCurrent ? tableData.tpsCurrent : ''}</StyledTableCell>
 								</StyledTableRow>
 							</TableBody>
 						</Table>
@@ -125,7 +121,12 @@ export const UltronBar = ({ tableData, lineData }, props) => {
 					{/* </Spin> */}
 				</TabPanel>
 				<TabPanel value={value} index={1}>
-					<LineChart lineData={lineData} />
+					<h3>Response Times(ms)</h3>
+					<LineChart lineData={lineData} localType="chartData" />
+					<br />
+					<br />
+					<h3>Total Requests per Second</h3>
+					<LineChart lineData={tpsline} localType="tpsline" />
 				</TabPanel>
 				<TabPanel value={value} index={2}></TabPanel>
 				<TabPanel value={value} index={3}>
