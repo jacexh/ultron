@@ -59,7 +59,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
-          setStop(true);
+					setStop(true);
 					<Alert severity="success">success</Alert>;
 				}
 			});
@@ -79,7 +79,10 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
 								{/* <HeaderStatus title="REQUESTS" textObj={tableData && tableData.length > 0 ? tableData[0].requests : 0} /> */}
 								{/* <HeaderStatus title="Total TPS" textObj={tableData && tableData.length > 0 ? tableData[0].tpsTotal : 0} /> */}
-								<HeaderStatus title="FAILURES" textObj={tableData && tableData.length > 0 ? tableData[0].failureRatio + '%' : 0} />
+								<HeaderStatus
+									title="FAILURES"
+									textObj={tableData && tableData.length > 0 ? (parseFloat(tableData[0].failureRatio) * 100).toFixed(2) + '%' : 0}
+								/>
 								&nbsp;&nbsp;
 								{stop ? (
 									''
