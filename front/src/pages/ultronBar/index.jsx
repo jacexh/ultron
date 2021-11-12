@@ -5,6 +5,7 @@ import { styled } from '@material-ui/core/styles';
 import { LineChart } from '../ultronBar/highcharttest';
 import { tableCellClasses } from '@material-ui/core/TableCell';
 
+
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
 	[`&.${tableCellClasses.head}`]: {
 		backgroundColor: theme.palette.common.black,
@@ -89,11 +90,11 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 				}
 			></CardHeader>
 			<CardContent>
-				<h3>Response Times(ms)</h3>
+				<h3 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Response Times(ms)</h3>
 				<LineChart lineData={lineData} localType="chartData" />
 				<br />
 				<br />
-				<h3>Total Requests per Second</h3>
+				<h3 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Total Requests per Second</h3>
 				<LineChart lineData={tpsline} localType="tpsline" />
 			</CardContent>
 		</Card>
