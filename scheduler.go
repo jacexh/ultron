@@ -164,8 +164,6 @@ patrol:
 
 			default: // 继续巡查
 			}
-		default:
-			continue
 		}
 	}
 }
