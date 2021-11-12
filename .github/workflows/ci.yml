@@ -40,10 +40,7 @@ jobs:
     - name: Code Coverage Report
       uses: codecov/codecov-action@v2
       with:
-        files: coverage.txt,pkg/fastattacker/coverage.txt
+        files: coverage.txt
         verbose: true
         flags: unittest
         fail_ci_if_error: true
-
-
-
