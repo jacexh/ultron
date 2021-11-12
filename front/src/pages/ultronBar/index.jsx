@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography, Tab, Box, Paper } from '@material-ui/core';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardHeader, CardContent, Box, Paper } from '@material-ui/core';
 import { useStyles } from '../components/makestyle';
 import { styled } from '@material-ui/core/styles';
 import { LineChart } from '../ultronBar/highcharttest';
@@ -25,45 +25,14 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 	},
 }));
 
-function TabPanel(props) {
-	const { children, value, index, ...other } = props;
-	return (
-		<div role="tabpanel" hidden={value !== index} id={`simple-tabpanel-${index}`} aria-labelledby={`simple-tab-${index}`} {...other}>
-			{value === index && (
-				<Box sx={{ p: 3 }}>
-					<Typography>{children}</Typography>
-				</Box>
-			)}
-		</div>
-	);
-}
-
-function a11yProps(index) {
-	return {
-		id: `simple-tab-${index}`,
-		'aria-controls': `simple-tabpanel-${index}`,
-	};
-}
-
 export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 	const { dispatch } = props;
 	const [value, setValue] = useState(0);
 
-	const handleChange = (event, newValue) => {
-		setValue(newValue);
-	};
-
 	return (
-		<>
-			<br />
-			<Box sx={{ width: '100%', paddingTop: 4 }}>
-				<Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-					<Tabs value={value} onChange={handleChange} centered className={useStyles().root}>
-						<Tab label="Statistics" {...a11yProps(0)}></Tab>
-						{lineData && lineData.length > 0 ? <Tab label="Charts" {...a11yProps(1)} /> : ''}
-					</Tabs>
-				</Box>
-				<TabPanel value={value} index={0}>
+		<Card sx={{ paddingTop: 5 }}>
+			<CardHeader
+				title={
 					<TableContainer component={Paper}>
 						<Table sx={{ minWidth: 650 }} aria-label="simple table">
 							<TableHead>
@@ -117,24 +86,16 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 							</TableBody>
 						</Table>
 					</TableContainer>
-					{/* </Spin> */}
-				</TabPanel>
-				<TabPanel value={value} index={1}>
-					<h3>Response Times(ms)</h3>
-					<LineChart lineData={lineData} localType="chartData" />
-					<br />
-					<br />
-					<h3>Total Requests per Second</h3>
-					<LineChart lineData={tpsline} localType="tpsline" />
-				</TabPanel>
-				<TabPanel value={value} index={2}></TabPanel>
-				<TabPanel value={value} index={3}>
-					Item four
-				</TabPanel>
-				<TabPanel value={value} index={4}>
-					Item five
-				</TabPanel>
-			</Box>
-		</>
+				}
+			></CardHeader>
+			<CardContent>
+				<h3>Response Times(ms)</h3>
+				<LineChart lineData={lineData} localType="chartData" />
+				<br />
+				<br />
+				<h3>Total Requests per Second</h3>
+				<LineChart lineData={tpsline} localType="tpsline" />
+			</CardContent>
+		</Card>
 	);
 };

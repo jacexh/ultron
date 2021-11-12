@@ -280,10 +280,10 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			</Dialog>
 			<h1 className={styles.title}>
 				<div>
-					<AppBar position="fixed" className={useStyles().headerBg}>
+					<AppBar position="fixed" className={useStyles().headerBg} >
 						<div>
-							<img src="./spaceman.png" width="55" style={{ paddingLeft: 25 }}></img>
-							<span style={{ fontSize: 24, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
+							<img src="./spaceman.png" width="65" style={{ paddingLeft: 25 }}></img>
+							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
