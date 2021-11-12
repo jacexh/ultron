@@ -1,4 +1,4 @@
-module github.com/wosai/ultron/pkg/fastattacker
+module github.com/wosai/ultron/v2/pkg/fastattacker
 
 go 1.17
 

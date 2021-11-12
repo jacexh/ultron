@@ -1,5 +1,10 @@
 module github.com/wosai/ultron/v2
 
+replace (
+	github.com/wosai/ultron/v2/handler/influxdbv1 => ./handler/influxdbv1
+	github.com/wosai/ultron/v2/pkg/fastattacker => ./pkg/fastattacker
+)
+
 require (
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/golang/protobuf v1.5.0
