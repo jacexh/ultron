@@ -21,16 +21,16 @@ const UltronHome = props => {
 		getStatistics(metricsStr);
 	}, [metricsStr]);
 
+  
 	//获取列表
 	function getStatistics(metricsStr) {
-		console.log(metricsStr);
 		var optionStatistics = {};
 		var newLineData = [];
 		var tpsLineData = [];
 		for (var i of metricsStr) {
 			if (i.name == 'ultron_attacker_response_time') {
 				if (i['metrics'] && i['metrics'].length > 0) {
-					var quantiles = i['metrics'][0]['quantiles'];//只会一个
+					var quantiles = i['metrics'][0]['quantiles']; //只会一个
 					optionStatistics.MIN = parseFloat(quantiles['0']);
 					optionStatistics.P50 = parseFloat(quantiles['0.5']);
 					newLineData.push({
@@ -95,8 +95,8 @@ const UltronHome = props => {
 			}
 			if (i.name == 'ultron_attacker_failures_total') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failures = i['metrics'][0]['value']) : '';
-      }
-      
+			}
+
 			//ultron_attacker_tps_total--stop后会显示tps_total，运行中是current tpc --结束标志Plan
 			if (i.name == 'ultron_attacker_tps_total') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsTotal = parseFloat(i['metrics'][0]['value']).toFixed(2)) : '';
@@ -105,7 +105,7 @@ const UltronHome = props => {
 			//avg
 			if (i.name == 'ultron_attacker_response_time_avg') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.AVG = parseFloat(i['metrics'][0]['value'])) : '';
-        i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.attacker = i['metrics'][0]['labels']['attacker']) : '';
+				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.attacker = i['metrics'][0]['labels']['attacker']) : '';
 			}
 
 			//current tps
@@ -116,25 +116,24 @@ const UltronHome = props => {
 					category: 'TPS',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsCurrent = parseFloat(i['metrics'][0]['value']).toFixed(2)) : '';
-			}
+      }
 
 			//failure ratio 失败率
-			if (i.name == 'ultron_attacker_failure_ratio') {
+      if (i.name == 'ultron_attacker_failure_ratio') {
 				tpsLineData.push({
 					time: metricsTime,
-					value: i['metrics'][0]['value'],
+          value:parseFloat(i['metrics'][0]['value']).toFixed(2)*100,//??
 					category: 'Failure Ratio',
 				});
-				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failureRatio = i['metrics'][0]['value']) : '';
+				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failureRatio = Number(i['metrics'][0]['value'] * 100).toFixed(2)) : '';
 			}
 
 			//users
 			if (i.name == 'ultron_concurrent_users') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.users = i['metrics'][0]['value']) : '';
 			}
-    }
-    console.log(optionStatistics)
-    setTableData(optionStatistics)
+		}
+		setTableData(optionStatistics);
 		setLineData(newLineData);
 		setTpsLine(tpsLineData);
 	}
