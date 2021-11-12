@@ -16,19 +16,11 @@ proto: tools
 
 .PHONY: test
 test: 
-	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
-		cd $$dir; \
-		go test -race -covermode=atomic -v -coverprofile=coverage.txt ./...; \
-		cd - > /dev/null; \
-	done
+	@go test -race -covermode=atomic -v -coverprofile=coverage.txt
 
 .PHONY: benchmark
 benchmark: 
-	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
-		cd $$dir; \
-		go test -bench -v . ./...; \
-		cd - > /dev/null; \
-	done
+	@go test -bench -v . ./...
 
 .PHONY: tools
 tools:
@@ -39,11 +31,3 @@ tools:
 .PHONY: ultron
 ultron:
 	@go run cmd/ultron/main.go
-
-.PHONY: gomod
-gomod: 
-	@for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
-		cd $$dir; \
-		go mod download; \
-		cd - > /dev/null; \
-	done
