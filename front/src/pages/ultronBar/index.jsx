@@ -4,7 +4,6 @@ import { useStyles } from '../components/makestyle';
 import { styled } from '@material-ui/core/styles';
 import { LineChart } from '../ultronBar/highcharttest';
 import { tableCellClasses } from '@material-ui/core/TableCell';
-import { Divider } from 'antd';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
 	[`&.${tableCellClasses.head}`]: {

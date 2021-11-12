@@ -168,6 +168,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 		setOpen(false);
 	};
 	const openEditUser = () => {
+		setPlanLists([]);
 		setOpen(true);
 	};
 
@@ -281,7 +282,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<img src="./spaceman.png" width="75" style={{ paddingLeft: 25 }}></img>
+							<img src="./spaceman.png" width="55" style={{ paddingLeft: 25 }}></img>
 							<span style={{ fontSize: 24, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
