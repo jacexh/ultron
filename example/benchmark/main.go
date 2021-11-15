@@ -30,7 +30,7 @@ func main() {
 	plan := ultron.NewPlan("benchmark test")
 	plan.AddStages(
 		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second, RampUpPeriod: 10},
-		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 2000000, RampUpPeriod: 5},
+		&ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 500000, RampUpPeriod: 5},
 	)
 
 	if err := runner.Launch(); err != nil {
@@ -43,6 +43,7 @@ func main() {
 
 	for {
 		if plan.Status() == ultron.StatusFinished {
+			<-time.After(1 * time.Second)
 			break
 		}
 		runtime.Gosched()
@@ -50,8 +51,7 @@ func main() {
 
 	plan = ultron.NewPlan("benchmark-test-2")
 	plan.AddStages(
-		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second, RampUpPeriod: 10},
-		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 2000000, RampUpPeriod: 5},
+		&ultron.V1StageConfig{ConcurrentUsers: 150, Duration: 60 * time.Second, RampUpPeriod: 10},
 	)
 	runner.StartPlan(plan)
 

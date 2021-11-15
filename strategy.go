@@ -39,7 +39,7 @@ type (
 
 	// FixedConcurrentUsers 固定goroutine/线程/用户的并发策略
 	FixedConcurrentUsers struct {
-		ConcurrentUsers int `json:"conncurrent_users"`        // 并发用户数
+		ConcurrentUsers int `json:"concurrent_users"`         // 并发用户数
 		RampUpPeriod    int `json:"ramp_up_period,omitempty"` // 增压周期时长
 	}
 
@@ -75,6 +75,8 @@ type (
 		timer  Timer
 		mu     sync.RWMutex
 	}
+
+	commanderFactory struct{}
 )
 
 var (
@@ -83,6 +85,7 @@ var (
 )
 
 var defaultAttackStrategyConverter *attackStrategyConverter
+var defaultCommanderFactory = commanderFactory{}
 
 func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) []*RampUpStep {
 	var ret []*RampUpStep
@@ -344,6 +347,10 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 		e.mu.RUnlock()
 		t.Sleep()
 	}
+}
+
+func (cf commanderFactory) build(ct string) AttackStrategyCommander {
+	return newFixedConcurrentUsersStrategyCommander()
 }
 
 func init() {
