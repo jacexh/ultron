@@ -90,11 +90,11 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 				}
 			></CardHeader>
 			<CardContent>
-				<h3 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Response Times(ms)</h3>
+				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Response Times(ms)</h2>
 				<LineChart lineData={lineData} localType="chartData" />
 				<br />
 				<br />
-				<h3 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Total Requests per Second</h3>
+				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Total Requests per Second</h2>
 				<LineChart lineData={tpsline} localType="tpsline" />
 			</CardContent>
 		</Card>

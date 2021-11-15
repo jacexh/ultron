@@ -135,7 +135,7 @@ const UltronHome = props => {
 		}
 		setTableData(optionStatistics);
 		setLineData(newLineData);
-		setTpsLine(tpsLineData);
+    setTpsLine(tpsLineData);
 	}
 
 	function getMetrics() {

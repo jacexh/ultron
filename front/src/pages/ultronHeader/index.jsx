@@ -41,7 +41,8 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 				<span style={{ fontSize: 22, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: color }}> {textObj}</span>
 				{title == 'PLAN' ? (
 					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'Arial, Helvetica, sans-serif', color: '#6495ED' }} onClick={() => openEditUser()}>
-						<Edit fontSize="small" />Edit
+						<Edit fontSize="small" />
+						Edit
 					</a>
 				) : (
 					''
@@ -74,8 +75,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 							<h4>
 								stage{index}&nbsp;
 								<a onClick={e => removeOption(e, index)} style={{ color: '#EE4000', fontSize: 16 }}>
-                    <Icon type="minus-circle" />
-                    
+									<Icon type="minus-circle" />
 								</a>
 							</h4>
 						</Divider>
@@ -158,6 +158,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 
 	useEffect(() => {
 		getMetrics();
+		// localStorage.setItem('chartData',JSON.stringify({}));
+		// localStorage.setItem('tpsline',JSON.stringify({}));
 	}, []);
 
 	useEffect(() => {
@@ -186,8 +188,10 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
-					localStorage.removeItem('chartData');
-					localStorage.removeItem('tpsline');
+					// localStorage.removeItem('chartData');
+					// localStorage.removeItem('tpsline');
+					// localStorage.setItem('chartData', JSON.stringify({}));
+					// localStorage.setItem('tpsline', JSON.stringify({}));
 				}
 			});
 	}
@@ -236,8 +240,10 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				if (res && res.result) {
 					setBackDrop(true);
 					isOver();
-					localStorage.removeItem('chartData');
-					localStorage.removeItem('tpsline');
+					// localStorage.setItem('chartData', JSON.stringify({}));
+					// localStorage.setItem('tpsline', JSON.stringify({}));
+					// localStorage.removeItem('chartData');
+					// localStorage.removeItem('tpsline');
 				} else setMessage(res.error_message);
 			});
 	}
