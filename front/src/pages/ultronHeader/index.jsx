@@ -14,7 +14,7 @@ import {
 	DialogTitle,
 	DialogContent,
 } from '@material-ui/core';
-import { AccessAlarm, Stop } from '@material-ui/icons';
+import { Edit, Stop } from '@material-ui/icons';
 import styles from './index.css';
 import { useEffect, useState } from 'react';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
@@ -41,7 +41,7 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 				<span style={{ fontSize: 22, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: color }}> {textObj}</span>
 				{title == 'PLAN' ? (
 					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'Arial, Helvetica, sans-serif', color: '#6495ED' }} onClick={() => openEditUser()}>
-						Edit
+						<Edit fontSize="small" />Edit
 					</a>
 				) : (
 					''
@@ -74,7 +74,8 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 							<h4>
 								stage{index}&nbsp;
 								<a onClick={e => removeOption(e, index)} style={{ color: '#EE4000', fontSize: 16 }}>
-									<Icon type="minus-circle" />
+                    <Icon type="minus-circle" />
+                    
 								</a>
 							</h4>
 						</Divider>
@@ -282,8 +283,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<img src="./spaceman.png" width="55" style={{ paddingLeft: 25 }}></img>
-							<span style={{ fontSize: 24, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
+							<img src="./spaceman.png" width="65" style={{ paddingLeft: 25 }}></img>
+							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
