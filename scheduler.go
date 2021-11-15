@@ -143,7 +143,7 @@ patrol:
 			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {
 			case err != nil && errors.Is(err, ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了，此时plan已经完成
-				Logger.Info("current test plan is complete")
+				Logger.Info("current plan is closed")
 				s.stop(true) // TODO： 是否还要做点什么？不做的话会拿到下一次聚合报告？
 				return nil
 

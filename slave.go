@@ -105,6 +105,7 @@ func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 
 		Logger.Info("received a new event", zap.Any("event", event))
 
+		// 在实现上确保串行
 		switch event.GetType() {
 		case genproto.EventType_DISCONNECT:
 			Logger.Warn("ultron server ask me to shutdown connection")
@@ -134,21 +135,11 @@ func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 func (sr *slaveRunner) startPlan(name string) {
 	if sr.commander != nil {
 		sr.commander.Close()
+		sr.commander = nil
 	}
+
 	sr.stats.Reset()
 	sr.stats.Attach(statistics.Tag{Key: KeyPlan, Value: name})
-	sr.commander = newFixedConcurrentUsersStrategyCommander()
-	output := sr.commander.Open(sr.ctx, sr.task)
-
-	go func(c <-chan statistics.AttackResult) {
-		for ret := range c {
-			if ret.IsFailure() {
-				Logger.Warn("received a failed attack result", zap.Error(ret.Error))
-			}
-			sr.stats.Record(ret)
-			sr.eventbus.publishResult(ret)
-		}
-	}(output)
 }
 
 func (sr *slaveRunner) submit(batch uint32) {
@@ -175,12 +166,27 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 		Logger.Error("failed to start next stage", zap.Error(err))
 		return
 	}
+
+	if sr.commander == nil {
+		sr.commander = defaultCommanderFactory.build(strategy.(namedAttackStrategy).Name())
+		output := sr.commander.Open(sr.ctx, sr.task)
+		go func(c <-chan statistics.AttackResult) {
+			for ret := range c {
+				if ret.IsFailure() {
+					Logger.Warn("received a failed attack result", zap.Error(ret.Error))
+				}
+				sr.stats.Record(ret)
+				sr.eventbus.publishResult(ret)
+			}
+		}(output)
+	}
 	go sr.commander.Command(strategy, timer)
 }
 
 func (sr *slaveRunner) stopPlan() {
 	if sr.commander != nil {
 		sr.commander.Close()
+		sr.commander = nil
 	}
 	Logger.Info("current plan is stopped")
 }
