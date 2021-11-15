@@ -21,7 +21,6 @@ const UltronHome = props => {
 		getStatistics(metricsStr);
 	}, [metricsStr]);
 
-  
 	//获取列表
 	function getStatistics(metricsStr) {
 		var optionStatistics = {};
@@ -96,18 +95,15 @@ const UltronHome = props => {
 			if (i.name == 'ultron_attacker_failures_total') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failures = i['metrics'][0]['value']) : '';
 			}
-
 			//ultron_attacker_tps_total--stop后会显示tps_total，运行中是current tpc --结束标志Plan
 			if (i.name == 'ultron_attacker_tps_total') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsTotal = parseFloat(i['metrics'][0]['value']).toFixed(2)) : '';
 			}
-
 			//avg
 			if (i.name == 'ultron_attacker_response_time_avg') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.AVG = parseFloat(i['metrics'][0]['value'])) : '';
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.attacker = i['metrics'][0]['labels']['attacker']) : '';
 			}
-
 			//current tps
 			if (i.name == 'ultron_attacker_tps_current') {
 				tpsLineData.push({
@@ -116,18 +112,16 @@ const UltronHome = props => {
 					category: 'TPS',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsCurrent = parseFloat(i['metrics'][0]['value']).toFixed(2)) : '';
-      }
-
+			}
 			//failure ratio 失败率
-      if (i.name == 'ultron_attacker_failure_ratio') {
+			if (i.name == 'ultron_attacker_failure_ratio') {
 				tpsLineData.push({
 					time: metricsTime,
-          value:parseFloat(i['metrics'][0]['value']).toFixed(2)*100,//??
+					value: parseFloat(i['metrics'][0]['value']).toFixed(2) * 100, //??
 					category: 'Failure Ratio',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failureRatio = Number(i['metrics'][0]['value'] * 100).toFixed(2)) : '';
 			}
-
 			//users
 			if (i.name == 'ultron_concurrent_users') {
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.users = i['metrics'][0]['value']) : '';
@@ -135,7 +129,7 @@ const UltronHome = props => {
 		}
 		setTableData(optionStatistics);
 		setLineData(newLineData);
-    setTpsLine(tpsLineData);
+		setTpsLine(tpsLineData);
 	}
 
 	function getMetrics() {

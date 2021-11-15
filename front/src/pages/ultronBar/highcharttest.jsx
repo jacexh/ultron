@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { render } from 'react-dom';
 import { Line } from '@ant-design/charts';
+const moment = require('moment');
 
 var COLOR_PLATE_10 = ['#5B8FF9', '#5AD8A6', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#FF9D4D', '#FF99C3'];
 
@@ -10,12 +11,10 @@ export const LineChart = ({ lineData, localType }) => {
 		xField: 'time',
 		yField: 'value',
 		seriesField: 'category',
-		yAxis: {
+		xAxis: {
 			label: {
-				formatter: function formatter(v) {
-					return ''.concat(v).replace(/\d{1,3}(?=(\d{3})+$)/g, function(s) {
-						return ''.concat(s, ',');
-					});
+				formatter: function(v) {
+					return moment(v).format('HH:mm:ss');
 				},
 			},
 		},
