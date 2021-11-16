@@ -1,6 +1,8 @@
 // ref: https://umijs.org/config/
 const CompressionWebpackPlugin = require('compression-webpack-plugin');
 const prodGzipList = ['js', 'css'];
+const assetDir = "static";
+
 
 export default {
 	treeShaking: true,
@@ -8,7 +10,11 @@ export default {
 	outputPath: '../web',
 	base: './',
 	publicPath: './',
-	hash: true,
+  hash: true,
+  exportStatic: {
+    htmlSuffix: true,
+    dynamicRoot: true,
+  },
 	theme: {
 		'@primary-color': '#666666',
 	},
@@ -28,12 +34,12 @@ export default {
 	runtimePublicPath: true,
 	chainWebpack: config => {
 		//修改JS输出目录
-		config.output.filename('[name].[hash:8].js').chunkFilename('[name].[contenthash:8].chunk.js');
+		config.output.filename(assetDir+'/[name].[hash:8].js').chunkFilename(assetDir+'/[name].[contenthash:8].chunk.js');
 		// 修改css输出目录
 		config.plugin('extract-css').tap(() => [
 			{
-				filename: `[name].[contenthash:8].css`,
-				chunkFilename: `[name].[contenthash:8].chunk.css`,
+				filename: assetDir+`/[name].[contenthash:8].css`,
+				chunkFilename: assetDir+`/[name].[contenthash:8].chunk.css`,
 				ignoreOrder: true,
 			},
 		]);
@@ -75,11 +81,6 @@ export default {
 			component: '../layouts/index',
 			routes: [
 				{ path: '/', component: '../pages/ultronHome/' },
-				{ path: '/charts', component: '../pages/ultronBar/highcharttest' },
-				{
-					path: '/check',
-					component: '../layouts/check',
-				},
 			],
 		},
 	],
