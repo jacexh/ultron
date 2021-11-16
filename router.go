@@ -30,12 +30,12 @@ type (
 	}
 )
 
-//go:embed web/*
-var statics embed.FS
-
-func homepage(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello, ultron!"))
-}
+var (
+	//go:embed web/static/*
+	statics embed.FS
+	//go:embed web/index.html
+	indexhtml []byte
+)
 
 func (rest *restServer) handleStartNewPlan() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -93,16 +93,19 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 
 	// http api
 	{
-		route.Get("/", homepage)
 		route.Post("/api/v1/plan", rest.handleStartNewPlan())
 		route.Delete("/api/v1/plan", rest.handleStopPlan())
 	}
 
 	// static files
-	content, err := fs.Sub(statics, "web")
+	content, err := fs.Sub(statics, "web/static")
 	if err != nil {
 		panic(err)
 	}
+	route.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write(indexhtml)
+	})
 	route.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(content))))
 
 	// prometheus exporter
