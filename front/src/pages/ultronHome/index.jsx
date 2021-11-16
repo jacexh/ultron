@@ -117,7 +117,7 @@ const UltronHome = props => {
 			if (i.name == 'ultron_attacker_failure_ratio') {
 				tpsLineData.push({
 					time: metricsTime,
-					value: parseFloat(i['metrics'][0]['value']).toFixed(2) * 100, //??
+					value: Number(i['metrics'][0]['value'] * 100).toFixed(2),
 					category: 'Failure Ratio',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failureRatio = Number(i['metrics'][0]['value'] * 100).toFixed(2)) : '';

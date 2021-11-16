@@ -293,10 +293,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
-								<HeaderStatus
-									title="FAILURES"
-									textObj={tableData && tableData.failureRatio ? (parseFloat(tableData.failureRatio) * 100).toFixed(2) + '%' : 0}
-								/>
+								<HeaderStatus title="FAILURES" textObj={tableData && tableData.failureRatio ? tableData.failureRatio + '%' : 0} />
 								{tableData && tableData.tpsTotal ? <HeaderStatus title="Total TPS" textObj={tableData.tpsTotal} /> : ''}
 								&nbsp;&nbsp;
 								{tableData && tableData.tpsTotal ? (
