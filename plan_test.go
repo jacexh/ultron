@@ -84,3 +84,41 @@ func TestPlan_startNextStage(t *testing.T) {
 	assert.True(t, errors.Is(err, ErrPlanClosed))
 	assert.EqualValues(t, p1.Status(), StatusFinished)
 }
+
+func TestPlan_interrupt(t *testing.T) {
+	plan := NewPlan("")
+	plan.AddStages(
+		&V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
+	)
+	plan.interrupt()
+	assert.EqualValues(t, plan.Status(), StatusInterrupted)
+
+	plan.status = StatusFinished
+	plan.interrupt()
+	assert.EqualValues(t, plan.Status(), StatusFinished)
+}
+
+func TestPlan_Stages(t *testing.T) {
+	plan := NewPlan("")
+	plan.AddStages(
+		&V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
+	)
+	stages := plan.Stages()
+	assert.EqualValues(t, len(stages), 1)
+}
+
+func TestPlan_current(t *testing.T) {
+	plan := NewPlan("")
+	plan.AddStages(
+		&V1StageConfig{ConcurrentUsers: 100, RampUpPeriod: 3},
+	)
+	no, stage := plan.Current()
+	assert.EqualValues(t, no, -1)
+	assert.Nil(t, stage)
+
+	plan.check()
+	plan.stopCurrentAndStartNext(-1, statistics.SummaryReport{})
+	no, stage = plan.Current()
+	assert.EqualValues(t, no, 0)
+	assert.NotNil(t, stage)
+}
