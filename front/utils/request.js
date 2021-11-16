@@ -33,12 +33,14 @@ const errorHandler = error => {
 		const { status, url } = response;
 		notification.error({
 			message: `请求错误 ${status}: ${url}`,
-			description: errorText,
+      description: errorText,
+      placement: 'bottomLeft',
 		});
 	} else if (!response) {
 		notification.error({
 			description: '您的网络发生异常，无法连接服务器',
-			message: '网络异常',
+      message: '网络异常',
+      placement: 'bottomLeft',
 		});
 	}
 

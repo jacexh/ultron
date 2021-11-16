@@ -1,4 +1,5 @@
 import { useStyles } from '../components/makestyle';
+import { notification, Icon } from 'antd';
 import {
 	Alert,
 	Toolbar,
@@ -18,7 +19,7 @@ import { Edit, Stop } from '@material-ui/icons';
 import styles from './index.css';
 import { useEffect, useState } from 'react';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
-import { Icon } from 'antd';
+import { UltronImage } from '../components/image';
 
 const optionType = {
 	strageConfig: {
@@ -158,8 +159,6 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 
 	useEffect(() => {
 		getMetrics();
-		// localStorage.setItem('chartData',JSON.stringify({}));
-		// localStorage.setItem('tpsline',JSON.stringify({}));
 	}, []);
 
 	useEffect(() => {
@@ -173,6 +172,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	const openEditUser = () => {
 		setPlanLists([]);
 		setOpen(true);
+		localStorage.removeItem('chartData');
+		localStorage.removeItem('tpsline');
 	};
 
 	useEffect(() => {
@@ -187,12 +188,13 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 		})
 			.then(response => response.json())
 			.then(function(res) {
-				if (res && res.result) {
-					// localStorage.removeItem('chartData');
-					// localStorage.removeItem('tpsline');
-					// localStorage.setItem('chartData', JSON.stringify({}));
-					// localStorage.setItem('tpsline', JSON.stringify({}));
-				}
+				if (res && res.result) '';
+				else
+					notification.error({
+						message: `请求错误`,
+						description: res.error_message,
+						placement: 'bottomLeft',
+					});
 			});
 	}
 
@@ -231,20 +233,15 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			  })
 			: '';
 		data['stages'] = config;
+		setBackDrop(true);
 		fetch(`/api/v1/plan`, {
 			method: 'POST',
 			body: JSON.stringify(data),
 		})
 			.then(response => response.json())
 			.then(function(res) {
-				if (res && res.result) {
-					setBackDrop(true);
-					isOver();
-					// localStorage.setItem('chartData', JSON.stringify({}));
-					// localStorage.setItem('tpsline', JSON.stringify({}));
-					// localStorage.removeItem('chartData');
-					// localStorage.removeItem('tpsline');
-				} else setMessage(res.error_message);
+				if (res && res.result) isOver();
+				else setMessage(res.error_message);
 			});
 	}
 
@@ -289,7 +286,9 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<img src="./spaceman.png" width="65" style={{ paddingLeft: 25 }}></img>
+							<span style={{paddingLeft:25}}>
+								<UltronImage width="65" />
+							</span>
 							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
