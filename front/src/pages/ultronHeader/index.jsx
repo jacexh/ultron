@@ -286,7 +286,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<span style={{paddingLeft:25}}>
+							<span style={{ paddingLeft: 25 }}>
 								<UltronImage width="65" />
 							</span>
 							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
