@@ -25,8 +25,7 @@ jobs:
         cache-dependency-path: front/yarn.lock
     - name: Build Frontend
       run: |
-        mkdir -p web/static
-        git rm -rf web/static
+        git rm -rf web/
         yarn --cwd front install
         yarn --cwd front build
     - name: Generate Protocol Buff Files
@@ -35,7 +34,7 @@ jobs:
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
         set +e
-        git add web/static
+        git add web
         git commit -am 'Automated generate protobuf files' && git push
         set -e
     - name: Run Unittest Cases
