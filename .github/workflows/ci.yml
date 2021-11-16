@@ -22,7 +22,6 @@ jobs:
       with:
         node-version: "12"
         cache: 'yarn'
-        cache-dependency-path: yarn.lock
     - name: Build Frontend
       run: |
         yarn --cwd front install
