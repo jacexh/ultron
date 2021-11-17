@@ -59,8 +59,10 @@ func (m *metric) Collect(ch chan<- prometheus.Metric) {
 	plan := m.report.Extras[KeyPlan]
 	m.mu.Unlock()
 
-	ch <- prometheus.MustNewConstMetric(descSlaves, prometheus.GaugeValue, float64(len(m.runner.supervisor.Slaves())))
-	ch <- prometheus.MustNewConstMetric(descConcurrentUsers, prometheus.GaugeValue, float64(m.runner.supervisor.ConcurrentUsers()))
+	if supervisor := m.runner.supervisor; supervisor != nil {
+		ch <- prometheus.MustNewConstMetric(descSlaves, prometheus.GaugeValue, float64(len(supervisor.Slaves())))
+		ch <- prometheus.MustNewConstMetric(descConcurrentUsers, prometheus.GaugeValue, float64(supervisor.ConcurrentUsers()))
+	}
 
 	if report.FirstAttack.IsZero() { // 空的报告
 		return

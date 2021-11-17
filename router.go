@@ -53,7 +53,7 @@ func (rest *restServer) handleStartNewPlan() http.HandlerFunc {
 			return
 		}
 
-		plan := NewPlan("")
+		plan := NewPlan(req.Name)
 		for _, stage := range req.Stages {
 			plan.AddStages(stage)
 		}
