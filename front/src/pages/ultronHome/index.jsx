@@ -38,23 +38,8 @@ const UltronHome = props => {
 						category: '50% percentile',
 					});
 					optionStatistics.P60 = parseFloat(quantiles['0.6']);
-					// newLineData.push({
-					//   "time": metricsTime,
-					//   "value":parseFloat(quantiles['0.6']),
-					//   "category": "60% percentile"
-					// })
 					optionStatistics.P70 = parseFloat(quantiles['0.7']);
-					// newLineData.push({
-					//   "time": metricsTime,
-					//   "value":parseFloat(quantiles['0.7']),
-					//   "category": "70% percentile"
-					// })
 					optionStatistics.P80 = parseFloat(quantiles['0.8']);
-					// newLineData.push({
-					//   "time": metricsTime,
-					//   "value":parseFloat(quantiles['0.8']),
-					//   "category": "80% percentile"
-					// })
 					optionStatistics.P90 = parseFloat(quantiles['0.9']);
 					newLineData.push({
 						time: metricsTime,
@@ -68,17 +53,7 @@ const UltronHome = props => {
 						category: '95% percentile',
 					});
 					optionStatistics.P97 = parseFloat(quantiles['0.97']);
-					// newLineData.push({
-					//   "time": metricsTime,
-					//   "value":parseFloat(quantiles['0.97']),
-					//   "category": "97% percentile"
-					// })
 					optionStatistics.P98 = parseFloat(quantiles['0.98']);
-					// newLineData.push({
-					//   "time": metricsTime,
-					//   "value":parseFloat(quantiles['0.98']),
-					//   "category": "98% percentile"
-					// })
 					optionStatistics.P99 = parseFloat(quantiles['0.99']);
 					newLineData.push({
 						time: metricsTime,
@@ -108,7 +83,7 @@ const UltronHome = props => {
 			if (i.name == 'ultron_attacker_tps_current') {
 				tpsLineData.push({
 					time: metricsTime,
-					value: parseFloat(i['metrics'][0]['value']).toFixed(2),
+					value: parseFloat(i['metrics'][0]['value']),
 					category: 'TPS',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsCurrent = parseFloat(i['metrics'][0]['value']).toFixed(2)) : '';
@@ -117,7 +92,7 @@ const UltronHome = props => {
 			if (i.name == 'ultron_attacker_failure_ratio') {
 				tpsLineData.push({
 					time: metricsTime,
-					value: Number(i['metrics'][0]['value'] * 100).toFixed(2),
+					value: parseFloat(i['metrics'][0]['value'] * 100),
 					category: 'Failure Ratio',
 				});
 				i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.failureRatio = Number(i['metrics'][0]['value'] * 100).toFixed(2)) : '';

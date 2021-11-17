@@ -18,6 +18,15 @@ export const LineChart = ({ lineData, localType }) => {
 				},
 			},
 		},
+    yAxis: {
+      label: {
+        formatter: function formatter(v) {
+          return ''.concat(v).replace(/\d{1,3}(?=(\d{3})+$)/g, function (s) {
+            return ''.concat(s, ',');
+          });
+        },
+      },
+    },
 		color: COLOR_PLATE_10,
 		point: {
 			shape: function shape(_ref) {
