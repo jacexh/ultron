@@ -141,15 +141,16 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 );
 
 export const UltronHeader = ({ getMetrics, tableData }) => {
-	const [open, setOpen] = useState(true);
-	const [backStopDrop, setBackStopDrop] = useState(false);
+	const [open, setOpen] = useState(false);
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
 	const [backDrop, setBackDrop] = useState(false);
+	const [isStop, setIsStop] = useState(false);
+	const [clearTime, setClearTime] = useState(false);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
-			tableData && tableData.tpsTotal ? '' : getMetrics();
+			clearTime ? '' : getMetrics();
 		}, 4000);
 		return () => {
 			// 组件销毁时，清除定时器
@@ -162,13 +163,22 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	}, []);
 
 	useEffect(() => {
-		tableData && tableData.tpsTotal ? setBackStopDrop(false) : setOpen(false);
+		if ((tableData && tableData.tpsTotal) || (!tableData.tpsCurrent && !tableData.tpsTotal)) {
+			setIsStop(false);
+			setOpen(true);
+			setClearTime(true);
+		} else if (tableData && tableData.tpsCurrent) {
+			setIsStop(true);
+			setOpen(false);
+			setClearTime(false);
+		}
 	}, [tableData]);
 
 	const handleClose = () => {
 		setPlanLists([]);
 		setOpen(false);
 	};
+
 	const openEditUser = () => {
 		setPlanLists([]);
 		setOpen(true);
@@ -182,19 +192,15 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	}, [open]);
 
 	function stopPlan() {
-		setBackStopDrop(true);
 		fetch(`/api/v1/plan`, {
 			method: 'DELETE',
 		})
 			.then(response => response.json())
 			.then(function(res) {
-				if (res && res.result) '';
-				else
-					notification.error({
-						message: `请求错误`,
-						description: res.error_message,
-						placement: 'bottomLeft',
-					});
+				if (res && res.result) {
+					setIsStop(false);
+					setClearTime(true); //停止轮询
+				}
 			});
 	}
 
@@ -233,15 +239,16 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			  })
 			: '';
 		data['stages'] = config;
-		setBackDrop(true);
 		fetch(`/api/v1/plan`, {
 			method: 'POST',
 			body: JSON.stringify(data),
 		})
 			.then(response => response.json())
 			.then(function(res) {
-				if (res && res.result) isOver();
-				else setMessage(res.error_message);
+				if (res && res.result) {
+					setBackDrop(true);
+					isOver();
+				} else setMessage(res.error_message);
 			});
 	}
 
@@ -296,7 +303,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 								<HeaderStatus title="FAILURES" textObj={tableData && tableData.failureRatio ? tableData.failureRatio + '%' : 0} />
 								{tableData && tableData.tpsTotal ? <HeaderStatus title="Total TPS" textObj={tableData.tpsTotal} /> : ''}
 								&nbsp;&nbsp;
-								{tableData && tableData.tpsTotal ? (
+								{!isStop ? (
 									''
 								) : (
 									<Button
@@ -318,10 +325,6 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					</AppBar>
 				</div>
 			</h1>
-			<Backdrop sx={{ color: '#fff', zIndex: theme => theme.zIndex.drawer + 1 }} open={backStopDrop}>
-				停止中...
-				<CircularProgress color="inherit" />
-			</Backdrop>
 		</>
 	);
 };
