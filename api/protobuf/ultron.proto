@@ -10,6 +10,7 @@ import "google/protobuf/empty.proto";
 service UltronAPI {
     rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {}
     rpc Submit(SubmitRequest) returns (google.protobuf.Empty) {}
+    rpc SendStatus(SendStatusRequest) returns (google.protobuf.Empty) {}
 }
 
 message SubscribeRequest {
@@ -27,6 +28,7 @@ enum EventType {
     PLAN_INTERRUPTED = 6; // 测试计划中断执行
     NEXT_STAGE_STARTED = 7; // 开始执行计划中的下一阶段
     STATS_AGGREGATE = 8;  // 上报统计对象
+    STATUS_REPORT = 9; // 上报运行状态
 }
 
 message TimerDTO {
@@ -53,4 +55,9 @@ message SubmitRequest {
     string slave_id = 1;
     uint32 batch_id = 2;
     StatisticianGroupDTO stats =3;
+}
+
+message SendStatusRequest {
+    string slave_id = 1;
+    int32 concurrent_users = 2;
 }

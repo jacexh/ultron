@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -96,10 +95,10 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 	}
 
 	if len(ha.checkFuncs) == 0 {
-		io.Copy(ioutil.Discard, res.Body) // no checker defined, discard body
+		io.Copy(io.Discard, res.Body) // no checker defined, discard body
 		return res.Body.Close()
 	}
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}

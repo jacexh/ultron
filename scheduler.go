@@ -41,6 +41,7 @@ func (s *scheduler) start(plan *plan) error {
 	s.mu.Lock()
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	if err := s.supervisor.StartNewPlan(s.ctx, plan.Name()); err != nil {
+		s.mu.Unlock()
 		return err
 	}
 	s.plan = plan
@@ -90,7 +91,7 @@ func (s *scheduler) stop(done bool) error {
 	cancel()
 	Logger.Info("canceled all running jobs")
 
-	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: PlanKey, Value: plan.Name()})
+	report, aggErr := s.supervisor.Aggregate(true, statistics.Tag{Key: KeyPlan, Value: plan.Name()})
 	switch {
 	case err == nil && aggErr != nil:
 		return aggErr
@@ -133,7 +134,7 @@ patrol:
 			return ctx.Err()
 
 		case <-ticker.C:
-			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: PlanKey, Value: plan.Name()})
+			report, err := s.supervisor.Aggregate(false, statistics.Tag{Key: KeyPlan, Value: plan.Name()})
 			if err != nil {
 				Logger.Warn("failed to aggregate stats report", zap.Error(err))
 				continue patrol
@@ -143,7 +144,7 @@ patrol:
 			stopped, next, stage, err := plan.stopCurrentAndStartNext(stageIndex, report)
 			switch {
 			case err != nil && errors.Is(err, ErrPlanClosed) && stopped: // 当前在最后一个阶段并且执行完成了，此时plan已经完成
-				Logger.Info("current test plan is complete")
+				Logger.Info("current plan is closed")
 				s.stop(true) // TODO： 是否还要做点什么？不做的话会拿到下一次聚合报告？
 				return nil
 
@@ -164,8 +165,6 @@ patrol:
 
 			default: // 继续巡查
 			}
-		default:
-			continue
 		}
 	}
 }

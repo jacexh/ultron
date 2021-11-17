@@ -13,7 +13,6 @@ func TestScheduler_Start(t *testing.T) {
 	sa := newSlaveAgent(&genproto.SubscribeRequest{SlaveId: "abc"})
 	go func() {
 		for range sa.input {
-
 		}
 	}()
 	supervisor.Add(sa)
@@ -27,6 +26,15 @@ func TestScheduler_Start(t *testing.T) {
 	assert.Nil(t, err)
 	i, _ := plan.Current()
 	assert.EqualValues(t, i, 0)
+}
+
+func TestScheduler_StartWithoudSA(t *testing.T) {
+	supervisor := newSlaveSupervisor()
+	scheduler := newScheduler(supervisor)
+	plan := NewPlan("")
+	plan.AddStages(&V1StageConfig{Duration: 1000, ConcurrentUsers: 200})
+	err := scheduler.start(plan)
+	assert.NotNil(t, err)
 }
 
 func TestScheduler_Stop(t *testing.T) {
