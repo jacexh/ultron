@@ -33,10 +33,10 @@ export const LineChart = ({ lineData, localType }) => {
 				var category = _ref.category;
 				return category === 'Gas fuel' ? 'square' : 'circle';
 			},
-			style: function style(_ref2) {
-				var time = _ref2.time;
-				return { r: Number(time) % 4 ? 0 : 3 };
-			},
+			// style: function style(_ref2) {
+			// 	var time = _ref2.time;
+			// 	return { r: Number(time) % 4 ? 0 : 3 };
+			// },
 		},
 	});
 
