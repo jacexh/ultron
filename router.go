@@ -77,7 +77,7 @@ func metricToJson(next http.Handler) http.Handler {
 		next.ServeHTTP(recorder, r)
 		// after
 		res := recorder.Result()
-		ch := make(chan *dto.MetricFamily, 1024)
+		ch := make(chan *dto.MetricFamily, 1)
 		var jsonBytes []byte
 		eg, _ := errgroup.WithContext(r.Context())
 		eg.Go(func() error {
@@ -100,10 +100,7 @@ func metricToJson(next http.Handler) http.Handler {
 			}
 			var err error
 			jsonBytes, err = json.Marshal(result)
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		})
 
 		if err := eg.Wait(); err != nil {
