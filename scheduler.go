@@ -41,6 +41,7 @@ func (s *scheduler) start(plan *plan) error {
 	s.mu.Lock()
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	if err := s.supervisor.StartNewPlan(s.ctx, plan.Name()); err != nil {
+		s.mu.Unlock()
 		return err
 	}
 	s.plan = plan
