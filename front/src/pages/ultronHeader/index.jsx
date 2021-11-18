@@ -159,13 +159,13 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	});
 
 	useEffect(() => {
-		getMetrics();
+		setOpen(true);
+		tableData && tableData.tpsCurrent ? '' : getMetrics();
 	}, []);
 
 	useEffect(() => {
 		if ((tableData && tableData.tpsTotal) || (!tableData.tpsCurrent && !tableData.tpsTotal)) {
 			setIsStop(false);
-			setOpen(true);
 			setClearTime(true);
 		} else if (tableData && tableData.tpsCurrent) {
 			setIsStop(true);
@@ -182,8 +182,6 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	const openEditUser = () => {
 		setPlanLists([]);
 		setOpen(true);
-		localStorage.removeItem('chartData');
-		localStorage.removeItem('tpsline');
 	};
 
 	useEffect(() => {
@@ -230,11 +228,11 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					var c = {};
 					index == 0 ? (data['name'] = item.name) : '';
 					item['requests'] ? (c['requests'] = parseInt(item['requests'])) : '';
-					item['duration'] ? (c['duration'] = item['duration']) : '';
+					item['duration'] ? (c['duration'] = parseInt(item['duration'])) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = item['maxWait']) : '';
-					item['maxWait'] ? (c['max_wait'] = item['maxWait']) : '';
+					item['maxWait'] ? (c['min_wait'] = parseInt(item['maxWait'])) : '';
+					item['maxWait'] ? (c['max_wait'] = parseInt(item['maxWait'])) : '';
 					config.push(c);
 			  })
 			: '';
@@ -246,13 +244,15 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
+					localStorage.removeItem('chartData');
+					localStorage.removeItem('tpsline');
 					setBackDrop(true);
-					isOver();
+					isOver(1);
 				} else setMessage(res.error_message);
 			});
 	}
 
-	function isOver() {
+	function isOver(count) {
 		fetch(`/metrics`, {
 			method: 'GET',
 		})
@@ -269,7 +269,19 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 						break;
 					}
 				}
-				f ? '' : setTimeout(isOver, 1000);
+				if (!f) {
+					count += 1;
+					if (count <= 60) {
+						setTimeout(function() {
+							isOver(count);
+						}, 1000);
+					} else {
+						stopPlan(); //停掉JOB
+						setMessage('调用超过60次，启动失败！');
+						setBackDrop(false);
+						setClearTime(true);
+					}
+				}
 			});
 	}
 

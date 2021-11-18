@@ -3,6 +3,7 @@ import { UltronHeader } from '../ultronHeader/index';
 import { UltronBar } from '../ultronBar/index';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@material-ui/core';
 import { connect } from 'dva';
+const moment = require('moment');
 
 const mapStateToProps = state => {
 	return {
@@ -15,7 +16,8 @@ const UltronHome = props => {
 	const [tableData, setTableData] = useState({});
 	const [lineData, setLineData] = useState([]);
 	const [tpsLine, setTpsLine] = useState([]);
-	const { metricsStr, metricsTime } = props.home;
+	const [metricsTime, setMetricsTime] = useState(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
+	const { metricsStr } = props.home;
 
 	useEffect(() => {
 		getStatistics(metricsStr);
@@ -108,6 +110,7 @@ const UltronHome = props => {
 	}
 
 	function getMetrics() {
+		setMetricsTime(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 		dispatch({
 			type: 'home/getMetricsM',
 		});
