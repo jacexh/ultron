@@ -140,7 +140,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 	</DialogContent>
 );
 
-export const UltronHeader = ({ getMetrics, tableData }) => {
+export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	const [open, setOpen] = useState(false);
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
@@ -149,6 +149,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	const [failureRatio, setFailureRatio] = useState(0);
 	const [isClear, setIsClear] = useState(false);
 	const [totalTps, setTotalTps] = useState(0);
+	// console.log(tableData, isPlanEnd);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
@@ -166,9 +167,9 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 
 	useEffect(() => {
 		getTotalFailRatio();
-		if (tableData && tableData.length > 0 && tableData[0].isStop) {
+		if (isPlanEnd) {
 			//plan结束
-			setIsClear(tableData[0].isStop);
+			setIsClear(true);
 			setIsStop(false);
 			setOpen(true);
 		} else setOpen(false);
@@ -179,8 +180,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 		let totalTps = 0;
 		tableData && tableData.length > 0
 			? tableData.map(i => {
-					total += parseFloat(i.failureRatio);
-					totalTps += parseFloat(i.tpsTotal);
+					total += i.failureRatio ? parseFloat(i.failureRatio) : 0;
+					totalTps += i.tpsTotal ? parseFloat(i.tpsTotal) : 0;
 			  })
 			: '';
 		tableData.length > 0 ? setFailureRatio(Number(total / tableData.length).toFixed(2)) : '';
@@ -266,7 +267,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					localStorage.removeItem('tpsline');
 					isOver(1);
 				} else setMessage(res.error_message);
-			});
+			})
+			.catch(e => console.log(e));
 	}
 
 	function isOver(count) {
@@ -331,7 +333,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
 								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
-								{tableData && tableData.length > 0 && tableData[0].isStop ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
+								{isPlanEnd ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
 								&nbsp;&nbsp;
 								{!isStop ? (
 									''

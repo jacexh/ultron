@@ -16,8 +16,10 @@ const UltronHome = props => {
 	const [tableData, setTableData] = useState({});
 	const [lineData, setLineData] = useState([]);
 	const [tpsLine, setTpsLine] = useState([]);
+	const [isPlanEnd, setIsPlanEnd] = useState(false);
 	const [metricsTime, setMetricsTime] = useState(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 	const { metricsStr } = props.home;
+	console.log(metricsStr);
 
 	useEffect(() => {
 		getStatistics(metricsStr);
@@ -25,12 +27,13 @@ const UltronHome = props => {
 
 	function getMetricsLength(metricsStr) {
 		let maxLength = 0;
-		for (var i of metricsStr) {
-			if (i.name == 'ultron_attacker_response_time') {
-				maxLength = i.metrics.length;
-				break;
+		if (metricsStr && metricsStr.length > 0)
+			for (var i of metricsStr) {
+				if (i.name == 'ultron_attacker_response_time') {
+					maxLength = i.metrics.length;
+					break;
+				}
 			}
-		}
 		return maxLength;
 	}
 
@@ -39,8 +42,8 @@ const UltronHome = props => {
 		var newStatistic = [];
 		var newLineData = [];
 		var tpsLineData = [];
-		let isStop = false;
 		let attacker_length = getMetricsLength(metricsStr);
+		attacker_length == 0 ? setIsPlanEnd(true) : '';
 		for (var j = 0; j < attacker_length; j++) {
 			var optionStatistics = {};
 			for (var i of metricsStr) {
@@ -91,16 +94,16 @@ const UltronHome = props => {
 				}
 				//ultron_attacker_tps_total--stop后会显示tps_total，运行中是current tpc --结束标志Plan
 				if (i.name == 'ultron_attacker_tps_total') {
-					isStop = true;
+					setIsPlanEnd(true);
 					i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.tpsTotal = parseFloat(i['metrics'][j]['value']).toFixed(2)) : '';
 				}
-				optionStatistics.isStop = isStop;
 				// avg
 				if (i.name == 'ultron_attacker_response_time_avg') {
 					i['metrics'] && i['metrics'].length > 0 ? (optionStatistics.AVG = parseFloat(i['metrics'][j]['value'])) : '';
 				}
 				//current tps
-				if (i.name == 'ultron_attacker_tps_current') {
+        if (i.name == 'ultron_attacker_tps_current') {
+          setIsPlanEnd(false);
 					let attacker = i['metrics'][j]['labels']['attacker'];
 					tpsLineData.push({
 						time: metricsTime,
@@ -134,7 +137,7 @@ const UltronHome = props => {
 
 	return (
 		<>
-			<UltronHeader getMetrics={getMetrics} metricsStr={metricsStr} tableData={tableData} />
+			<UltronHeader getMetrics={getMetrics} metricsStr={metricsStr} tableData={tableData} isPlanEnd={isPlanEnd} />
 			<UltronBar tableData={tableData} lineData={lineData} tpsline={tpsLine} />
 		</>
 	);
