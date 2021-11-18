@@ -94,7 +94,7 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 				<LineChart lineData={lineData} localType="chartData" />
 				<br />
 				<br />
-				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Total Requests per Second</h2>
+				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>TPS</h2>
 				<LineChart lineData={tpsline} localType="tpsline" />
 			</CardContent>
 		</Card>

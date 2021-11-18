@@ -98,8 +98,17 @@ func (fc *FixedConcurrentUsers) spawn(current, expected, period, interval int) [
 		period = interval
 	}
 
-	steps := period / interval
-	nPerStep := (expected - current) / steps
+	var steps int
+	var nPerStep int
+
+	for {
+		steps = period / interval
+		nPerStep = (expected - current) / steps
+		if nPerStep != 0 {
+			break
+		}
+		interval++
+	}
 
 	if current < expected {
 		for current <= expected-nPerStep {

@@ -1,17 +1,24 @@
 package ultron
 
 import (
+	"bytes"
+	"compress/gzip"
 	"embed"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	chimiddleware "github.com/jacexh/gopkg/chi-middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/prom2json"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 type (
@@ -46,7 +53,7 @@ func (rest *restServer) handleStartNewPlan() http.HandlerFunc {
 			return
 		}
 
-		plan := NewPlan("")
+		plan := NewPlan(req.Name)
 		for _, stage := range req.Stages {
 			plan.AddStages(stage)
 		}
@@ -60,6 +67,51 @@ func (rest *restServer) handleStopPlan() http.HandlerFunc {
 		rest.runner.StopPlan()
 		renderResponse(nil, rw, r)
 	}
+}
+
+func metricToJson(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		// before
+		recorder := httptest.NewRecorder()
+
+		next.ServeHTTP(recorder, r)
+		// after
+		res := recorder.Result()
+		ch := make(chan *dto.MetricFamily, 1)
+		var jsonBytes []byte
+		eg, _ := errgroup.WithContext(r.Context())
+		eg.Go(func() error {
+			reader, err := gzip.NewReader(res.Body)
+			if err != nil {
+				return err
+			}
+
+			data, err := io.ReadAll(reader)
+			if err != nil {
+				return err
+			}
+			return prom2json.ParseReader(bytes.NewBuffer(data), ch)
+		})
+
+		eg.Go(func() error {
+			result := []*prom2json.Family{}
+			for m := range ch {
+				result = append(result, prom2json.NewFamily(m))
+			}
+			var err error
+			jsonBytes, err = json.Marshal(result)
+			return err
+		})
+
+		if err := eg.Wait(); err != nil {
+			Logger.Error("failed to parse prometheus metrics", zap.Error(err))
+			renderResponse(err, w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonBytes)
+	}
+	return http.HandlerFunc(fn)
 }
 
 func renderResponse(err error, w http.ResponseWriter, r *http.Request) {
@@ -113,5 +165,9 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 	prometheus.MustRegister(exporter)
 	runner.SubscribeReport(exporter.handleReport()) // 订阅report
 	route.Handle("/metrics", promhttp.Handler())
+	route.Route("/metrics.json", func(r chi.Router) {
+		r.Use(metricToJson)
+		r.Handle("/", promhttp.Handler())
+	})
 	return route
 }
