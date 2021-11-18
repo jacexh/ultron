@@ -113,6 +113,12 @@ ultron
 
 ![master](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111633.png)
 
+### Web Portal
+
+![plan](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211118094334.png)
+
+![stats](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211118090312.png)
+
 ## Report
 
 ### Terminal Table
