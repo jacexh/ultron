@@ -230,11 +230,11 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					var c = {};
 					index == 0 ? (data['name'] = item.name) : '';
 					item['requests'] ? (c['requests'] = parseInt(item['requests'])) : '';
-					item['duration'] ? (c['duration'] = item['duration']) : '';
+					item['duration'] ? (c['duration'] = parseInt(item['duration'])) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = item['maxWait']) : '';
-					item['maxWait'] ? (c['max_wait'] = item['maxWait']) : '';
+					item['maxWait'] ? (c['min_wait'] = parseInt(item['maxWait'])) : '';
+					item['maxWait'] ? (c['max_wait'] = parseInt(item['maxWait'])) : '';
 					config.push(c);
 			  })
 			: '';
