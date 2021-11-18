@@ -188,8 +188,8 @@ func (hdl *InfluxDBV1Handler) HandleReport() ultron.ReportHandleFunc {
 				tags,
 				map[string]interface{}{
 					"tps":        report.TPS,
-					"success":    report.Requests,
-					"failures":   report.Failures,
+					"success":    int64(report.Requests),
+					"failures":   int64(report.Failures),
 					"fail_ratio": report.FailRatio,
 					"min":        report.Min.Milliseconds(),
 					"max":        report.Max.Milliseconds(),
