@@ -1,5 +1,8 @@
 # ChangeLog
 
+## v2.1.2
+
+- 修复了写入influxdb数据异常的问题
 ## v2.1.1
 
 - 修复写入InflxuDB时锁未释放的问题
