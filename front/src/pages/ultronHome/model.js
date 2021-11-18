@@ -1,12 +1,10 @@
 import { getMetrics } from '../../../service/chartdataservice';
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
-const moment = require('moment');
 
 const Model = {
 	namespace: 'home',
 	state: {
 		metricsStr: '',
-		metricsTime: moment(new Date()).format('YYYY-MM-DD HH:mm:ss'),
 	},
 
 	effects: {
@@ -26,7 +24,7 @@ const Model = {
 	reducers: {
 		setMetrics(state, { payload }) {
 			const metrics = parsePrometheusTextFormat(payload);
-			return { ...state, metricsStr: metrics, metricsTime: moment(new Date()).format('YYYY-MM-DD HH:mm:ss') };
+			return { ...state, metricsStr: metrics };
 		},
 	},
 };
