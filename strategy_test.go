@@ -25,6 +25,16 @@ func TestFixedConcurrentUsers_Spawn(t *testing.T) {
 	})
 }
 
+func TestFixedConcurrentUsers_Spawn2(t *testing.T) {
+	s := &FixedConcurrentUsers{
+		ConcurrentUsers: 10,
+		RampUpPeriod:    100,
+	}
+	waves := s.Spawn()
+	assert.EqualValues(t, len(waves), 10)
+	assert.EqualValues(t, waves[0], &RampUpStep{N: 1, Interval: 10 * time.Second})
+}
+
 func TestFixedConcurrentUsers_Switch(t *testing.T) {
 	s1 := &FixedConcurrentUsers{
 		ConcurrentUsers: 1000,
