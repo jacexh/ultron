@@ -160,7 +160,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 
 	useEffect(() => {
 		setOpen(true);
-		getMetrics();
+		tableData && tableData.tpsCurrent ? '' : getMetrics();
 	}, []);
 
 	useEffect(() => {
@@ -276,7 +276,7 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 							isOver(count);
 						}, 1000);
 					} else {
-						stopPlan();//停掉JOB
+						stopPlan(); //停掉JOB
 						setMessage('调用超过60次，启动失败！');
 						setBackDrop(false);
 						setClearTime(true);
