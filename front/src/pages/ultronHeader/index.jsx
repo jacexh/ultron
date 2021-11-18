@@ -145,13 +145,15 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
 	const [backDrop, setBackDrop] = useState(false);
-	const [isStop, setIsStop] = useState(false);
-	const [clearTime, setClearTime] = useState(false);
+	const [isStop, setIsStop] = useState(true);
+	const [failureRatio, setFailureRatio] = useState(0);
+	const [isClear, setIsClear] = useState(false);
+	const [totalTps, setTotalTps] = useState(0);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
-			clearTime ? '' : getMetrics();
-		}, 4000);
+			isClear ? '' : getMetrics();
+		}, 5000);
 		return () => {
 			// 组件销毁时，清除定时器
 			clearInterval(timerId);
@@ -159,20 +161,31 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	});
 
 	useEffect(() => {
-		setOpen(true);
-		tableData && tableData.tpsCurrent ? '' : getMetrics();
+		getMetrics();
 	}, []);
 
 	useEffect(() => {
-		if ((tableData && tableData.tpsTotal) || (!tableData.tpsCurrent && !tableData.tpsTotal)) {
+		getTotalFailRatio();
+		if (tableData && tableData.length > 0 && tableData[0].isStop) {
+			//plan结束
+			setIsClear(tableData[0].isStop);
 			setIsStop(false);
-			setClearTime(true);
-		} else if (tableData && tableData.tpsCurrent) {
-			setIsStop(true);
-			setOpen(false);
-			setClearTime(false);
-		}
+			setOpen(true);
+		} else setOpen(false);
 	}, [tableData]);
+
+	function getTotalFailRatio() {
+		let total = 0;
+		let totalTps = 0;
+		tableData && tableData.length > 0
+			? tableData.map(i => {
+					total += parseFloat(i.failureRatio);
+					totalTps += parseFloat(i.tpsTotal);
+			  })
+			: '';
+		tableData.length > 0 ? setFailureRatio(Number(total / tableData.length).toFixed(2)) : '';
+		setTotalTps(totalTps);
+	}
 
 	const handleClose = () => {
 		setPlanLists([]);
@@ -196,8 +209,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
+					setIsClear(true);
 					setIsStop(false);
-					setClearTime(true); //停止轮询
+					notification.success({
+						message: `请求成功`,
+						placement: 'bottomLeft',
+					});
 				}
 			});
 	}
@@ -244,28 +261,29 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
+					setBackDrop(true);
 					localStorage.removeItem('chartData');
 					localStorage.removeItem('tpsline');
-					setBackDrop(true);
 					isOver(1);
 				} else setMessage(res.error_message);
 			});
 	}
 
 	function isOver(count) {
-		fetch(`/metrics`, {
+		fetch(`/metrics.json`, {
 			method: 'GET',
 		})
-			.then(response => response.text())
-			.then(function(res) {
-				const metrics = parsePrometheusTextFormat(res);
+			.then(response => response.json())
+			.then(function(metrics) {
 				var f = false;
 				for (var i of metrics) {
 					if (i.name == 'ultron_attacker_tps_current') {
-						getMetrics(); //确保开始了再调用getMetrics
+						getMetrics();
 						f = true;
 						setOpen(false);
 						setBackDrop(false);
+						setIsClear(false);
+						setIsStop(true);
 						break;
 					}
 				}
@@ -274,12 +292,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					if (count <= 60) {
 						setTimeout(function() {
 							isOver(count);
-						}, 1000);
+						}, 5000);
 					} else {
 						stopPlan(); //停掉JOB
-						setMessage('调用超过60次，启动失败！');
+						setMessage('调用超过60次，停止失败！');
 						setBackDrop(false);
-						setClearTime(true);
+						setIsClear(true);
 					}
 				}
 			});
@@ -312,8 +330,8 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
-								<HeaderStatus title="FAILURES" textObj={tableData && tableData.failureRatio ? tableData.failureRatio + '%' : 0} />
-								{tableData && tableData.tpsTotal ? <HeaderStatus title="Total TPS" textObj={tableData.tpsTotal} /> : ''}
+								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
+								{tableData && tableData.length > 0 && tableData[0].isStop ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
 								&nbsp;&nbsp;
 								{!isStop ? (
 									''

@@ -28,7 +28,6 @@
 		"umi": "^2.7.7",
 		"umi-plugin-react": "^1.10.1",
 		"umi-request": "^1.2.19",
-    "parse-prometheus-text-format":"^1.1.1",
 		"use-debounce": "^3.4.1"
 	},
 	"devDependencies": {

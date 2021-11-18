@@ -5,7 +5,6 @@ import { styled } from '@material-ui/core/styles';
 import { LineChart } from '../ultronBar/highcharttest';
 import { tableCellClasses } from '@material-ui/core/TableCell';
 
-
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
 	[`&.${tableCellClasses.head}`]: {
 		backgroundColor: theme.palette.common.black,
@@ -28,7 +27,30 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 	const { dispatch } = props;
-	const [value, setValue] = useState(0);
+	const [totalRequest, setTotalRequest] = useState(0);
+	const [totalFail, setTotalFail] = useState(0);
+	const [totalCurrent, setTotalCurrent] = useState(0);
+
+	useEffect(() => {
+		getTotalRequest(tableData);
+	}, [tableData]);
+
+	function getTotalRequest(tableData) {
+		let totalRequests = 0;
+		let totalFails = 0;
+		let totalCurrents = 0;
+
+		tableData && tableData.length > 0
+			? tableData.map(i => {
+					totalRequests += parseInt(i.requests);
+					totalFails += parseFloat(i.failures);
+					totalCurrents += parseFloat(i.tpsCurrent);
+			  })
+			: '';
+		setTotalRequest(totalRequests);
+		setTotalFail(totalFails);
+		setTotalCurrent(totalCurrents);
+	}
 
 	return (
 		<Card sx={{ paddingTop: 5 }}>
@@ -57,32 +79,38 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 								</TableRow>
 							</TableHead>
 							<TableBody>
-								<StyledTableRow>
-									<StyledTableCell component="th" scope="row">
-										{tableData.attacker}
-									</StyledTableCell>
-									<StyledTableCell align="center">{tableData.MIN}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P50}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P60}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P70}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P80}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P90}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P95}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P97}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P98}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.P99}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.MAX}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.AVG}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.requests}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.failures}</StyledTableCell>
-									<StyledTableCell align="center">{tableData.tpsCurrent}</StyledTableCell>
-								</StyledTableRow>
+								{tableData && tableData.length > 0
+									? tableData.map((i, index) => {
+											return (
+												<StyledTableRow key={index}>
+													<StyledTableCell component="th" scope="row">
+														{i.attacker}
+													</StyledTableCell>
+													<StyledTableCell align="center">1</StyledTableCell>
+													<StyledTableCell align="center">{i.P50}</StyledTableCell>
+													<StyledTableCell align="center">{i.P60}</StyledTableCell>
+													<StyledTableCell align="center">{i.P70}</StyledTableCell>
+													<StyledTableCell align="center">{i.P80}</StyledTableCell>
+													<StyledTableCell align="center">{i.P90}</StyledTableCell>
+													<StyledTableCell align="center">{i.P95}</StyledTableCell>
+													<StyledTableCell align="center">{i.P97}</StyledTableCell>
+													<StyledTableCell align="center">{i.P98}</StyledTableCell>
+													<StyledTableCell align="center">{i.P99}</StyledTableCell>
+													<StyledTableCell align="center">{i.MAX}</StyledTableCell>
+													<StyledTableCell align="center">{i.AVG}</StyledTableCell>
+													<StyledTableCell align="center">{i.requests}</StyledTableCell>
+													<StyledTableCell align="center">{i.failures}</StyledTableCell>
+													<StyledTableCell align="center">{i.tpsCurrent}</StyledTableCell>
+												</StyledTableRow>
+											);
+									  })
+									: ''}
 								<StyledTableRow>
 									<StyledTableCell align="center" colSpan={12}></StyledTableCell>
 									<StyledTableCell align="center">{tableData ? <span style={{ fontSize: 16, fontWeight: 500 }}>TOTAL</span> : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.requests ? tableData.requests : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.failures ? tableData.failures : ''}</StyledTableCell>
-									<StyledTableCell align="center">{tableData && tableData.tpsCurrent ? tableData.tpsCurrent : ''}</StyledTableCell>
+									<StyledTableCell align="center">{totalRequest}</StyledTableCell>
+									<StyledTableCell align="center">{totalFail}</StyledTableCell>
+									<StyledTableCell align="center">{totalCurrent}</StyledTableCell>
 								</StyledTableRow>
 							</TableBody>
 						</Table>
@@ -90,11 +118,11 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 				}
 			></CardHeader>
 			<CardContent>
-				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>Response Times(ms)</h2>
+				<h2 style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>Response Times(ms)</h2>
 				<LineChart lineData={lineData} localType="chartData" />
 				<br />
 				<br />
-				<h2 style={{fontFamily:'Arial, Helvetica, sans-serif'}}>TPS</h2>
+				<h2 style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>TPS</h2>
 				<LineChart lineData={tpsline} localType="tpsline" />
 			</CardContent>
 		</Card>
