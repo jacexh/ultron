@@ -1,38 +1,31 @@
 package main
 
 import (
-	"context"
-	"errors"
-	"math/rand"
-	"time"
+	"net/http"
 
 	"github.com/wosai/ultron/v2"
 )
 
-type (
-	fakeAttacker struct {
-		name string
-	}
-)
-
-func (f *fakeAttacker) Name() string {
-	return f.name
-}
-
-func (f *fakeAttacker) Fire(_ context.Context) error {
-	i := rand.Float32()
-	if i < 0.05 {
-		return errors.New("unknown error")
-	}
-	time.Sleep(10 * time.Millisecond)
-	return nil
-}
-
 func main() {
 	runner := ultron.NewLocalRunner()
 	task := ultron.NewTask()
-	task.Add(&fakeAttacker{name: "foobar"}, 1)
-	task.Add(&fakeAttacker{name: "ultron-test"}, 1)
+	bing := ultron.NewHTTPAttacker("bing")
+	bing.Apply(
+		ultron.WithPrepareFunc(func() (*http.Request, error) {
+			return http.NewRequest(http.MethodGet, "https://bing.com", nil)
+		}),
+		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
+	)
+	baidu := ultron.NewHTTPAttacker("baidu")
+	baidu.Apply(
+		ultron.WithPrepareFunc(func() (*http.Request, error) {
+			return http.NewRequest(http.MethodGet, "https://www.baidu.com", nil)
+		}),
+		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
+	)
+
+	task.Add(bing, 1)
+	task.Add(baidu, 1)
 	runner.Assign(task)
 
 	if err := runner.Launch(); err != nil {

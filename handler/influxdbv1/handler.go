@@ -73,8 +73,8 @@ func (b *batchPointsBuffer) flushing() {
 		time.Sleep(b.interval)
 
 		b.mu.Lock()
-		defer b.mu.Unlock()
 		if b.bp == nil {
+			b.mu.Unlock()
 			continue
 		}
 
@@ -85,6 +85,7 @@ func (b *batchPointsBuffer) flushing() {
 			}
 		}(b.handler.client, b.bp)
 		b.bp = nil
+		b.mu.Unlock()
 	}
 }
 
@@ -156,7 +157,7 @@ func (hdl *InfluxDBV1Handler) HandleResult(samplingRate float64) ultron.ResultHa
 
 		point, err := influxdb.NewPoint(
 			hdl.conf.MeasurementSucc,
-			map[string]string{"attacker": ar.Name},
+			map[string]string{ultron.KeyAttacker: ar.Name},
 			map[string]interface{}{"response_time": int(ar.Duration / 1e6)},
 			time.Now(),
 		)
@@ -178,7 +179,7 @@ func (hdl *InfluxDBV1Handler) HandleReport() ultron.ReportHandleFunc {
 
 		for key, report := range sr.Reports {
 			tags := make(map[string]string)
-			tags["attacker"] = key
+			tags[ultron.KeyAttacker] = key
 			for k, v := range sr.Extras {
 				tags[k] = v
 			}
