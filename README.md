@@ -164,3 +164,13 @@ ultron
     }
 }
 ```
+
+### Grafana Dashboard
+
+```bash
+scripts/grafana/dashboard.json
+```
+
+![](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211119120144.png)
+
+![](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211119120154.png)

@@ -44,27 +44,27 @@ type (
 	// AttackReport 聚合报告
 	AttackReport struct {
 		Name           string                   `json:"name"`                      // 事务名称
-		Requests       uint64                   `json:"requests,omitempty"`        // 成功请求总数
-		Failures       uint64                   `json:"failures,omitempty"`        // 失败请求总数
-		Min            time.Duration            `json:"min,omitempty"`             // 最小延迟
-		Max            time.Duration            `json:"max,omitempty"`             // 最大延迟
-		Median         time.Duration            `json:"median,omitempty"`          // 中位数
-		Average        time.Duration            `json:"average,omitempty"`         // 平均数
-		TPS            float64                  `json:"tps,omitempty"`             // 每秒事务数
+		Requests       uint64                   `json:"requests"`                  // 成功请求总数
+		Failures       uint64                   `json:"failures"`                  // 失败请求总数
+		Min            time.Duration            `json:"min"`                       // 最小延迟
+		Max            time.Duration            `json:"max"`                       // 最大延迟
+		Median         time.Duration            `json:"median"`                    // 中位数
+		Average        time.Duration            `json:"average"`                   // 平均数
+		TPS            float64                  `json:"tps"`                       // 每秒事务数
 		Distributions  map[string]time.Duration `json:"distributions,omitempty"`   // 百分位分布
-		FailureRatio   float64                  `json:"failure_ratio,omitempty"`   // 错误率
+		FailureRatio   float64                  `json:"failure_ratio"`             // 错误率
 		FailureDetails map[string]uint64        `json:"failure_details,omitempty"` // 错误详情分布
 		FullHistory    bool                     `json:"full_history"`              // 是否是该阶段完整的报告
-		FirstAttack    time.Time                `json:"first_attack,omitempty"`    // 第一请求发生时间
-		LastAttack     time.Time                `json:"last_attack,omitempty"`     // 最后一次请求结束时间
+		FirstAttack    time.Time                `json:"first_attack"`              // 第一请求发生时间
+		LastAttack     time.Time                `json:"last_attack"`               // 最后一次请求结束时间
 	}
 
 	SummaryReport struct {
-		FirstAttack   time.Time               `json:"first_attack,omitempty"`
-		LastAttack    time.Time               `json:"last_attack,omitempty"`
-		TotalRequests uint64                  `json:"total_requests,omitempty"`
-		TotalFailures uint64                  `json:"total_failures,omitempty"`
-		TotalTPS      float64                 `json:"total_tps,omitempty"`
+		FirstAttack   time.Time               `json:"first_attack"`
+		LastAttack    time.Time               `json:"last_attack"`
+		TotalRequests uint64                  `json:"total_requests"`
+		TotalFailures uint64                  `json:"total_failures"`
+		TotalTPS      float64                 `json:"total_tps"`
 		FullHistory   bool                    `json:"full_history"`
 		Reports       map[string]AttackReport `json:"reports,omitempty"`
 		Extras        map[string]string       `json:"extras,omitempty"`

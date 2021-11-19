@@ -338,6 +338,7 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 	for {
 		select {
 		case <-ctx.Done():
+			// Logger.Warn("a executor is quit")
 			return
 		default:
 		}
@@ -349,6 +350,8 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 		select {
 		case output <- statistics.AttackResult{Name: attacker.Name(), Duration: time.Since(start), Error: err}:
 		case <-ctx.Done():
+			// Logger.Warn("a executor is quit")
+			return
 		}
 
 		e.mu.RLock()
