@@ -44,7 +44,9 @@ func TestSlaveRunner_Connect(t *testing.T) {
 
 func TestSlaveRunner_Working(t *testing.T) {
 	slave := newSlaveRunner()
-	slave.Assign(NewTask())
+	task := NewTask()
+	task.Add(&HTTPAttacker{}, 1)
+	slave.Assign(task)
 	ultron, lis := prepareGRPCServer()
 	defer lis.Close()
 	err := slave.Connect("127.0.0.1:2021", grpc.WithInsecure())

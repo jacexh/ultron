@@ -148,7 +148,11 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 }
 
 func (r *masterRunner) StartPlan(p Plan) error {
-	Logger.Info("start plan", zap.String("plan_name", p.Name()))
+	if p == nil {
+		err := errors.New("empty plan")
+		Logger.Error("cannot start with empty plan", zap.Error(err))
+		return err
+	}
 	r.mu.Lock()
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()
@@ -156,6 +160,7 @@ func (r *masterRunner) StartPlan(p Plan) error {
 		Logger.Error("failed to start a new plan", zap.Error(err))
 		return err
 	}
+	Logger.Info("start plan", zap.String("plan_name", p.Name()))
 	scheduler := newScheduler(r.supervisor)
 	r.scheduler = scheduler
 	r.plan = p
