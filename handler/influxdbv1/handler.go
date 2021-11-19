@@ -3,7 +3,6 @@ package influxdbv1
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	_ "github.com/influxdata/influxdb1-client"
@@ -23,11 +22,12 @@ type (
 	}
 
 	batchPointsBuffer struct {
-		handler  *InfluxDBV1Handler
-		bp       influxdb.BatchPoints
-		interval time.Duration
-		conf     influxdb.BatchPointsConfig
-		mu       sync.Mutex
+		handler *InfluxDBV1Handler
+		bp      influxdb.BatchPoints
+		conf    influxdb.BatchPointsConfig
+		ticker  *time.Ticker
+		ch      chan *influxdb.Point
+		counter uint32
 	}
 
 	influxDBV1HandlerOption func(*InfluxDBV1Handler)
@@ -42,43 +42,68 @@ const (
 	DefaultMeasurementReport = "report"
 )
 
+func newBatchPointBuffer(handler *InfluxDBV1Handler) *batchPointsBuffer {
+	return &batchPointsBuffer{
+		handler: handler,
+		ch:      make(chan *influxdb.Point, 1024),
+	}
+}
+
 func (b *batchPointsBuffer) addPoint(p *influxdb.Point) {
-	b.mu.Lock()
+	b.ch <- p
+}
+
+func (b *batchPointsBuffer) insertPointAndGetBatchPoint(p *influxdb.Point) (influxdb.BatchPoints, error) {
 	if b.bp == nil {
-		var err error
-		if b.bp, err = influxdb.NewBatchPoints(b.conf); err != nil {
-			b.mu.Unlock()
-			ultron.Logger.Error("failed to create new batch points", zap.Error(err))
+		bp, err := influxdb.NewBatchPoints(b.conf)
+		if err != nil {
+			return nil, err
+		}
+		b.bp = bp
+	}
+	b.bp.AddPoint(p)
+	return b.bp, nil
+}
+
+func (b *batchPointsBuffer) resetBufferAndWriteBatchPoint(bp influxdb.BatchPoints) {
+	b.bp = nil
+
+	go func(c influxdb.Client, bp influxdb.BatchPoints) {
+		if c == nil {
+			ultron.Logger.Warn("no influxdb client provided, you should call Apply(WithHTTPClient/WithUDPClient) first")
 			return
 		}
-	}
-	b.bp.AddPoint(p) // 该方法不是线程安全...
-	b.mu.Unlock()
+		err := c.Write(bp)
+		if err != nil {
+			ultron.Logger.Error("failed to write bach points", zap.Error(err))
+		}
+	}(b.handler.client, bp)
 }
 
 func (b *batchPointsBuffer) flushing() {
+	b.ticker = time.NewTicker(500 * time.Millisecond)
+	defer b.ticker.Stop()
+
+flushing:
 	for {
-		time.Sleep(b.interval)
-
-		b.mu.Lock()
-		bp := b.bp
-		b.bp = nil
-		b.mu.Unlock()
-
-		if bp == nil {
-			continue
-		}
-
-		go func(c influxdb.Client, bp influxdb.BatchPoints) {
-			if c == nil {
-				ultron.Logger.Warn("no influxdb client provided, you should call Apply(WithHTTPClient/WithUDPClient) first")
-				return
-			}
-			err := c.Write(bp)
+		select {
+		case point := <-b.ch:
+			bp, err := b.insertPointAndGetBatchPoint(point)
 			if err != nil {
-				ultron.Logger.Error("failed to write bach points", zap.Error(err))
+				ultron.Logger.Error("failed to get batchpoint", zap.Error(err))
+				continue flushing
 			}
-		}(b.handler.client, bp)
+			b.counter++
+			if (b.counter % 100) == 0 {
+				b.resetBufferAndWriteBatchPoint(bp)
+			}
+
+		case <-b.ticker.C:
+			if b.bp != nil {
+				b.counter = 0
+				b.resetBufferAndWriteBatchPoint(b.bp)
+			}
+		}
 	}
 }
 
@@ -90,13 +115,7 @@ func NewInfluxDBV1Handler() *InfluxDBV1Handler {
 		measurementReport: DefaultMeasurementReport,
 	}
 
-	buf := &batchPointsBuffer{
-		handler:  handler,
-		interval: 200 * time.Millisecond,
-		conf: influxdb.BatchPointsConfig{
-			Precision: "ms",              // 毫秒级精度
-			Database:  handler.database}, // 修改handler的database时需要同步修改
-	}
+	buf := newBatchPointBuffer(handler)
 	handler.buffer = buf
 	go buf.flushing()
 	return handler
