@@ -19,7 +19,6 @@ const UltronHome = props => {
 	const [isPlanEnd, setIsPlanEnd] = useState(false);
 	const [metricsTime, setMetricsTime] = useState(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 	const { metricsStr } = props.home;
-	console.log(metricsStr);
 
 	useEffect(() => {
 		getStatistics(metricsStr);
@@ -128,7 +127,7 @@ const UltronHome = props => {
 		setTpsLine(tpsLineData);
 	}
 
-	function getMetrics() {
+  function getMetrics() {
 		setMetricsTime(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 		dispatch({
 			type: 'home/getMetricsM',

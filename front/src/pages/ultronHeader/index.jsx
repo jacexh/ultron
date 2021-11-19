@@ -104,7 +104,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`rampUpPeriod${index}`}
 						value={option.rampUpPeriod}
-						label="准备时长"
+						label="加压时长"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
 					/>
@@ -145,11 +145,11 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
 	const [backDrop, setBackDrop] = useState(false);
-	const [isStop, setIsStop] = useState(true);
+	const [isStop, setIsStop] = useState(false);
 	const [failureRatio, setFailureRatio] = useState(0);
 	const [isClear, setIsClear] = useState(false);
 	const [totalTps, setTotalTps] = useState(0);
-	// console.log(tableData, isPlanEnd);
+	// console.log(isPlanEnd, isClear);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
@@ -166,13 +166,19 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	}, []);
 
 	useEffect(() => {
-		getTotalFailRatio();
+		setIsClear(isPlanEnd);
 		if (isPlanEnd) {
 			//plan结束
-			setIsClear(true);
 			setIsStop(false);
 			setOpen(true);
-		} else setOpen(false);
+		} else {
+			setOpen(false);
+			setIsStop(true);
+		}
+	}, [isPlanEnd]);
+
+	useEffect(() => {
+		getTotalFailRatio();
 	}, [tableData]);
 
 	function getTotalFailRatio() {
