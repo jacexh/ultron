@@ -45,7 +45,7 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 						Edit
 					</a>
 				) : (
-					""
+					''
 				)}
 			</div>
 			<Divider orientation="vertical" variant="middle" flexItem />
@@ -251,11 +251,11 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 					var c = {};
 					index == 0 ? (data['name'] = item.name) : '';
 					item['requests'] ? (c['requests'] = parseInt(item['requests'])) : '';
-					item['duration'] ? (c['duration'] = parseInt(item['duration'])) : '';
+					item['duration'] ? (c['duration'] = parseFloat(item['duration']) * 1000000000) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = parseInt(item['maxWait'])) : '';
-					item['maxWait'] ? (c['max_wait'] = parseInt(item['maxWait'])) : '';
+					item['maxWait'] ? (c['min_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
+					item['maxWait'] ? (c['max_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
 					config.push(c);
 			  })
 			: '';
