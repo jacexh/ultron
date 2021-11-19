@@ -190,7 +190,7 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 			  })
 			: '';
 		tableData.length > 0 ? setFailureRatio(Number(total / tableData.length).toFixed(2)) : '';
-		setTotalTps(totalTps);
+		setTotalTps(totalTps.toFixed(2));
 	}
 
 	const handleClose = () => {
