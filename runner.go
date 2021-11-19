@@ -51,6 +51,7 @@ type (
 		eventbus   *eventbus
 		supervisor *slaveSupervisor
 		rpc        *grpc.Server
+		rest       *http.Server
 		mu         sync.RWMutex
 	}
 
@@ -120,9 +121,13 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 
 	start := make(chan struct{}, 1)
 	go func() { // http server
-		httpHandler := buildHTTPRouter(r)
+		router := buildHTTPRouter(r)
+		r.rest = &http.Server{
+			Addr:    conf.RESTAddr,
+			Handler: router,
+		}
 		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
-		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
+		if err := r.rest.ListenAndServe(); err != nil {
 			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
 		}
 	}()
