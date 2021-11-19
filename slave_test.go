@@ -63,9 +63,6 @@ func TestSlaveRunner_Working(t *testing.T) {
 	err = supervisor.batchSend(context.TODO(), &genproto.SubscribeResponse{Type: genproto.EventType_PING})
 	assert.Nil(t, err)
 
-	err = supervisor.batchSend(context.TODO(), &genproto.SubscribeResponse{Type: genproto.EventType_PLAN_INTERRUPTED})
-	assert.Nil(t, err)
-
 	dto, _ := defaultAttackStrategyConverter.convertAttackStrategy(&FixedConcurrentUsers{ConcurrentUsers: 100, RampUpPeriod: 10})
 	timer, _ := defaultTimerConverter.convertTimer(NonstopTimer{})
 	err = supervisor.batchSend(context.TODO(), &genproto.SubscribeResponse{
@@ -74,6 +71,9 @@ func TestSlaveRunner_Working(t *testing.T) {
 		Timer: timer,
 	})
 	assert.Nil(t, err)
+
+	// err = supervisor.batchSend(context.TODO(), &genproto.SubscribeResponse{Type: genproto.EventType_PLAN_INTERRUPTED})
+	// assert.Nil(t, err)
 
 	err = supervisor.batchSend(context.TODO(), &genproto.SubscribeResponse{Type: genproto.EventType_PLAN_FINISHED})
 	assert.Nil(t, err)

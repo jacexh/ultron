@@ -1,3 +1,5 @@
+//go:build !race
+
 package influxdbv1
 
 import (
@@ -11,7 +13,6 @@ import (
 	"github.com/wosai/ultron/v2"
 )
 
-//go:norace
 func TestBatchPoints(t *testing.T) {
 	bp := newBatchPointBuffer(NewInfluxDBV1Handler())
 	go bp.flushing()
@@ -38,7 +39,6 @@ func TestBatchPoints(t *testing.T) {
 	assert.EqualValues(t, len(bp.bp.Points()), 10)
 }
 
-//go:norace
 func TestBatchPoints_Flush(t *testing.T) {
 	bp := newBatchPointBuffer(NewInfluxDBV1Handler())
 	go bp.flushing()
