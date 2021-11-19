@@ -18,7 +18,6 @@ import {
 import { Edit, Stop } from '@material-ui/icons';
 import styles from './index.css';
 import { useEffect, useState } from 'react';
-import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { UltronImage } from '../components/image';
 
 const optionType = {
@@ -46,7 +45,7 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 						Edit
 					</a>
 				) : (
-					''
+					""
 				)}
 			</div>
 			<Divider orientation="vertical" variant="middle" flexItem />
