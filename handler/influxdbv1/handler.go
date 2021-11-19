@@ -48,13 +48,15 @@ func (b *batchPointsBuffer) addPoint(p *influxdb.Point) {
 	b.mu.Lock()
 	bp := b.bp
 	if bp == nil {
-		bp, err := influxdb.NewBatchPoints(b.conf)
+		var err error
+		bp, err = influxdb.NewBatchPoints(b.conf)
 		if err == nil {
 			b.bp = bp
 			b.mu.Unlock()
 		} else {
 			b.mu.Unlock()
 			ultron.Logger.Error("failed to create new batch points", zap.Error(err))
+			return
 		}
 	} else {
 		b.mu.Unlock()
