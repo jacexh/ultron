@@ -9,7 +9,7 @@
 - 修复了写入influxdb数据异常的问题
 ## v2.1.1
 
-- 修复写入InflxuDB时锁未释放的问题
+- 修复写入InfluxDB时锁未释放的问题
 - 后端以json格式暴露prometheus metric
 - 修复无法正确生成加压策略的问题
 - 前端优化一堆问题
