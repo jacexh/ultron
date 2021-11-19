@@ -332,11 +332,11 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 						<div>
 							<span style={{ paddingLeft: 25 }}>
 								<UltronImage width="65" />
-							</span>
+              </span>
 							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
-								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
+								<HeaderStatus title="USERS" textObj={tableData && tableData.length>0 ? tableData[0].users : 0} />
 								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
 								{isPlanEnd ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
 								&nbsp;&nbsp;
