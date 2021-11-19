@@ -32,8 +32,8 @@ func TestBatchPoints(t *testing.T) {
 	}
 
 	wg.Wait()
-	assert.NotNil(t, bp.bp)
 	<-time.After(100 * time.Millisecond) // 不稳定
+	assert.NotNil(t, bp.bp)
 	assert.EqualValues(t, len(bp.bp.Points()), 10)
 }
 
