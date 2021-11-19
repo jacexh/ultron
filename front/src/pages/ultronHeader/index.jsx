@@ -103,7 +103,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`rampUpPeriod${index}`}
 						value={option.rampUpPeriod}
-						label="加压时长"
+						label="加压时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
 					/>
@@ -112,7 +112,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`duration${index}`}
 						value={option.duration}
-						label="持续时长"
+						label="持续时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'duration')}
 					/>
@@ -120,7 +120,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						margin="dense"
 						size="small"
 						id={`minWait${index}`}
-						label="最小等待时间"
+						label="最小等待时间(s)"
 						variant="standard"
 						value={option.minWait}
 						onChange={e => handleChange(e.target.value, index, 'minWait')}
@@ -130,7 +130,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`maxWait${index}`}
 						value={option.maxWait}
-						label="最大等待时间"
+						label="最大等待时间(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'maxWait')}
 					/>

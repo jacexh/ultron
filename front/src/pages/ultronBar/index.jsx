@@ -44,7 +44,7 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 			? tableData.map(i => {
 					totalRequests += parseInt(i.requests);
 					totalFails += parseFloat(i.failures);
-					totalCurrents += parseFloat(i.tpsCurrent);
+					i.tpsCurrent ? (totalCurrents += parseFloat(i.tpsCurrent)) : '';
 			  })
 			: '';
 		setTotalRequest(totalRequests);
@@ -108,9 +108,9 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 								<StyledTableRow>
 									<StyledTableCell align="center" colSpan={12}></StyledTableCell>
 									<StyledTableCell align="center">{tableData ? <span style={{ fontSize: 16, fontWeight: 500 }}>TOTAL</span> : ''}</StyledTableCell>
-									<StyledTableCell align="center">{totalRequest}</StyledTableCell>
-									<StyledTableCell align="center">{totalFail}</StyledTableCell>
-									<StyledTableCell align="center">{totalCurrent}</StyledTableCell>
+									<StyledTableCell align="center">{parseInt(totalRequest)}</StyledTableCell>
+									<StyledTableCell align="center">{parseFloat(totalFail)}</StyledTableCell>
+									<StyledTableCell align="center">{parseFloat(totalCurrent)}</StyledTableCell>
 								</StyledTableRow>
 							</TableBody>
 						</Table>
