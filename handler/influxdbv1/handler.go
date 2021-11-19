@@ -34,8 +34,6 @@ type (
 )
 
 const (
-	// DefaultInfluxDBURL influxdb address
-	DefaultInfluxDBURL = "127.0.0.1:8089"
 	// DefaultInfluxDatabase influxdb database name
 	DefaultInfluxDatabase = "ultron"
 	// DefaultMeasurementResult the measurement to store successful request
@@ -46,22 +44,16 @@ const (
 
 func (b *batchPointsBuffer) addPoint(p *influxdb.Point) {
 	b.mu.Lock()
-	bp := b.bp
-	if bp == nil {
+	if b.bp == nil {
 		var err error
-		bp, err = influxdb.NewBatchPoints(b.conf)
-		if err == nil {
-			b.bp = bp
-			b.mu.Unlock()
-		} else {
+		if b.bp, err = influxdb.NewBatchPoints(b.conf); err != nil {
 			b.mu.Unlock()
 			ultron.Logger.Error("failed to create new batch points", zap.Error(err))
 			return
 		}
-	} else {
-		b.mu.Unlock()
 	}
-	bp.AddPoint(p)
+	b.bp.AddPoint(p) // 该方法不是线程安全...
+	b.mu.Unlock()
 }
 
 func (b *batchPointsBuffer) flushing() {
@@ -78,6 +70,10 @@ func (b *batchPointsBuffer) flushing() {
 		}
 
 		go func(c influxdb.Client, bp influxdb.BatchPoints) {
+			if c == nil {
+				ultron.Logger.Warn("no influxdb client provided, you should call Apply(WithHTTPClient/WithUDPClient) first")
+				return
+			}
 			err := c.Write(bp)
 			if err != nil {
 				ultron.Logger.Error("failed to write bach points", zap.Error(err))
@@ -87,18 +83,8 @@ func (b *batchPointsBuffer) flushing() {
 }
 
 // NewInfluxDBV1Handler 实例化NewInfluxDBHelper对象
-func NewInfluxDBV1Handler() (*InfluxDBV1Handler, error) {
-	client, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr:     DefaultInfluxDBURL,
-		Username: "",
-		Password: "",
-	})
-	if err != nil {
-		return nil, err
-	}
-
+func NewInfluxDBV1Handler() *InfluxDBV1Handler {
 	handler := &InfluxDBV1Handler{
-		client:            client,
 		database:          DefaultInfluxDatabase,
 		measurementResult: DefaultMeasurementResult,
 		measurementReport: DefaultMeasurementReport,
@@ -113,7 +99,7 @@ func NewInfluxDBV1Handler() (*InfluxDBV1Handler, error) {
 	}
 	handler.buffer = buf
 	go buf.flushing()
-	return handler, nil
+	return handler
 }
 
 func (hdl *InfluxDBV1Handler) Apply(opts ...influxDBV1HandlerOption) {
