@@ -1,0 +1,2536 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "limit": 100,
+          "name": "Annotations & Alerts",
+          "showIn": 0,
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 0,
+    "id": 46,
+    "iteration": 1637292587721,
+    "links": [],
+    "panels": [
+      {
+        "cacheTimeout": null,
+        "colorBackground": false,
+        "colorPostfix": false,
+        "colorPrefix": false,
+        "colorValue": true,
+        "colors": [
+          "#299c46",
+          "rgba(237, 129, 40, 0.89)",
+          "#d44a3a"
+        ],
+        "datasource": "InfluxDB-for-ultron2",
+        "decimals": null,
+        "format": "none",
+        "gauge": {
+          "maxValue": 100,
+          "minValue": 0,
+          "show": false,
+          "thresholdLabels": false,
+          "thresholdMarkers": true
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "id": 16,
+        "interval": null,
+        "links": [],
+        "mappingType": 1,
+        "mappingTypes": [
+          {
+            "name": "value to text",
+            "value": 1
+          },
+          {
+            "name": "range to text",
+            "value": 2
+          }
+        ],
+        "maxDataPoints": 100,
+        "nullPointMode": "connected",
+        "nullText": null,
+        "postfix": "",
+        "postfixFontSize": "50%",
+        "prefix": "",
+        "prefixFontSize": "50%",
+        "rangeMaps": [
+          {
+            "from": "null",
+            "text": "N/A",
+            "to": "null"
+          }
+        ],
+        "repeat": "attacker",
+        "repeatDirection": "v",
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "baidu",
+            "value": "baidu"
+          }
+        },
+        "sparkline": {
+          "fillColor": "#5794F2",
+          "full": false,
+          "lineColor": "#73BF69",
+          "show": true
+        },
+        "tableColumn": "",
+        "targets": [
+          {
+            "alias": "",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"success\") FROM \"report\" WHERE (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval), \"attacker\" fill(null)",
+            "rawQuery": false,
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "successes"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": "",
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Successes@$attacker",
+        "type": "singlestat",
+        "valueFontSize": "80%",
+        "valueMaps": [
+          {
+            "op": "=",
+            "text": "N/A",
+            "value": "null"
+          }
+        ],
+        "valueName": "current"
+      },
+      {
+        "cacheTimeout": null,
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": [
+          "#299c46",
+          "rgba(237, 129, 40, 0.89)",
+          "#d44a3a"
+        ],
+        "datasource": "InfluxDB-for-ultron2",
+        "format": "none",
+        "gauge": {
+          "maxValue": 100,
+          "minValue": 0,
+          "show": false,
+          "thresholdLabels": false,
+          "thresholdMarkers": true
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "id": 18,
+        "interval": "5s",
+        "links": [],
+        "mappingType": 1,
+        "mappingTypes": [
+          {
+            "name": "value to text",
+            "value": 1
+          },
+          {
+            "name": "range to text",
+            "value": 2
+          }
+        ],
+        "maxDataPoints": 100,
+        "nullPointMode": "connected",
+        "nullText": null,
+        "postfix": "",
+        "postfixFontSize": "50%",
+        "prefix": "",
+        "prefixFontSize": "50%",
+        "rangeMaps": [
+          {
+            "from": "null",
+            "text": "N/A",
+            "to": "null"
+          }
+        ],
+        "repeat": "attacker",
+        "repeatDirection": "v",
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "baidu",
+            "value": "baidu"
+          }
+        },
+        "sparkline": {
+          "fillColor": "rgba(31, 118, 189, 0.18)",
+          "full": false,
+          "lineColor": "#F2495C",
+          "show": true
+        },
+        "tableColumn": "",
+        "targets": [
+          {
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "failures"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": "",
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Failures@$attacker",
+        "type": "singlestat",
+        "valueFontSize": "80%",
+        "valueMaps": [
+          {
+            "op": "=",
+            "text": "N/A",
+            "value": "null"
+          }
+        ],
+        "valueName": "current"
+      },
+      {
+        "datasource": "InfluxDB-for-ultron2",
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "id": 20,
+        "links": [],
+        "options": {
+          "maxValue": 100,
+          "minValue": 0,
+          "orientation": "auto",
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "index": 1,
+              "value": 5
+            },
+            {
+              "color": "red",
+              "index": 2,
+              "value": 10
+            }
+          ],
+          "valueMappings": [],
+          "valueOptions": {
+            "decimals": 2,
+            "prefix": "",
+            "stat": "last",
+            "suffix": "",
+            "unit": "percentunit"
+          }
+        },
+        "pluginVersion": "6.1.4",
+        "repeat": "attacker",
+        "repeatDirection": "v",
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "baidu",
+            "value": "baidu"
+          }
+        },
+        "targets": [
+          {
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "failure_ratio"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Failure Ratio@$attacker",
+        "type": "gauge"
+      },
+      {
+        "cacheTimeout": null,
+        "colorBackground": false,
+        "colorPostfix": false,
+        "colorPrefix": false,
+        "colorValue": true,
+        "colors": [
+          "#299c46",
+          "rgba(237, 129, 40, 0.89)",
+          "#d44a3a"
+        ],
+        "datasource": "InfluxDB-for-ultron2",
+        "decimals": null,
+        "format": "none",
+        "gauge": {
+          "maxValue": 100,
+          "minValue": 0,
+          "show": false,
+          "thresholdLabels": false,
+          "thresholdMarkers": true
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 0,
+          "y": 5
+        },
+        "id": 21,
+        "interval": null,
+        "links": [],
+        "mappingType": 1,
+        "mappingTypes": [
+          {
+            "name": "value to text",
+            "value": 1
+          },
+          {
+            "name": "range to text",
+            "value": 2
+          }
+        ],
+        "maxDataPoints": 100,
+        "nullPointMode": "connected",
+        "nullText": null,
+        "postfix": "",
+        "postfixFontSize": "50%",
+        "prefix": "",
+        "prefixFontSize": "50%",
+        "rangeMaps": [
+          {
+            "from": "null",
+            "text": "N/A",
+            "to": "null"
+          }
+        ],
+        "repeat": null,
+        "repeatDirection": "v",
+        "repeatIteration": 1637292587721,
+        "repeatPanelId": 16,
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "bing",
+            "value": "bing"
+          }
+        },
+        "sparkline": {
+          "fillColor": "#5794F2",
+          "full": false,
+          "lineColor": "#73BF69",
+          "show": true
+        },
+        "tableColumn": "",
+        "targets": [
+          {
+            "alias": "",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"success\") FROM \"report\" WHERE (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval), \"attacker\" fill(null)",
+            "rawQuery": false,
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "successes"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": "",
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Successes@$attacker",
+        "type": "singlestat",
+        "valueFontSize": "80%",
+        "valueMaps": [
+          {
+            "op": "=",
+            "text": "N/A",
+            "value": "null"
+          }
+        ],
+        "valueName": "current"
+      },
+      {
+        "cacheTimeout": null,
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": [
+          "#299c46",
+          "rgba(237, 129, 40, 0.89)",
+          "#d44a3a"
+        ],
+        "datasource": "InfluxDB-for-ultron2",
+        "format": "none",
+        "gauge": {
+          "maxValue": 100,
+          "minValue": 0,
+          "show": false,
+          "thresholdLabels": false,
+          "thresholdMarkers": true
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 8,
+          "y": 5
+        },
+        "id": 22,
+        "interval": "5s",
+        "links": [],
+        "mappingType": 1,
+        "mappingTypes": [
+          {
+            "name": "value to text",
+            "value": 1
+          },
+          {
+            "name": "range to text",
+            "value": 2
+          }
+        ],
+        "maxDataPoints": 100,
+        "nullPointMode": "connected",
+        "nullText": null,
+        "postfix": "",
+        "postfixFontSize": "50%",
+        "prefix": "",
+        "prefixFontSize": "50%",
+        "rangeMaps": [
+          {
+            "from": "null",
+            "text": "N/A",
+            "to": "null"
+          }
+        ],
+        "repeat": null,
+        "repeatDirection": "v",
+        "repeatIteration": 1637292587721,
+        "repeatPanelId": 18,
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "bing",
+            "value": "bing"
+          }
+        },
+        "sparkline": {
+          "fillColor": "rgba(31, 118, 189, 0.18)",
+          "full": false,
+          "lineColor": "#F2495C",
+          "show": true
+        },
+        "tableColumn": "",
+        "targets": [
+          {
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "failures"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": "",
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Failures@$attacker",
+        "type": "singlestat",
+        "valueFontSize": "80%",
+        "valueMaps": [
+          {
+            "op": "=",
+            "text": "N/A",
+            "value": "null"
+          }
+        ],
+        "valueName": "current"
+      },
+      {
+        "datasource": "InfluxDB-for-ultron2",
+        "gridPos": {
+          "h": 5,
+          "w": 8,
+          "x": 16,
+          "y": 5
+        },
+        "id": 23,
+        "links": [],
+        "options": {
+          "maxValue": 100,
+          "minValue": 0,
+          "orientation": "auto",
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "index": 1,
+              "value": 5
+            },
+            {
+              "color": "red",
+              "index": 2,
+              "value": 10
+            }
+          ],
+          "valueMappings": [],
+          "valueOptions": {
+            "decimals": 2,
+            "prefix": "",
+            "stat": "last",
+            "suffix": "",
+            "unit": "percentunit"
+          }
+        },
+        "pluginVersion": "6.1.4",
+        "repeat": null,
+        "repeatDirection": "v",
+        "repeatIteration": 1637292587721,
+        "repeatPanelId": 20,
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "bing",
+            "value": "bing"
+          }
+        },
+        "targets": [
+          {
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "previous"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "failure_ratio"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Failure Ratio@$attacker",
+        "type": "gauge"
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 1,
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 10
+        },
+        "id": 1,
+        "legend": {
+          "alignAsTable": false,
+          "avg": true,
+          "current": false,
+          "max": true,
+          "min": true,
+          "rightSide": false,
+          "show": true,
+          "sideWidth": 100,
+          "total": false,
+          "values": true
+        },
+        "lines": false,
+        "linewidth": 1,
+        "links": [
+          {
+            "type": "dashboard"
+          }
+        ],
+        "nullPointMode": "null",
+        "percentage": false,
+        "pointradius": 1,
+        "points": true,
+        "renderer": "flot",
+        "seriesOverrides": [
+          {
+            "alias": "/.*->avg/",
+            "fill": 3,
+            "lines": true,
+            "linewidth": 2,
+            "nullPointMode": "connected"
+          }
+        ],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "hide": false,
+            "measurement": "result",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT mean(\"response_time\") FROM \"success\" WHERE $timeFilter GROUP BY time($__interval), \"api\" fill(null)",
+            "rawQuery": false,
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "response_time"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          },
+          {
+            "alias": "$tag_attacker->avg",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "10s"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "success",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT mean(\"response_time\") FROM \"result\" WHERE  (\"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time(10s), \"attacker\" fill(null)",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "B",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "response_time"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000,
+            "yaxis": "left"
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "Total Attack Response Time",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "Response Time(ms)",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "none",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 2,
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 18
+        },
+        "id": 2,
+        "legend": {
+          "alignAsTable": false,
+          "avg": true,
+          "current": false,
+          "max": true,
+          "min": true,
+          "rightSide": false,
+          "show": true,
+          "total": false,
+          "values": true
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": true,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT mean(\"qps\") FROM \"report\" WHERE $timeFilter GROUP BY time($__interval), \"api\" fill(null)",
+            "rawQuery": false,
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "tps"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 200,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 200,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 100,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 100,
+            "yaxis": "left"
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "Total Transaction Per Second",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "none",
+            "label": "Transaction Per Second (TPS)",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": "",
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 3,
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 26
+        },
+        "id": 6,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "hide": false,
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP50"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "TP50",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 3,
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 26
+        },
+        "id": 12,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "hide": false,
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP90"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "TP90",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 3,
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 33
+        },
+        "id": 13,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "hide": false,
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP95"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "TP95",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 3,
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 33
+        },
+        "id": 14,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "$tag_attacker",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "attacker"
+                ],
+                "type": "tag"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "hide": false,
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP99"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "plan",
+                "operator": "=~",
+                "value": "/^$plan$/"
+              },
+              {
+                "condition": "AND",
+                "key": "attacker",
+                "operator": "=~",
+                "value": "/^$attacker$/"
+              }
+            ]
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "TP99",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": "",
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 0,
+        "gridPos": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 40
+        },
+        "id": 10,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "repeat": "attacker",
+        "repeatDirection": "v",
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "baidu",
+            "value": "baidu"
+          }
+        },
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "TP50",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP50\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP50"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "api",
+                "operator": "=~",
+                "value": "/^$api$/"
+              }
+            ]
+          },
+          {
+            "alias": "TP90",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP90\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "B",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          },
+          {
+            "alias": "TP95",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP95\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "C",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          },
+          {
+            "alias": "TP99",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP99\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "D",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000,
+            "yaxis": "left"
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "Attack Response Time@$attacker",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "InfluxDB-for-ultron2",
+        "fill": 0,
+        "gridPos": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 47
+        },
+        "id": 24,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
+        },
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "repeat": null,
+        "repeatDirection": "v",
+        "repeatIteration": 1637292587721,
+        "repeatPanelId": 10,
+        "scopedVars": {
+          "attacker": {
+            "selected": true,
+            "text": "bing",
+            "value": "bing"
+          }
+        },
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "alias": "TP50",
+            "dsType": "influxdb",
+            "format": "time_series",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "measurement": "report",
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP50\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  UNIX_TIMESTAMP(<time_column>) as time_sec,\n  <value column> as value,\n  <series name column> as metric\nFROM <table name>\nWHERE $__timeFilter(time_column)\nORDER BY <time_column> ASC\n",
+            "refId": "A",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "TP50"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "last"
+                }
+              ]
+            ],
+            "tags": [
+              {
+                "key": "api",
+                "operator": "=~",
+                "value": "/^$api$/"
+              }
+            ]
+          },
+          {
+            "alias": "TP90",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP90\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "B",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          },
+          {
+            "alias": "TP95",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP95\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "C",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          },
+          {
+            "alias": "TP99",
+            "dsType": "influxdb",
+            "groupBy": [
+              {
+                "params": [
+                  "$__interval"
+                ],
+                "type": "time"
+              },
+              {
+                "params": [
+                  "null"
+                ],
+                "type": "fill"
+              }
+            ],
+            "orderByTime": "ASC",
+            "policy": "default",
+            "query": "SELECT last(\"TP99\") FROM \"report\" WHERE  (\"plan\" =~ /^$plan$/ AND \"attacker\" =~ /^$attacker$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
+            "refId": "D",
+            "resultFormat": "time_series",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "field"
+                },
+                {
+                  "params": [],
+                  "type": "mean"
+                }
+              ]
+            ],
+            "tags": []
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 3000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": false,
+            "op": "gt",
+            "value": 1000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "ok",
+            "fill": true,
+            "line": false,
+            "op": "lt",
+            "value": 1000,
+            "yaxis": "left"
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "Attack Response Time@$attacker",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "ms",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": "0",
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 18,
+    "style": "dark",
+    "tags": [],
+    "templating": {
+      "list": [
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "text": "foobar",
+            "value": "foobar"
+          },
+          "datasource": "InfluxDB-for-ultron2",
+          "definition": "show tag values with key=\"plan\"",
+          "hide": 0,
+          "includeAll": false,
+          "label": null,
+          "multi": false,
+          "name": "plan",
+          "options": [],
+          "query": "show tag values with key=\"plan\"",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "tagValuesQuery": "",
+          "tags": [],
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        },
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "tags": [],
+            "text": "baidu + bing",
+            "value": [
+              "baidu",
+              "bing"
+            ]
+          },
+          "datasource": "InfluxDB-for-ultron2",
+          "definition": "show tag values with key=\"attacker\"",
+          "hide": 0,
+          "includeAll": false,
+          "label": null,
+          "multi": true,
+          "name": "attacker",
+          "options": [],
+          "query": "show tag values with key=\"attacker\"",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 1,
+          "tagValuesQuery": "",
+          "tags": [],
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        }
+      ]
+    },
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    },
+    "timezone": "",
+    "title": "Ultron v2 Dashboard",
+    "uid": "jlTZ3DnZz23232",
+    "version": 78
+  }
