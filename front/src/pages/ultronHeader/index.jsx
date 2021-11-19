@@ -45,7 +45,7 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 						Edit
 					</a>
 				) : (
-					""
+					''
 				)}
 			</div>
 			<Divider orientation="vertical" variant="middle" flexItem />
@@ -103,7 +103,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`rampUpPeriod${index}`}
 						value={option.rampUpPeriod}
-						label="加压时长"
+						label="加压时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
 					/>
@@ -112,7 +112,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`duration${index}`}
 						value={option.duration}
-						label="持续时长"
+						label="持续时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'duration')}
 					/>
@@ -120,7 +120,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						margin="dense"
 						size="small"
 						id={`minWait${index}`}
-						label="最小等待时间"
+						label="最小等待时间(s)"
 						variant="standard"
 						value={option.minWait}
 						onChange={e => handleChange(e.target.value, index, 'minWait')}
@@ -130,7 +130,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`maxWait${index}`}
 						value={option.maxWait}
-						label="最大等待时间"
+						label="最大等待时间(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'maxWait')}
 					/>
@@ -251,11 +251,11 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 					var c = {};
 					index == 0 ? (data['name'] = item.name) : '';
 					item['requests'] ? (c['requests'] = parseInt(item['requests'])) : '';
-					item['duration'] ? (c['duration'] = parseInt(item['duration'])) : '';
+					item['duration'] ? (c['duration'] = parseFloat(item['duration']) * 1000000000) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = parseInt(item['maxWait'])) : '';
-					item['maxWait'] ? (c['max_wait'] = parseInt(item['maxWait'])) : '';
+					item['maxWait'] ? (c['min_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
+					item['maxWait'] ? (c['max_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
 					config.push(c);
 			  })
 			: '';
