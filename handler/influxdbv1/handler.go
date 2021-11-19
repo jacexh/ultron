@@ -44,22 +44,16 @@ const (
 
 func (b *batchPointsBuffer) addPoint(p *influxdb.Point) {
 	b.mu.Lock()
-	bp := b.bp
-	if bp == nil {
+	if b.bp == nil {
 		var err error
-		bp, err = influxdb.NewBatchPoints(b.conf)
-		if err == nil {
-			b.bp = bp
-			b.mu.Unlock()
-		} else {
+		if b.bp, err = influxdb.NewBatchPoints(b.conf); err != nil {
 			b.mu.Unlock()
 			ultron.Logger.Error("failed to create new batch points", zap.Error(err))
 			return
 		}
-	} else {
-		b.mu.Unlock()
 	}
-	bp.AddPoint(p)
+	b.bp.AddPoint(p) // 该方法不是线程安全...
+	b.mu.Unlock()
 }
 
 func (b *batchPointsBuffer) flushing() {
