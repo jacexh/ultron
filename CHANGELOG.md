@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v2.2.0
+
+- 修改InfluxDBV1Handler的接口设计
+- 修改统计对象中的部分字段名称
 ## v2.1.2
 
 - 修复了写入influxdb数据异常的问题
