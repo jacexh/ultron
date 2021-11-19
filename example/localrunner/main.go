@@ -4,10 +4,13 @@ import (
 	"net/http"
 
 	"github.com/wosai/ultron/v2"
+	"github.com/wosai/ultron/v2/handler/influxdbv1"
 )
 
 func main() {
 	runner := ultron.NewLocalRunner()
+
+	// setup task
 	task := ultron.NewTask()
 	bing := ultron.NewHTTPAttacker("bing")
 	bing.Apply(
@@ -16,18 +19,18 @@ func main() {
 		}),
 		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
 	)
-	baidu := ultron.NewHTTPAttacker("baidu")
-	baidu.Apply(
-		ultron.WithPrepareFunc(func() (*http.Request, error) {
-			return http.NewRequest(http.MethodGet, "https://www.baidu.com", nil)
-		}),
-		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),
-	)
-
 	task.Add(bing, 1)
-	task.Add(baidu, 1)
 	runner.Assign(task)
 
+	// setup influxdb handler
+	handler := influxdbv1.NewInfluxDBV1Handler()
+	handler.Apply(
+		influxdbv1.WithHTTPClient("127.0.0.1:8089", "", ""),
+	)
+	runner.SubscribeReport(handler.HandleReport())
+	runner.SubscribeResult(handler.HandleResult(0.1))
+
+	// start localrunner
 	if err := runner.Launch(); err != nil {
 		panic(err)
 	}

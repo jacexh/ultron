@@ -34,8 +34,6 @@ type (
 )
 
 const (
-	// DefaultInfluxDBURL influxdb address
-	DefaultInfluxDBURL = "127.0.0.1:8089"
 	// DefaultInfluxDatabase influxdb database name
 	DefaultInfluxDatabase = "ultron"
 	// DefaultMeasurementResult the measurement to store successful request
@@ -78,6 +76,10 @@ func (b *batchPointsBuffer) flushing() {
 		}
 
 		go func(c influxdb.Client, bp influxdb.BatchPoints) {
+			if c == nil {
+				ultron.Logger.Warn("no influxdb client provided, you should call Apply(WithHTTPClient/WithUDPClient) first")
+				return
+			}
 			err := c.Write(bp)
 			if err != nil {
 				ultron.Logger.Error("failed to write bach points", zap.Error(err))
@@ -87,18 +89,8 @@ func (b *batchPointsBuffer) flushing() {
 }
 
 // NewInfluxDBV1Handler 实例化NewInfluxDBHelper对象
-func NewInfluxDBV1Handler() (*InfluxDBV1Handler, error) {
-	client, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr:     DefaultInfluxDBURL,
-		Username: "",
-		Password: "",
-	})
-	if err != nil {
-		return nil, err
-	}
-
+func NewInfluxDBV1Handler() *InfluxDBV1Handler {
 	handler := &InfluxDBV1Handler{
-		client:            client,
 		database:          DefaultInfluxDatabase,
 		measurementResult: DefaultMeasurementResult,
 		measurementReport: DefaultMeasurementReport,
@@ -113,7 +105,7 @@ func NewInfluxDBV1Handler() (*InfluxDBV1Handler, error) {
 	}
 	handler.buffer = buf
 	go buf.flushing()
-	return handler, nil
+	return handler
 }
 
 func (hdl *InfluxDBV1Handler) Apply(opts ...influxDBV1HandlerOption) {
