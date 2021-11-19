@@ -45,31 +45,31 @@ func newSlaveRunner() *slaveRunner {
 
 func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
 	if sr.task == nil {
-		Logger.Fatal("you should assign a task before call connect function")
+		Logger.Error("you should assign a task before call connect function")
 		return errors.New("you should assgin a task before connect")
 	}
 	sr.ctx, sr.cancel = context.WithCancel(context.Background())
 	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
 	if err != nil {
-		Logger.Fatal("failed to connect ultron server", zap.Error(err))
+		Logger.Error("failed to connect ultron server", zap.Error(err))
 		return err
 	}
 	client := genproto.NewUltronAPIClient(conn)
 	streams, err := client.Subscribe(sr.ctx, &genproto.SubscribeRequest{SlaveId: sr.id})
 	if err != nil {
-		Logger.Fatal("failed to subscribe events from ultron server", zap.Error(err))
+		Logger.Error("failed to subscribe events from ultron server", zap.Error(err))
 		return err
 	}
 
 	// 第一条消息接受
 	resp, err := streams.Recv()
 	if err != nil {
-		Logger.Fatal("failed to receive event from ultron server", zap.Error(err))
+		Logger.Error("failed to receive event from ultron server", zap.Error(err))
 		return err
 	}
 	if resp.GetType() != genproto.EventType_CONNECTED {
 		err := fmt.Errorf("unexpected event type: %d", resp.Type)
-		Logger.Fatal("the first arrvied event is not expected", zap.Error(err))
+		Logger.Error("the first arrvied event is not expected", zap.Error(err))
 		return err
 	}
 
