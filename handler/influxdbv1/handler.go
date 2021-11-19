@@ -27,6 +27,7 @@ type (
 		conf    influxdb.BatchPointsConfig
 		ticker  *time.Ticker
 		ch      chan *influxdb.Point
+		size    uint32
 		counter uint32
 	}
 
@@ -46,6 +47,7 @@ func newBatchPointBuffer(handler *InfluxDBV1Handler) *batchPointsBuffer {
 	return &batchPointsBuffer{
 		handler: handler,
 		ch:      make(chan *influxdb.Point, 1024),
+		size:    100,
 	}
 }
 
@@ -87,6 +89,12 @@ func (b *batchPointsBuffer) flushing() {
 flushing:
 	for {
 		select {
+		case <-b.ticker.C:
+			if b.bp != nil {
+				b.counter = 0
+				b.resetBufferAndWriteBatchPoint(b.bp)
+			}
+
 		case point := <-b.ch:
 			bp, err := b.insertPointAndGetBatchPoint(point)
 			if err != nil {
@@ -94,14 +102,8 @@ flushing:
 				continue flushing
 			}
 			b.counter++
-			if (b.counter % 100) == 0 {
+			if (b.counter % b.size) == 0 {
 				b.resetBufferAndWriteBatchPoint(bp)
-			}
-
-		case <-b.ticker.C:
-			if b.bp != nil {
-				b.counter = 0
-				b.resetBufferAndWriteBatchPoint(b.bp)
 			}
 		}
 	}
@@ -239,5 +241,14 @@ func WithUDPClient(url string, size int) influxDBV1HandlerOption {
 			panic(err)
 		}
 		hdl.client = client
+	}
+}
+
+func WithBufferSize(size uint32) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		if size == 0 {
+			panic("bad buffer size")
+		}
+		hdl.buffer.size = size
 	}
 }
