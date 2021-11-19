@@ -18,15 +18,15 @@ export const LineChart = ({ lineData, localType }) => {
 				},
 			},
 		},
-    yAxis: {
-      label: {
-        formatter: function formatter(v) {
-          return ''.concat(v).replace(/\d{1,3}(?=(\d{3})+$)/g, function (s) {
-            return ''.concat(s, ',');
-          });
-        },
-      },
-    },
+		yAxis: {
+			label: {
+				formatter: function formatter(v) {
+					return ''.concat(v).replace(/\d{1,3}(?=(\d{3})+$)/g, function(s) {
+						return ''.concat(s, ',');
+					});
+				},
+			},
+		},
 		color: COLOR_PLATE_10,
 		point: {
 			shape: function shape(_ref) {
@@ -42,23 +42,21 @@ export const LineChart = ({ lineData, localType }) => {
 
 	useEffect(() => {
 		//只改变data的值比较顺滑流畅
-		if (lineData && lineData.length > 0) {
-			if (localStorage.getItem(localType)) {
-				var newData = [];
-				JSON.parse(localStorage.getItem(localType)).map(function(item) {
-					let d1 = new Date(item.time.replace(/\-/g, '/'));
-					let d2 = new Date();
-					let newTime = getDiffTime(d2, d1);
-					if (newTime < 15) newData.push(item); //保留15分钟之内的
-				});
-				let chartData = newData.concat(lineData);
-				localStorage.setItem(localType, JSON.stringify(chartData));
-				setChartOption({ data: chartData });
-			} else {
-				//初始化
-				localStorage.setItem(localType, JSON.stringify(lineData));
-				setChartOption({ data: lineData });
-			}
+		if (localStorage.getItem(localType)) {
+			var newData = [];
+			JSON.parse(localStorage.getItem(localType)).map(function(item) {
+				let d1 = new Date(item.time.replace(/\-/g, '/'));
+				let d2 = new Date();
+				let newTime = getDiffTime(d2, d1);
+				if (newTime < 15) newData.push(item); //保留15分钟之内的
+			});
+			let chartData = newData.concat(lineData);
+			localStorage.setItem(localType, JSON.stringify(chartData));
+			setChartOption({ data: chartData });
+		} else {
+			//初始化
+			localStorage.setItem(localType, JSON.stringify(lineData));
+			setChartOption({ data: lineData });
 		}
 	}, [lineData]);
 
