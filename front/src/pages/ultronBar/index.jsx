@@ -100,7 +100,7 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 													<StyledTableCell align="center">{i.AVG}</StyledTableCell>
 													<StyledTableCell align="center">{i.requests}</StyledTableCell>
 													<StyledTableCell align="center">{i.failures}</StyledTableCell>
-													<StyledTableCell align="center">{i.tpsCurrent}</StyledTableCell>
+													<StyledTableCell align="center">{i.tpsCurrent ? i.tpsCurrent : 0}</StyledTableCell>
 												</StyledTableRow>
 											);
 									  })
