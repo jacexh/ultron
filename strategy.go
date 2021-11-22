@@ -64,7 +64,7 @@ type (
 		counter   uint32
 		pool      map[uint32]*fcuExecutor
 		closed    uint32
-		wg        *sync.WaitGroup
+		wg        sync.WaitGroup
 		mu        sync.Mutex
 	}
 
@@ -206,7 +206,6 @@ func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCom
 		ctx:    context.TODO(),
 		output: make(chan statistics.AttackResult, 100),
 		pool:   make(map[uint32]*fcuExecutor),
-		wg:     new(sync.WaitGroup),
 	}
 }
 
@@ -274,14 +273,14 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 				commander.mu.Unlock()
 
 				commander.wg.Add(1)
-				go func(exe *fcuExecutor, wg *sync.WaitGroup) {
+				go func(exe *fcuExecutor) {
 					defer func() {
 						commander.clearDeadExector(exe.id)
 						exe.kill() // 所有清理逻辑
-						wg.Done()
+						commander.wg.Done()
 					}()
 					exe.start(commander.ctx, commander.task, commander.output)
-				}(executor, commander.wg)
+				}(executor)
 			}
 			spawned += step.N
 			Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
