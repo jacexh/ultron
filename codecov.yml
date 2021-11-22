@@ -1,6 +1,6 @@
 ignore:
 - example
 - pkg/genproto
-- statistics/statistics.pb.go
+- pkg/statistics/statistics.pb.go
 - runner.go
 - metric.go
