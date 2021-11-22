@@ -2,21 +2,35 @@ name: Ultron CI
 on: [push, pull_request]
 
 jobs:
-  ci:
+  prepare:
     runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      name: Check out code into Go module directory
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+  backend:
+    runs-on: ubuntu-latest
+    needs: prepare
     steps:
     - uses: actions/setup-go@v2
       name: Set up Go 1.x
       with:
         go-version: "^1.17"
-    - uses: actions/checkout@v2
-      name: Check out code into Go module directory
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
     - name: Install Protoc
       uses: arduino/setup-protoc@v1
       with:
         version: "3.18.1"
+    - name: Generate Protocol Buff Files
+      run: make proto
+    - name: Run Unittest Cases
+      run: make test
+    - name: Run Benchmark Cases
+      run: make benchmark
+  frontend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
     - name: Use Node.js
       uses: actions/setup-node@v2
       with:
@@ -28,19 +42,20 @@ jobs:
         git rm -rf web/
         yarn --cwd front install
         yarn --cwd front build
-    - name: Generate Protocol Buff Files
-      run: |   
-        make proto
+  build:
+    runs-on: ubuntu-latest
+    needs:
+    - frontend
+    - backend
+    steps:
+    - name: Auto Commit
+      run: |
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
         set +e
         git add web
         git commit -am 'Automated generate protobuf files' && git push
         set -e
-    - name: Run Unittest Cases
-      run: make test
-    - name: Run Benchmark Cases
-      run: make benchmark
     - name: Code Coverage Report
       uses: codecov/codecov-action@v2
       with:
