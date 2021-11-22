@@ -1,5 +1,6 @@
 ignore:
 - example
+- cmd
 - pkg/genproto
 - pkg/statistics/statistics.pb.go
 - runner.go
