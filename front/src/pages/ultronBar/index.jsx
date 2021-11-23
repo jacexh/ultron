@@ -49,7 +49,7 @@ export const UltronBar = ({ tableData, lineData, tpsline }, props) => {
 			: '';
 		setTotalRequest(totalRequests);
 		setTotalFail(totalFails);
-		setTotalCurrent(totalCurrents);
+		setTotalCurrent(totalCurrents.toFixed(2));
 	}
 
 	return (

@@ -28,15 +28,16 @@ export const LineChart = ({ lineData, localType }) => {
 			},
 		},
 		color: COLOR_PLATE_10,
-		point: {
-			shape: function shape(_ref) {
-				var category = _ref.category;
-				return category === 'Gas fuel' ? 'square' : 'circle';
+		legend: {
+			position: 'top',
+		},
+		smooth: true,
+		// @TODO 后续会换一种动画方式
+		animation: {
+			appear: {
+				animation: 'path-in',
+				duration: 5000,
 			},
-			// style: function style(_ref2) {
-			// 	var time = _ref2.time;
-			// 	return { r: Number(time) % 4 ? 0 : 3 };
-			// },
 		},
 	});
 
