@@ -15,7 +15,7 @@
 		"@material-ui/icons": "^5.0.0-beta.5",
 		"@material-ui/styles": "^4.11.4",
 		"antd": "^3.26.13",
-		"compression-webpack-plugin": "^9.0.1",
+		"compression-webpack-plugin": "^6.0.5",
 		"dingtalk-jsapi": "^2.10.1",
 		"dva": "^2.4.1",
 		"hermes-react": "^1.8.8",
@@ -31,7 +31,7 @@
 		"use-debounce": "^7.0.1"
 	},
 	"devDependencies": {
-		"compression-webpack-plugin": "^9.0.1",
+		"compression-webpack-plugin": "^6.0.5",
 		"lint-staged": "^12.1.2",
 		"moment": "2.29.1",
 		"react-dom": "^17.0.2",
