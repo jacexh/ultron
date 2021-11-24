@@ -173,6 +173,10 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 		go func(c <-chan statistics.AttackResult) {
 			for ret := range c {
 				if ret.IsFailure() {
+					if errors.Is(ret.Error, context.Canceled) {
+						Logger.Warn("dropped the canceled attack result")
+						continue
+					}
 					Logger.Warn("received a failed attack result", zap.Error(ret.Error))
 				}
 				sr.stats.Record(ret)
