@@ -173,7 +173,7 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 		go func(c <-chan statistics.AttackResult) {
 			for ret := range c {
 				if ret.IsFailure() {
-					if errors.Is(ret.Error, context.Canceled) {
+					if errors.Is(ret.Error, context.Canceled) { // 一般出现于降压阶段或者终止进程时
 						Logger.Warn("dropped the canceled attack result")
 						continue
 					}
