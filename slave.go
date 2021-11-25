@@ -168,7 +168,7 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 	}
 
 	if sr.commander == nil {
-		sr.commander = defaultCommanderFactory.build(strategy.(namedAttackStrategy).Name())
+		sr.commander = defaultCommanderFactory.build(strategy.Name())
 		output := sr.commander.Open(sr.ctx, sr.task)
 		go func(c <-chan statistics.AttackResult) {
 			for ret := range c {
