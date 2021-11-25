@@ -3,6 +3,7 @@ package ultron
 import (
 	"context"
 	"net"
+	"net/http"
 	"testing"
 	"time"
 
@@ -39,7 +40,6 @@ func TestSlaveRunner_Connect(t *testing.T) {
 	_, lis := prepareGRPCServer()
 	defer func() {
 		lis.Close()
-		<-time.After(2 * time.Second)
 	}()
 	err = slave.Connect("127.0.0.1:2021", grpc.WithInsecure())
 	assert.Nil(t, err)
@@ -48,12 +48,15 @@ func TestSlaveRunner_Connect(t *testing.T) {
 func TestSlaveRunner_Working(t *testing.T) {
 	slave := newSlaveRunner()
 	task := NewTask()
-	task.Add(&HTTPAttacker{}, 1)
+	attacker := NewHTTPAttacker("foobar")
+	attacker.Apply(WithPrepareFunc(func() (*http.Request, error) {
+		return http.NewRequest(http.MethodGet, "https://cn.bing.com", nil)
+	}))
+	task.Add(attacker, 1)
 	slave.Assign(task)
 	ultron, lis := prepareGRPCServer()
 	defer func() {
 		lis.Close()
-		<-time.After(2 * time.Second)
 	}()
 	err := slave.Connect("127.0.0.1:2021", grpc.WithInsecure())
 	assert.Nil(t, err)

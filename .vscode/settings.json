@@ -17,7 +17,8 @@
     "go.autocompleteUnimportedPackages": true,
     "go.formatTool": "goimports",
     "go.testFlags": [
-        "-v"
+        "-v",
+        "-race"
     ],
     "go.lintOnSave": "package",
     "editor.minimap.enabled": true,
@@ -41,5 +42,6 @@
             "--proto_path=${workspaceRoot}/api/protobuf/",
             "--proto_path=${workspaceRoot}/api/google/protobuf/",
         ]
-    }
+    },
+    "terminal.integrated.scrollback": 10000,
 }

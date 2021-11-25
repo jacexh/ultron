@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v2.2.1
+
+- 修复在Slave停止Plan时当处于RampUp阶段会出现的数据竞争问题
+
 ## v2.2.0
 
 - 修改InfluxDBV1Handler的接口设计
