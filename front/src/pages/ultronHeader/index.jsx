@@ -254,7 +254,7 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 					item['duration'] ? (c['duration'] = parseFloat(item['duration']) * 1000000000) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
+					item['minWait'] ? (c['min_wait'] = parseFloat(item['minWait']) * 1000000000) : '';
 					item['maxWait'] ? (c['max_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
 					config.push(c);
 			  })
