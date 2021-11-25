@@ -29,6 +29,7 @@ type (
 		Spawn() []*RampUpStep
 		Switch(next AttackStrategy) []*RampUpStep
 		Split(int) []AttackStrategy
+		Name() string
 	}
 
 	// RampUpStep 增/降压描述
@@ -49,11 +50,6 @@ type (
 
 	convertAttackStrategyDTOFunc func([]byte) (AttackStrategy, error)
 
-	namedAttackStrategy interface {
-		AttackStrategy
-		Name() string
-	}
-
 	fixedConcurrentUsersStrategyCommander struct {
 		ctx       context.Context
 		cancel    context.CancelFunc
@@ -64,7 +60,7 @@ type (
 		counter   uint32
 		pool      map[uint32]*fcuExecutor
 		closed    uint32
-		wg        *sync.WaitGroup
+		wg        sync.WaitGroup
 		mu        sync.Mutex
 	}
 
@@ -190,15 +186,11 @@ func (c *attackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (A
 }
 
 func (c *attackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
-	na, ok := as.(namedAttackStrategy)
-	if !ok {
-		return nil, errors.New("cannot convert attack strategy")
-	}
-	data, err := json.Marshal(na)
+	data, err := json.Marshal(as)
 	if err != nil {
 		return nil, err
 	}
-	return &genproto.AttackStrategyDTO{Type: na.Name(), AttackStrategy: data}, nil
+	return &genproto.AttackStrategyDTO{Type: as.Name(), AttackStrategy: data}, nil
 }
 
 func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCommander {
@@ -206,7 +198,6 @@ func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCom
 		ctx:    context.TODO(),
 		output: make(chan statistics.AttackResult, 100),
 		pool:   make(map[uint32]*fcuExecutor),
-		wg:     new(sync.WaitGroup),
 	}
 }
 
@@ -274,14 +265,14 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 				commander.mu.Unlock()
 
 				commander.wg.Add(1)
-				go func(exe *fcuExecutor, wg *sync.WaitGroup) {
+				go func(exe *fcuExecutor) {
 					defer func() {
 						commander.clearDeadExector(exe.id)
 						exe.kill() // 所有清理逻辑
-						wg.Done()
+						commander.wg.Done()
 					}()
 					exe.start(commander.ctx, commander.task, commander.output)
-				}(executor, commander.wg)
+				}(executor)
 			}
 			spawned += step.N
 			Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
@@ -338,6 +329,7 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 	for {
 		select {
 		case <-ctx.Done():
+			// Logger.Warn("a executor is quit")
 			return
 		default:
 		}
@@ -349,6 +341,8 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 		select {
 		case output <- statistics.AttackResult{Name: attacker.Name(), Duration: time.Since(start), Error: err}:
 		case <-ctx.Done():
+			// Logger.Warn("a executor is quit")
+			return
 		}
 
 		e.mu.RLock()

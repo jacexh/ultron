@@ -18,8 +18,6 @@ import {
 import { Edit, Stop } from '@material-ui/icons';
 import styles from './index.css';
 import { useEffect, useState } from 'react';
-import parsePrometheusTextFormat from 'parse-prometheus-text-format';
-import { UltronImage } from '../components/image';
 
 const optionType = {
 	strageConfig: {
@@ -93,6 +91,15 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 					<TextField
 						margin="dense"
 						size="small"
+						id={`rampUpPeriod${index}`}
+						value={option.rampUpPeriod}
+						label="加压时长(s)"
+						variant="standard"
+						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
+					/>
+					<TextField
+						margin="dense"
+						size="small"
 						id={`requests${index}`}
 						value={option.requests}
 						label="请求总数"
@@ -102,18 +109,9 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 					<TextField
 						margin="dense"
 						size="small"
-						id={`rampUpPeriod${index}`}
-						value={option.rampUpPeriod}
-						label="准备时长"
-						variant="standard"
-						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
-					/>
-					<TextField
-						margin="dense"
-						size="small"
 						id={`duration${index}`}
 						value={option.duration}
-						label="持续时长"
+						label="持续时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'duration')}
 					/>
@@ -121,7 +119,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						margin="dense"
 						size="small"
 						id={`minWait${index}`}
-						label="最小等待时间"
+						label="最小等待时间(s)"
 						variant="standard"
 						value={option.minWait}
 						onChange={e => handleChange(e.target.value, index, 'minWait')}
@@ -131,7 +129,7 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 						size="small"
 						id={`maxWait${index}`}
 						value={option.maxWait}
-						label="最大等待时间"
+						label="最大等待时间(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'maxWait')}
 					/>
@@ -140,18 +138,21 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 	</DialogContent>
 );
 
-export const UltronHeader = ({ getMetrics, tableData }) => {
+export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	const [open, setOpen] = useState(false);
 	const [planList, setPlanLists] = useState([]);
 	const [message, setMessage] = useState('');
 	const [backDrop, setBackDrop] = useState(false);
 	const [isStop, setIsStop] = useState(false);
-	const [clearTime, setClearTime] = useState(false);
+	const [failureRatio, setFailureRatio] = useState(0);
+	const [isClear, setIsClear] = useState(false);
+	const [totalTps, setTotalTps] = useState(0);
+	// console.log(isPlanEnd, isClear);
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
-			clearTime ? '' : getMetrics();
-		}, 4000);
+			isClear ? '' : getMetrics();
+		}, 5000);
 		return () => {
 			// 组件销毁时，清除定时器
 			clearInterval(timerId);
@@ -159,20 +160,37 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 	});
 
 	useEffect(() => {
-		setOpen(true);
-		tableData && tableData.tpsCurrent ? '' : getMetrics();
+		getMetrics();
 	}, []);
 
 	useEffect(() => {
-		if ((tableData && tableData.tpsTotal) || (!tableData.tpsCurrent && !tableData.tpsTotal)) {
+		setIsClear(isPlanEnd);
+		if (isPlanEnd) {
+			//plan结束
 			setIsStop(false);
-			setClearTime(true);
-		} else if (tableData && tableData.tpsCurrent) {
-			setIsStop(true);
+			setOpen(true);
+		} else {
 			setOpen(false);
-			setClearTime(false);
+			setIsStop(true);
 		}
+	}, [isPlanEnd]);
+
+	useEffect(() => {
+		getTotalFailRatio();
 	}, [tableData]);
+
+	function getTotalFailRatio() {
+		let total = 0;
+		let totalTps = 0;
+		tableData && tableData.length > 0
+			? tableData.map(i => {
+					total += i.failureRatio ? parseFloat(i.failureRatio) : 0;
+					totalTps += i.tpsTotal ? parseFloat(i.tpsTotal) : 0;
+			  })
+			: '';
+		tableData.length > 0 ? setFailureRatio(Number(total / tableData.length).toFixed(2)) : '';
+		setTotalTps(totalTps.toFixed(2));
+	}
 
 	const handleClose = () => {
 		setPlanLists([]);
@@ -196,8 +214,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
+					setIsClear(true);
 					setIsStop(false);
-					setClearTime(true); //停止轮询
+					notification.success({
+						message: `请求成功`,
+						placement: 'bottomLeft',
+					});
 				}
 			});
 	}
@@ -228,11 +250,11 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					var c = {};
 					index == 0 ? (data['name'] = item.name) : '';
 					item['requests'] ? (c['requests'] = parseInt(item['requests'])) : '';
-					item['duration'] ? (c['duration'] = parseInt(item['duration'])) : '';
+					item['duration'] ? (c['duration'] = parseFloat(item['duration']) * 1000000000) : '';
 					item['users'] ? (c['concurrent_users'] = parseInt(item['users'])) : '';
 					item['rampUpPeriod'] ? (c['ramp_up_period'] = parseInt(item['rampUpPeriod'])) : '';
-					item['maxWait'] ? (c['min_wait'] = parseInt(item['maxWait'])) : '';
-					item['maxWait'] ? (c['max_wait'] = parseInt(item['maxWait'])) : '';
+					item['minWait'] ? (c['min_wait'] = parseFloat(item['minWait']) * 1000000000) : '';
+					item['maxWait'] ? (c['max_wait'] = parseFloat(item['maxWait']) * 1000000000) : '';
 					config.push(c);
 			  })
 			: '';
@@ -244,28 +266,30 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 			.then(response => response.json())
 			.then(function(res) {
 				if (res && res.result) {
+					setBackDrop(true);
 					localStorage.removeItem('chartData');
 					localStorage.removeItem('tpsline');
-					setBackDrop(true);
 					isOver(1);
 				} else setMessage(res.error_message);
-			});
+			})
+			.catch(e => console.log(e));
 	}
 
 	function isOver(count) {
-		fetch(`/metrics`, {
+		fetch(`/metrics.json`, {
 			method: 'GET',
 		})
-			.then(response => response.text())
-			.then(function(res) {
-				const metrics = parsePrometheusTextFormat(res);
+			.then(response => response.json())
+			.then(function(metrics) {
 				var f = false;
 				for (var i of metrics) {
 					if (i.name == 'ultron_attacker_tps_current') {
-						getMetrics(); //确保开始了再调用getMetrics
+						getMetrics();
 						f = true;
 						setOpen(false);
 						setBackDrop(false);
+						setIsClear(false);
+						setIsStop(true);
 						break;
 					}
 				}
@@ -274,12 +298,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 					if (count <= 60) {
 						setTimeout(function() {
 							isOver(count);
-						}, 1000);
+						}, 5000);
 					} else {
 						stopPlan(); //停掉JOB
-						setMessage('调用超过60次，启动失败！');
+						setMessage('调用超过60次，停止失败！');
 						setBackDrop(false);
-						setClearTime(true);
+						setIsClear(true);
 					}
 				}
 			});
@@ -305,15 +329,12 @@ export const UltronHeader = ({ getMetrics, tableData }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<span style={{ paddingLeft: 25 }}>
-								<UltronImage width="65" />
-							</span>
-							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
+							<span style={{ fontSize: 38, fontWeight: 700, fontFamily: 'monospace', color: '#404040' }}> &nbsp;Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
-								<HeaderStatus title="USERS" textObj={tableData && tableData.users ? tableData.users : 0} />
-								<HeaderStatus title="FAILURES" textObj={tableData && tableData.failureRatio ? tableData.failureRatio + '%' : 0} />
-								{tableData && tableData.tpsTotal ? <HeaderStatus title="Total TPS" textObj={tableData.tpsTotal} /> : ''}
+								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
+								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
+								{isPlanEnd ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
 								&nbsp;&nbsp;
 								{!isStop ? (
 									''

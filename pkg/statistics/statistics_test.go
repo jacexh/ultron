@@ -42,7 +42,7 @@ func TestAttackStatistician_Record(t *testing.T) {
 	report := as.Report(false)
 	assert.EqualValues(t, report.Requests, 1)
 	assert.EqualValues(t, report.Failures, 1)
-	assert.EqualValues(t, report.FailRatio, .5)
+	assert.EqualValues(t, report.FailureRatio, .5)
 }
 
 func TestAttackStatistician_SyncRecord(t *testing.T) {

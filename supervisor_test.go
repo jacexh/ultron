@@ -38,16 +38,6 @@ func dialer(srv genproto.UltronAPIServer) func(context.Context, string) (net.Con
 	}
 }
 
-// func TestSlaveAgent_Submit(t *testing.T) {
-// 	agent := newSlaveAgent(&genproto.SubscribeRequest{SlaveId: uuid.NewString()})
-// 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-// 	defer cancel()
-
-// 	_, err := agent.Submit(ctx, 0)
-// 	assert.NotNil(t, err)
-// 	assert.ErrorIs(t, err, context.DeadlineExceeded)
-// }
-
 func TestUltronServer_Subscribe(t *testing.T) {
 	srv := newSlaveSupervisor()
 	ctx, cancel := context.WithCancel(context.Background())

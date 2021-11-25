@@ -41,6 +41,7 @@ type (
 	}
 )
 
+// Check 是否满足退出条件
 func (sec *UniversalExitConditions) Check(actual ExitConditions) bool {
 	if sec.NeverStop() {
 		return false

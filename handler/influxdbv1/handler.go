@@ -3,7 +3,6 @@ package influxdbv1
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	_ "github.com/influxdata/influxdb1-client"
@@ -15,133 +14,119 @@ import (
 
 type (
 	InfluxDBV1Handler struct {
-		client influxdb.Client
-		conf   *InfluxDBV1HandlerConfig
-		buffer *batchPointsBuffer
+		client            influxdb.Client
+		database          string
+		measurementResult string
+		measurementReport string
+		buffer            *batchPointsBuffer
 	}
 
 	batchPointsBuffer struct {
-		handler  *InfluxDBV1Handler
-		bp       influxdb.BatchPoints
-		interval time.Duration
-		mu       sync.Mutex
-		conf     influxdb.BatchPointsConfig
+		handler *InfluxDBV1Handler
+		bp      influxdb.BatchPoints
+		conf    influxdb.BatchPointsConfig
+		ticker  *time.Ticker
+		ch      chan *influxdb.Point
+		size    uint32
+		counter uint32
 	}
 
-	// InfluxDBV1HandlerConfig InfluxDBHelper配置
-	InfluxDBV1HandlerConfig struct {
-		URL                    string
-		UDP                    bool
-		User                   string
-		Password               string
-		Database               string
-		MeasurementSucc        string
-		MeasurementFail        string
-		MeasurementAggregation string
-	}
+	influxDBV1HandlerOption func(*InfluxDBV1Handler)
 )
 
 const (
-	// DefaultInfluxDBURL influxdb address
-	DefaultInfluxDBURL = "127.0.0.1:8089"
-	// DefaultInfluxDBName influxdb database name
-	DefaultInfluxDBName = "ultron"
-	// DefaultMeasurementSucc the measurement to store successful request
-	DefaultMeasurementSucc = "success"
-	// DefaultMeasurementFail the measurement to store failed request
-	DefaultMeasurementFail = "failures"
-	// DefaultMeasurementAggregation the measurement to store report
-	DefaultMeasurementAggregation = "report"
+	// DefaultInfluxDatabase influxdb database name
+	DefaultInfluxDatabase = "ultron"
+	// DefaultMeasurementResult the measurement to store successful request
+	DefaultMeasurementResult = "result"
+	// DefaultMeasurementReport the measurement to store report
+	DefaultMeasurementReport = "report"
 )
 
+func newBatchPointBuffer(handler *InfluxDBV1Handler) *batchPointsBuffer {
+	return &batchPointsBuffer{
+		handler: handler,
+		ch:      make(chan *influxdb.Point, 1024),
+		size:    100,
+	}
+}
+
 func (b *batchPointsBuffer) addPoint(p *influxdb.Point) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	b.ch <- p
+}
+
+func (b *batchPointsBuffer) insertPointAndGetBatchPoint(p *influxdb.Point) (influxdb.BatchPoints, error) {
 	if b.bp == nil {
 		bp, err := influxdb.NewBatchPoints(b.conf)
 		if err != nil {
-			ultron.Logger.Error("failed to call NewBatchPoints: " + err.Error())
-			return
+			return nil, err
 		}
 		b.bp = bp
 	}
 	b.bp.AddPoint(p)
+	return b.bp, nil
+}
+
+func (b *batchPointsBuffer) resetBufferAndWriteBatchPoint(bp influxdb.BatchPoints) {
+	b.bp = nil
+
+	go func(c influxdb.Client, bp influxdb.BatchPoints) {
+		if c == nil {
+			ultron.Logger.Warn("no influxdb client provided, you should call Apply(WithHTTPClient/WithUDPClient) first")
+			return
+		}
+		err := c.Write(bp)
+		if err != nil {
+			ultron.Logger.Error("failed to write bach points", zap.Error(err))
+		}
+	}(b.handler.client, bp)
 }
 
 func (b *batchPointsBuffer) flushing() {
+	b.ticker = time.NewTicker(500 * time.Millisecond)
+	defer b.ticker.Stop()
+
+flushing:
 	for {
-		time.Sleep(b.interval)
-
-		b.mu.Lock()
-		if b.bp == nil {
-			b.mu.Unlock()
-			continue
-		}
-
-		go func(c influxdb.Client, bp influxdb.BatchPoints) {
-			err := c.Write(bp)
-			if err != nil {
-				ultron.Logger.Error("failed to write bach points", zap.Error(err))
+		select {
+		case <-b.ticker.C:
+			if b.bp != nil {
+				b.counter = 0
+				b.resetBufferAndWriteBatchPoint(b.bp)
 			}
-		}(b.handler.client, b.bp)
-		b.bp = nil
-		b.mu.Unlock()
-	}
-}
 
-func newInfluxDBHTTPClient(url, user, password string) (influxdb.Client, error) {
-	return influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr:     url,
-		Username: user,
-		Password: password,
-	})
-}
-
-func newInfluxDBUDPClient(url string) (influxdb.Client, error) {
-	return influxdb.NewUDPClient(influxdb.UDPConfig{
-		Addr: url,
-	})
-}
-
-// NewInfluxDBV1HandlerConfig 实例化InfluxDBHelpConfig默认配置
-func NewInfluxDBV1HandlerConfig() *InfluxDBV1HandlerConfig {
-	return &InfluxDBV1HandlerConfig{
-		URL:                    DefaultInfluxDBURL,
-		UDP:                    false,
-		User:                   "",
-		Password:               "",
-		Database:               DefaultInfluxDBName,
-		MeasurementSucc:        DefaultMeasurementSucc,
-		MeasurementFail:        DefaultMeasurementFail,
-		MeasurementAggregation: DefaultMeasurementAggregation,
+		case point := <-b.ch:
+			bp, err := b.insertPointAndGetBatchPoint(point)
+			if err != nil {
+				ultron.Logger.Error("failed to get batchpoint", zap.Error(err))
+				continue flushing
+			}
+			b.counter++
+			if (b.counter % b.size) == 0 {
+				b.resetBufferAndWriteBatchPoint(bp)
+			}
+		}
 	}
 }
 
 // NewInfluxDBV1Handler 实例化NewInfluxDBHelper对象
-func NewInfluxDBV1Handler(conf *InfluxDBV1HandlerConfig) (*InfluxDBV1Handler, error) {
-	var err error
-	var client influxdb.Client
-	if conf.UDP {
-		client, err = newInfluxDBUDPClient(conf.URL)
-	} else {
-		client, err = newInfluxDBHTTPClient(conf.URL, conf.User, conf.Password)
+func NewInfluxDBV1Handler() *InfluxDBV1Handler {
+	handler := &InfluxDBV1Handler{
+		database:          DefaultInfluxDatabase,
+		measurementResult: DefaultMeasurementResult,
+		measurementReport: DefaultMeasurementReport,
 	}
 
-	if err != nil {
-		ultron.Logger.Error("failed to init influxdb client: " + err.Error())
-		return nil, err
-	}
-
-	buf := &batchPointsBuffer{
-		handler:  nil,
-		interval: 200 * time.Millisecond,
-		conf:     influxdb.BatchPointsConfig{Precision: "ms", Database: conf.Database},
-	}
-	handler := &InfluxDBV1Handler{client: client, conf: conf, buffer: buf}
-	buf.handler = handler
+	buf := newBatchPointBuffer(handler)
+	handler.buffer = buf
 	go buf.flushing()
+	return handler
+}
 
-	return handler, nil
+func (hdl *InfluxDBV1Handler) Apply(opts ...influxDBV1HandlerOption) {
+	for _, opt := range opts {
+		opt(hdl)
+	}
 }
 
 // HandleResult samplingRate表示采样率
@@ -151,12 +136,12 @@ func (hdl *InfluxDBV1Handler) HandleResult(samplingRate float64) ultron.ResultHa
 			return
 		}
 
-		if ar.IsFailure() { // todo: 以后实现
+		if ar.IsFailure() { // TODO: 以后实现
 			return
 		}
 
 		point, err := influxdb.NewPoint(
-			hdl.conf.MeasurementSucc,
+			hdl.measurementResult,
 			map[string]string{ultron.KeyAttacker: ar.Name},
 			map[string]interface{}{"response_time": ar.Duration.Milliseconds()},
 			time.Now(),
@@ -184,26 +169,26 @@ func (hdl *InfluxDBV1Handler) HandleReport() ultron.ReportHandleFunc {
 				tags[k] = v
 			}
 			point, err := influxdb.NewPoint(
-				hdl.conf.MeasurementAggregation,
+				hdl.measurementReport,
 				tags,
 				map[string]interface{}{
-					"tps":        report.TPS,
-					"success":    int64(report.Requests),
-					"failures":   int64(report.Failures),
-					"fail_ratio": report.FailRatio,
-					"min":        report.Min.Milliseconds(),
-					"max":        report.Max.Milliseconds(),
-					"avg":        report.Average.Milliseconds(),
-					"TP50":       report.Distributions["0.50"].Milliseconds(),
-					"TP60":       report.Distributions["0.60"].Milliseconds(),
-					"TP70":       report.Distributions["0.70"].Milliseconds(),
-					"TP80":       report.Distributions["0.80"].Milliseconds(),
-					"TP90":       report.Distributions["0.90"].Milliseconds(),
-					"TP95":       report.Distributions["0.95"].Milliseconds(),
-					"TP96":       report.Distributions["0.96"].Milliseconds(),
-					"TP97":       report.Distributions["0.97"].Milliseconds(),
-					"TP98":       report.Distributions["0.98"].Milliseconds(),
-					"TP99":       report.Distributions["0.99"].Milliseconds(),
+					"tps":           report.TPS,
+					"successes":     int64(report.Requests),
+					"failures":      int64(report.Failures),
+					"failure_ratio": report.FailureRatio,
+					"min":           report.Min.Milliseconds(),
+					"max":           report.Max.Milliseconds(),
+					"avg":           report.Average.Milliseconds(),
+					"TP50":          report.Distributions["0.50"].Milliseconds(),
+					"TP60":          report.Distributions["0.60"].Milliseconds(),
+					"TP70":          report.Distributions["0.70"].Milliseconds(),
+					"TP80":          report.Distributions["0.80"].Milliseconds(),
+					"TP90":          report.Distributions["0.90"].Milliseconds(),
+					"TP95":          report.Distributions["0.95"].Milliseconds(),
+					"TP96":          report.Distributions["0.96"].Milliseconds(),
+					"TP97":          report.Distributions["0.97"].Milliseconds(),
+					"TP98":          report.Distributions["0.98"].Milliseconds(),
+					"TP99":          report.Distributions["0.99"].Milliseconds(),
 				},
 				now,
 			)
@@ -213,5 +198,57 @@ func (hdl *InfluxDBV1Handler) HandleReport() ultron.ReportHandleFunc {
 			}
 			hdl.buffer.addPoint(point)
 		}
+	}
+}
+
+func WithDatabase(db string) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		hdl.database = db
+		hdl.buffer.conf.Database = db
+	}
+}
+
+func WithMeasurementResult(n string) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		hdl.measurementResult = n
+	}
+}
+
+func WithMeasurementReport(n string) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		hdl.measurementReport = n
+	}
+}
+
+func WithHTTPClient(url, username, password string) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		client, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
+			Addr:     url,
+			Username: username,
+			Password: password,
+		})
+		if err != nil {
+			panic(err)
+		}
+		hdl.client = client
+	}
+}
+
+func WithUDPClient(url string, size int) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		client, err := influxdb.NewUDPClient(influxdb.UDPConfig{Addr: url, PayloadSize: size})
+		if err != nil {
+			panic(err)
+		}
+		hdl.client = client
+	}
+}
+
+func WithBufferSize(size uint32) influxDBV1HandlerOption {
+	return func(hdl *InfluxDBV1Handler) {
+		if size == 0 {
+			panic("bad buffer size")
+		}
+		hdl.buffer.size = size
 	}
 }

@@ -87,7 +87,7 @@ func (m *metric) Collect(ch chan<- prometheus.Metric) {
 			0.99: float64(report.Distributions["0.99"].Milliseconds()),
 			1.00: float64(report.Distributions["1.00"].Milliseconds()),
 		}, report.Name, plan)
-		ch <- prometheus.MustNewConstMetric(descFailureRatio, prometheus.GaugeValue, report.FailRatio, report.Name, plan)
+		ch <- prometheus.MustNewConstMetric(descFailureRatio, prometheus.GaugeValue, report.FailureRatio, report.Name, plan)
 		if report.FullHistory {
 			ch <- prometheus.MustNewConstMetric(descTotalTPS, prometheus.GaugeValue, report.TPS, report.Name, plan)
 		} else {

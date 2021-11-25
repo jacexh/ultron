@@ -76,7 +76,7 @@ func (sa *slaveAgent) keepAlives() {
 
 	for range ticker.C {
 		if err := sa.send(&genproto.SubscribeResponse{Type: genproto.EventType_STATUS_REPORT}); err != nil {
-			Logger.Info("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
+			Logger.Error("the slave agent is closed, stop the ticker", zap.String("slave_id", sa.ID()), zap.Error(err))
 			return
 		}
 	}

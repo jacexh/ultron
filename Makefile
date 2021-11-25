@@ -20,7 +20,7 @@ test:
 
 .PHONY: benchmark
 benchmark: 
-	@go test -bench -v . ./...
+	@go test -bench=. -run=^Benchmark ./...
 
 .PHONY: tools
 tools:

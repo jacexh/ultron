@@ -51,6 +51,7 @@ type (
 		eventbus   *eventbus
 		supervisor *slaveSupervisor
 		rpc        *grpc.Server
+		rest       *http.Server
 		mu         sync.RWMutex
 	}
 
@@ -120,9 +121,13 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 
 	start := make(chan struct{}, 1)
 	go func() { // http server
-		httpHandler := buildHTTPRouter(r)
+		router := buildHTTPRouter(r)
+		r.rest = &http.Server{
+			Addr:    conf.RESTAddr,
+			Handler: router,
+		}
 		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
-		if err := http.ListenAndServe(conf.RESTAddr, httpHandler); err != nil {
+		if err := r.rest.ListenAndServe(); err != nil {
 			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
 		}
 	}()
@@ -148,7 +153,11 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 }
 
 func (r *masterRunner) StartPlan(p Plan) error {
-	Logger.Info("start plan", zap.String("plan_name", p.Name()))
+	if p == nil {
+		err := errors.New("empty plan")
+		Logger.Error("cannot start with empty plan", zap.Error(err))
+		return err
+	}
 	r.mu.Lock()
 	if r.plan != nil && r.plan.Status() == StatusRunning {
 		r.mu.Unlock()
@@ -156,6 +165,7 @@ func (r *masterRunner) StartPlan(p Plan) error {
 		Logger.Error("failed to start a new plan", zap.Error(err))
 		return err
 	}
+	Logger.Info("start plan", zap.String("plan_name", p.Name()))
 	scheduler := newScheduler(r.supervisor)
 	r.scheduler = scheduler
 	r.plan = p

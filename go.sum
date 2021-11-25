@@ -80,8 +80,8 @@ github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab h1:HqW4xhhynfjrtEiiSGcQUd6vrK23iMam1FO8rI7mwig=
 github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
-github.com/jacexh/gopkg/chi-middleware v0.0.0-20210825023717-c4d755320c90 h1:JONUqd5MDMAcoAzzPcGMuWZBi6kn7kbzgEMQV+WHzB0=
-github.com/jacexh/gopkg/chi-middleware v0.0.0-20210825023717-c4d755320c90/go.mod h1:1ndyu3GrZbrLJJYo/jmqFHi6X936Y2pxguTIj7HqM6c=
+github.com/jacexh/gopkg/chi-middleware v0.1.1 h1:Q/A+gN2b5kQVGPsEfGsyc11umXHuXEnYPonrc+M7BH8=
+github.com/jacexh/gopkg/chi-middleware v0.1.1/go.mod h1:1ndyu3GrZbrLJJYo/jmqFHi6X936Y2pxguTIj7HqM6c=
 github.com/jacexh/multiconfig v0.1.2 h1:M7aIsBr1xUgfAfDrI0mHAHSyLicfiiVkejVWI7PmW+M=
 github.com/jacexh/multiconfig v0.1.2/go.mod h1:7YehB4JsdDB+GdIU9Zv2lNEWamSLd0YtKezoJzB8W4Q=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=

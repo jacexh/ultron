@@ -162,12 +162,14 @@ func buildHTTPRouter(runner *masterRunner) http.Handler {
 
 	// prometheus exporter
 	exporter := newMetric(runner)
-	prometheus.MustRegister(exporter)
 	runner.SubscribeReport(exporter.handleReport()) // 订阅report
-	route.Handle("/metrics", promhttp.Handler())
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(exporter)
+	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	route.Handle("/metrics", handler)
 	route.Route("/metrics.json", func(r chi.Router) {
 		r.Use(metricToJson)
-		r.Handle("/", promhttp.Handler())
+		r.Handle("/", handler)
 	})
 	return route
 }
