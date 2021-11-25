@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -51,17 +52,18 @@ type (
 	convertAttackStrategyDTOFunc func([]byte) (AttackStrategy, error)
 
 	fixedConcurrentUsersStrategyCommander struct {
-		ctx       context.Context
-		cancel    context.CancelFunc
-		describer AttackStrategy
-		output    chan statistics.AttackResult
-		timer     Timer
-		task      Task
-		counter   uint32
-		pool      map[uint32]*fcuExecutor
-		closed    uint32
-		wg        sync.WaitGroup
-		mu        sync.Mutex
+		ctx            context.Context
+		cancel         context.CancelFunc
+		describer      AttackStrategy
+		output         chan statistics.AttackResult
+		timer          Timer
+		task           Task
+		counter        uint32
+		pool           map[uint32]*fcuExecutor
+		closed         uint32
+		inRampUpPeriod uint32
+		wg             sync.WaitGroup
+		mu             sync.Mutex
 	}
 
 	// fcuExecutor FixedConcurrentUsers策略的执行者
@@ -214,6 +216,13 @@ func (commander *fixedConcurrentUsersStrategyCommander) Open(ctx context.Context
 }
 
 func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy, t Timer) {
+	for atomic.LoadUint32(&commander.inRampUpPeriod) == 1 {
+		runtime.Gosched() // 只且仅有一个增压阶段
+	}
+
+	atomic.CompareAndSwapUint32(&commander.inRampUpPeriod, 0, 1) // 进入该阶段
+	defer atomic.CompareAndSwapUint32(&commander.inRampUpPeriod, 1, 0)
+
 	var rampUpSteps []*RampUpStep
 
 	if commander.describer == nil {
@@ -253,26 +262,39 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 
 			killed -= step.N
 			Logger.Info(fmt.Sprintf("killed %d users in ramp-up peroid", killed))
-			time.Sleep(step.Interval)
+			select {
+			case <-commander.ctx.Done():
+				Logger.Warn("commander was canceled, break out the ramp-up period")
+				return
+			default:
+				time.Sleep(step.Interval)
+			}
 
 		case step.N > 0: // 增压策略
 			for i := 0; i < step.N; i++ {
 				id := atomic.AddUint32(&commander.counter, 1) - 1
 				executor := newFCUExecutor(id, commander, t)
 
-				commander.mu.Lock()
-				commander.pool[id] = executor
-				commander.mu.Unlock()
+				select {
+				case <-commander.ctx.Done():
+					Logger.Warn("commander was canceled, break out the ramp-up period") // https://pkg.go.dev/sync#WaitGroup.Add
+					return
+				default:
+					commander.wg.Add(1)
 
-				commander.wg.Add(1)
-				go func(exe *fcuExecutor) {
-					defer func() {
-						commander.clearDeadExector(exe.id)
-						exe.kill() // 所有清理逻辑
-						commander.wg.Done()
-					}()
-					exe.start(commander.ctx, commander.task, commander.output)
-				}(executor)
+					commander.mu.Lock()
+					commander.pool[id] = executor
+					commander.mu.Unlock()
+
+					go func(exe *fcuExecutor) {
+						defer func() {
+							commander.clearDeadExector(exe.id)
+							exe.kill() // 所有清理逻辑
+							commander.wg.Done()
+						}()
+						exe.start(commander.ctx, commander.task, commander.output)
+					}(executor)
+				}
 			}
 			spawned += step.N
 			Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
@@ -286,6 +308,9 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 func (commander *fixedConcurrentUsersStrategyCommander) Close() {
 	if atomic.CompareAndSwapUint32(&commander.closed, 0, 1) {
 		commander.cancel()
+		for atomic.LoadUint32(&commander.inRampUpPeriod) == 1 {
+			runtime.Gosched()
+		}
 		commander.wg.Wait()
 		close(commander.output)
 	}

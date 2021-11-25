@@ -134,12 +134,13 @@ func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 
 func (sr *slaveRunner) startPlan(name string) {
 	if sr.commander != nil {
-		sr.commander.Close()
-		sr.commander = nil
+		sr.stopPlan()
+		Logger.Warn("stop a exists plan before start new plan")
 	}
 
 	sr.stats.Reset()
 	sr.stats.Attach(statistics.Tag{Key: KeyPlan, Value: name})
+	Logger.Info("start a new plan", zap.String("plan_name", name))
 }
 
 func (sr *slaveRunner) submit(batch uint32) {
@@ -184,15 +185,20 @@ func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto
 			}
 		}(output)
 	}
-	go sr.commander.Command(strategy, timer)
+
+	go func(cmd AttackStrategyCommander) {
+		cmd.Command(strategy, timer)
+	}(sr.commander)
 }
 
 func (sr *slaveRunner) stopPlan() {
-	if sr.commander != nil {
-		sr.commander.Close()
+	if commander := sr.commander; commander != nil {
 		sr.commander = nil
+		go func(cmd AttackStrategyCommander) {
+			cmd.Close()
+			Logger.Info("current plan is stopped")
+		}(commander)
 	}
-	Logger.Info("current plan is stopped")
 }
 
 func (sr *slaveRunner) sendStatus() {
