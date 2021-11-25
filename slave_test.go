@@ -39,7 +39,7 @@ func TestSlaveRunner_Connect(t *testing.T) {
 	_, lis := prepareGRPCServer()
 	defer func() {
 		lis.Close()
-		<-time.After(1 * time.Second)
+		<-time.After(2 * time.Second)
 	}()
 	err = slave.Connect("127.0.0.1:2021", grpc.WithInsecure())
 	assert.Nil(t, err)
@@ -53,7 +53,7 @@ func TestSlaveRunner_Working(t *testing.T) {
 	ultron, lis := prepareGRPCServer()
 	defer func() {
 		lis.Close()
-		<-time.After(1 * time.Second)
+		<-time.After(2 * time.Second)
 	}()
 	err := slave.Connect("127.0.0.1:2021", grpc.WithInsecure())
 	assert.Nil(t, err)
