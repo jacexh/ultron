@@ -1,9 +1,9 @@
 # Ultron
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/wosai/ultron)](https://goreportcard.com/report/github.com/wosai/ultron) 
-![.github/workflows/ci.yml](https://github.com/WoSai/ultron/workflows/.github/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/wosai/ultron/branch/master/graph/badge.svg)](https://codecov.io/gh/wosai/ultron) 
 [![GoDoc](https://godoc.org/github.com/wosai/ultron?status.svg)](https://godoc.org/github.com/wosai/ultron)
+[![Ultron CI](https://github.com/WoSai/ultron/actions/workflows/ci.yml/badge.svg)](https://github.com/WoSai/ultron/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/WoSai/ultron/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/WoSai/ultron/actions/workflows/codeql-analysis.yml)
 
 a http load testing tool in go
