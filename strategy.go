@@ -29,6 +29,7 @@ type (
 		Spawn() []*RampUpStep
 		Switch(next AttackStrategy) []*RampUpStep
 		Split(int) []AttackStrategy
+		Name() string
 	}
 
 	// RampUpStep 增/降压描述
@@ -48,11 +49,6 @@ type (
 	}
 
 	convertAttackStrategyDTOFunc func([]byte) (AttackStrategy, error)
-
-	namedAttackStrategy interface {
-		AttackStrategy
-		Name() string
-	}
 
 	fixedConcurrentUsersStrategyCommander struct {
 		ctx       context.Context
@@ -190,15 +186,11 @@ func (c *attackStrategyConverter) convertDTO(dto *genproto.AttackStrategyDTO) (A
 }
 
 func (c *attackStrategyConverter) convertAttackStrategy(as AttackStrategy) (*genproto.AttackStrategyDTO, error) {
-	na, ok := as.(namedAttackStrategy)
-	if !ok {
-		return nil, errors.New("cannot convert attack strategy")
-	}
-	data, err := json.Marshal(na)
+	data, err := json.Marshal(as)
 	if err != nil {
 		return nil, err
 	}
-	return &genproto.AttackStrategyDTO{Type: na.Name(), AttackStrategy: data}, nil
+	return &genproto.AttackStrategyDTO{Type: as.Name(), AttackStrategy: data}, nil
 }
 
 func newFixedConcurrentUsersStrategyCommander() *fixedConcurrentUsersStrategyCommander {
