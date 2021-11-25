@@ -298,7 +298,13 @@ func (commander *fixedConcurrentUsersStrategyCommander) Command(d AttackStrategy
 			}
 			spawned += step.N
 			Logger.Info(fmt.Sprintf("spawned %d users in ramp-up period", spawned))
-			time.Sleep(step.Interval)
+			select {
+			case <-commander.ctx.Done():
+				Logger.Warn("commander was canceled, break out the ramp-up period")
+				return
+			default:
+				time.Sleep(step.Interval)
+			}
 
 		default:
 		}
