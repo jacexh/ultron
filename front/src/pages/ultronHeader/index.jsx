@@ -18,7 +18,6 @@ import {
 import { Edit, Stop } from '@material-ui/icons';
 import styles from './index.css';
 import { useEffect, useState } from 'react';
-import { UltronImage } from '../components/image';
 
 const optionType = {
 	strageConfig: {
@@ -92,20 +91,20 @@ const OptionsStagesConfig = ({ keyValue, handleChange, removeOption }) => (
 					<TextField
 						margin="dense"
 						size="small"
-						id={`requests${index}`}
-						value={option.requests}
-						label="请求总数"
-						onChange={e => handleChange(e.target.value, index, 'requests')}
-						variant="standard"
-					/>
-					<TextField
-						margin="dense"
-						size="small"
 						id={`rampUpPeriod${index}`}
 						value={option.rampUpPeriod}
 						label="加压时长(s)"
 						variant="standard"
 						onChange={e => handleChange(e.target.value, index, 'rampUpPeriod')}
+					/>
+					<TextField
+						margin="dense"
+						size="small"
+						id={`requests${index}`}
+						value={option.requests}
+						label="请求总数"
+						onChange={e => handleChange(e.target.value, index, 'requests')}
+						variant="standard"
 					/>
 					<TextField
 						margin="dense"
@@ -330,13 +329,10 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 				<div>
 					<AppBar position="fixed" className={useStyles().headerBg}>
 						<div>
-							<span style={{ paddingLeft: 25 }}>
-								<UltronImage width="65" />
-              </span>
-							<span style={{ fontSize: 24, paddingTop: 10, fontWeight: 700, paddingLeft: 7, fontFamily: 'fantasy', color: '#404040' }}>Ultron</span>
+							<span style={{ fontSize: 38, fontWeight: 700, fontFamily: 'monospace', color: '#404040' }}> &nbsp;Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
 								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
-								<HeaderStatus title="USERS" textObj={tableData && tableData.length>0 ? tableData[0].users : 0} />
+								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
 								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
 								{isPlanEnd ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}
 								&nbsp;&nbsp;
