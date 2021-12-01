@@ -148,7 +148,6 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	const [isClear, setIsClear] = useState(false);
 	const [totalTps, setTotalTps] = useState(0);
 	// console.log(isPlanEnd, isClear);
-  console.log(tableData)
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
