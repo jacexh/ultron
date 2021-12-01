@@ -37,10 +37,10 @@ export const HeaderStatus = ({ title, textObj, flag = 1, color = '#5E5E5E', open
 			<div style={{ paddingLeft: 20, paddingRight: 20 }}>
 				<span style={{ fontSize: 14, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: '#666666' }}>{title}</span>
 				<br />
-				<span style={{ fontSize: 22, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: color }}> {textObj}</span>
+				<span style={{ fontSize: 20, fontWeight: 600, fontFamily: 'Arial, Helvetica, sans-serif', color: color }}> {textObj}</span>
 				{title == 'PLAN' ? (
 					<a style={{ fontSize: 17, fontWeight: 400, fontFamily: 'Arial, Helvetica, sans-serif', color: '#6495ED' }} onClick={() => openEditUser()}>
-						<Edit fontSize="small" />
+						&nbsp;&nbsp;<Edit fontSize="small" />
 						Edit
 					</a>
 				) : (
@@ -148,6 +148,7 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 	const [isClear, setIsClear] = useState(false);
 	const [totalTps, setTotalTps] = useState(0);
 	// console.log(isPlanEnd, isClear);
+  console.log(tableData)
 
 	useEffect(() => {
 		const timerId = setInterval(() => {
@@ -331,7 +332,7 @@ export const UltronHeader = ({ getMetrics, tableData, isPlanEnd }) => {
 						<div>
 							<span style={{ fontSize: 38, fontWeight: 700, fontFamily: 'monospace', color: '#404040' }}> &nbsp;Ultron</span>
 							<Toolbar className={useStyles().floatRight}>
-								<HeaderStatus title="PLAN" openEditUser={openEditUser} />
+								<HeaderStatus title="PLAN" textObj={tableData && tableData.length > 0 ? tableData[0].planName : ''} openEditUser={openEditUser} />
 								<HeaderStatus title="USERS" textObj={tableData && tableData.length > 0 ? tableData[0].users : 0} />
 								<HeaderStatus title="Failure Ratio" textObj={failureRatio + '%'} />
 								{isPlanEnd ? <HeaderStatus title="Total TPS" textObj={totalTps} /> : ''}

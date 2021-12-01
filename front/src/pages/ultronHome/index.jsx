@@ -82,7 +82,9 @@ const UltronHome = props => {
 							category: attacker + '_99% percentile',
 						});
 						optionStatistics.MAX = parseFloat(quantiles['1']);
-					}
+          }
+          var planName = i['metrics'][j]['labels']["plan"]
+          optionStatistics.planName=planName
 				}
 				//total request failures tps
 				if (i.name == 'ultron_attacker_requests_total') {
