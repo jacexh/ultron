@@ -16,7 +16,6 @@ Go 1.16+
 
 ```bash
 go get github.com/wosai/ultron/v2
-go install github.com/wosai/ultron/v2/cmd/ultron
 ```
 
 ## Example
