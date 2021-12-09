@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/ultron/v2"
 )
 
 type (
@@ -35,6 +36,8 @@ var (
 		ReadTimeout:         30 * time.Second,
 		WriteTimeout:        30 * time.Second,
 	}
+
+	_ ultron.Attacker = (*FastHTTPAttacker)(nil)
 )
 
 func NewFastHTTPAttacker(name string) *FastHTTPAttacker {
