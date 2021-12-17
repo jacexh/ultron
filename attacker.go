@@ -62,12 +62,14 @@ var (
 	_ Attacker = (*HTTPAttacker)(nil)
 )
 
-func NewHTTPAttacker(name string) *HTTPAttacker {
-	return &HTTPAttacker{
+func NewHTTPAttacker(name string, opts ...HTTPAttackerOption) *HTTPAttacker {
+	attacker := &HTTPAttacker{
 		client:     defaultHTTPClient,
 		name:       name,
 		checkFuncs: make([]HTTPCheckFunc, 0),
 	}
+	attacker.Apply(opts...)
+	return attacker
 }
 
 func (ha *HTTPAttacker) Name() string {
