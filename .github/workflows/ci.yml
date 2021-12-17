@@ -33,7 +33,7 @@ jobs:
     - name: Code Coverage Report
       uses: codecov/codecov-action@v2
       with:
-        files: coverage.txt
+        files: coverage.txt,attacker/jsonrpc/coverage.txt,attacker/fastattacker/coverage.txt
         verbose: true
         flags: unittest
         fail_ci_if_error: true
