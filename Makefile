@@ -18,7 +18,7 @@ proto: tools
 test: 
 	for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
 		cd $$dir; \
-		go test -race -covermode=atomic -v -coverprofile=coverage.txt ./...; \
+		go test -race -covermode=atomic -v -coverprofile=coverage.txt ./... || exit 1; \
 		cd - > /dev/null ;\
 	done
 

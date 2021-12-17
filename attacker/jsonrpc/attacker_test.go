@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,9 +18,20 @@ type (
 	}
 )
 
+func testServer() *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		res := &Response{Version: "2.0", Result: []byte(`{"sn": "1000", "amount": 2}`)}
+		data, _ := json.Marshal(res)
+		rw.WriteHeader(http.StatusOK)
+		rw.Write(data)
+	}))
+	return ts
+}
+
 func TestAttacker(t *testing.T) {
+	ts := testServer()
 	attacker := NewJSONRPCAttacker(
-		"https://api.foobar.com",
+		ts.URL,
 		"query",
 		WithPrepareFunc(func() interface{} {
 			return []string{"w4414"}
@@ -30,7 +43,7 @@ func TestAttacker(t *testing.T) {
 		}),
 		WithCheckFuncs(func(i interface{}) error {
 			if ret, ok := i.(*rpcResult); ok {
-				if ret.Amount <= 0 {
+				if ret.Amount != 2 {
 					return errors.New("bad amount")
 				}
 			}
