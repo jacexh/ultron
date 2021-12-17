@@ -4,6 +4,7 @@
 
 - `fastattacker`作为独立的module，路径为`github.com/wosai/ultron/attacker/fastattacker/v2`
 - 添加`jsonrpc`的Attacker实现，module path: `github.com/wosai/ultron/attacker/jsonrpc/v2`
+- change method signature of `NewHTTPAttacker`
 
 ## v2.2.1
 
