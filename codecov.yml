@@ -5,3 +5,4 @@ ignore:
 - pkg/statistics/statistics.pb.go
 - runner.go
 - metric.go
+- attacker
