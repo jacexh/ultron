@@ -30,6 +30,7 @@ func testServer() *httptest.Server {
 
 func TestAttacker(t *testing.T) {
 	ts := testServer()
+	defer ts.Close()
 	attacker := NewJSONRPCAttacker(
 		ts.URL,
 		"query",
