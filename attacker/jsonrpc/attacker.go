@@ -10,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/wosai/ultron/v2"
 )
 
 type (
@@ -47,12 +49,15 @@ type (
 	}
 
 	// PrepareFunc return the params of jsonrpc method
-	PrepareFunc func() interface{}
+	PrepareFunc func(context.Context) interface{}
+
 	// UnmarshalFunc how to convert response.result to golang struct
 	UnmarshalFunc func([]byte) (interface{}, error)
-	// CheckFunc check if response.result meet expectation
-	CheckFunc func(interface{}) error
 
+	// CheckFunc check if response.result meet expectation
+	CheckFunc func(context.Context, interface{}) error
+
+	// Option ...
 	Option func(*JSONRPCAttacker)
 
 	bytesPool struct {
@@ -80,6 +85,8 @@ var (
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
+
+	_ ultron.Attacker = (*JSONRPCAttacker)(nil)
 )
 
 func newBytesPool() *bytesPool {
@@ -135,12 +142,14 @@ func (j *JSONRPCAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
+	defer ultron.ClearContext(ctx)
+
 	v := atomic.AddInt32(&j.id, 1)
 	payload := &Request{
 		ID:      &v,
 		Version: "2.0",
 		Method:  j.method,
-		Params:  j.prepareFunc(),
+		Params:  j.prepareFunc(ctx),
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -179,7 +188,7 @@ func (j *JSONRPCAttacker) Fire(ctx context.Context) error {
 			return err
 		}
 		for _, checker := range j.checkFuncs {
-			if err := checker(result); err != nil {
+			if err := checker(ctx, result); err != nil {
 				return err
 			}
 		}
