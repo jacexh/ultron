@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/handler/influxdbv1"
-	"golang.org/x/net/context"
 )
 
 func main() {

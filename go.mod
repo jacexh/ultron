@@ -13,7 +13,6 @@ require (
 	github.com/prometheus/prom2json v1.3.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
@@ -34,6 +33,7 @@ require (
 	github.com/prometheus/procfs v0.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
+	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
