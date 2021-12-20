@@ -5,6 +5,7 @@
 - add `executorSharedContext` to carry fire-scoped values
 - change method signature of `HTTPPrepareFunc`
 - change method signature of `HTTPCheckFunc`
+
 ## v2.3.2
 
 - `fastattacker`作为独立的module，路径为`github.com/wosai/ultron/attacker/fastattacker/v2`
