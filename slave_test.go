@@ -49,7 +49,7 @@ func TestSlaveRunner_Working(t *testing.T) {
 	slave := newSlaveRunner()
 	task := NewTask()
 	attacker := NewHTTPAttacker("foobar")
-	attacker.Apply(WithPrepareFunc(func() (*http.Request, error) {
+	attacker.Apply(WithPrepareFunc(func(context.Context) (*http.Request, error) {
 		return http.NewRequest(http.MethodGet, "https://cn.bing.com", nil)
 	}))
 	task.Add(attacker, 1)

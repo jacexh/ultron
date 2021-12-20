@@ -349,6 +349,7 @@ func (e *fcuExecutor) start(ctx context.Context, task Task, output chan<- statis
 	}
 
 	ctx, e.cancel = context.WithCancel(ctx)
+	ctx = newExecutorSharedContext(ctx)
 
 	defer func() {
 		if rec := recover(); rec != nil {

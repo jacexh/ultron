@@ -2,6 +2,7 @@ package ultron
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -41,7 +42,9 @@ func BenchmarkFakeAttacker(b *testing.B) {
 func BenchmarkHTTPAttacker_Fire(b *testing.B) {
 	attacker := NewHTTPAttacker("http-benchmark")
 	attacker.Apply(
-		WithPrepareFunc(func() (*http.Request, error) { return http.NewRequest(http.MethodGet, "https://www.google.com", nil) }),
+		WithPrepareFunc(func(context.Context) (*http.Request, error) {
+			return http.NewRequest(http.MethodGet, "https://www.google.com", nil)
+		}),
 	)
 
 	b.RunParallel(func(p *testing.PB) {
@@ -56,17 +59,25 @@ func BenchmarkHTTPAttacker_Fire(b *testing.B) {
 func TestHTTPAttacker_Fire(t *testing.T) {
 	attacker := NewHTTPAttacker("http")
 	attacker.Apply(
-		WithPrepareFunc(func() (*http.Request, error) {
+		WithPrepareFunc(func(ctx context.Context) (*http.Request, error) {
+			StoreInContext(ctx, "ua", "github.com/wosai/ultron")
 			return http.NewRequest(http.MethodGet, "https://httpbin.org/user-agent", nil)
 		}),
 		WithCheckFuncs(
 			CheckHTTPStatusCode,
-			func(r *http.Response, b []byte) error {
+			func(ctx context.Context, r *http.Response, b []byte) error {
+				val, got := FromContext(ctx, "ua")
+				if !got {
+					return errors.New("failed to carrying data")
+				}
+				if val.(string) != "github.com/wosai/ultron" {
+					return errors.New("bad value")
+				}
 				Logger.Info("body", zap.ByteString("body", b))
 				return nil
 			}),
 	)
-	err := attacker.Fire(context.Background())
+	err := attacker.Fire(newExecutorSharedContext(context.Background()))
 	assert.Nil(t, err)
 }
 
@@ -76,7 +87,7 @@ func TestHTTPAttacker_Apply(t *testing.T) {
 
 	attacker.Apply(
 		WithClient(client),
-		WithPrepareFunc(func() (*http.Request, error) {
+		WithPrepareFunc(func(context.Context) (*http.Request, error) {
 			return http.NewRequest(http.MethodGet, "https://www.google.com", nil)
 		}),
 		WithDisableKeepAlives(true),
