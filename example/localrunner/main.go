@@ -5,6 +5,7 @@ import (
 
 	"github.com/wosai/ultron/v2"
 	"github.com/wosai/ultron/v2/handler/influxdbv1"
+	"golang.org/x/net/context"
 )
 
 func main() {
@@ -14,7 +15,7 @@ func main() {
 	task := ultron.NewTask()
 	bing := ultron.NewHTTPAttacker("bing")
 	bing.Apply(
-		ultron.WithPrepareFunc(func() (*http.Request, error) {
+		ultron.WithPrepareFunc(func(context.Context) (*http.Request, error) {
 			return http.NewRequest(http.MethodGet, "https://bing.com", nil)
 		}),
 		ultron.WithCheckFuncs(ultron.CheckHTTPStatusCode),

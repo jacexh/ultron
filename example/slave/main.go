@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/wosai/ultron/v2"
@@ -11,7 +12,7 @@ func main() {
 	slave := ultron.NewSlaveRunner()
 	task := ultron.NewTask()
 	attacker := ultron.NewHTTPAttacker("google")
-	attacker.Apply(ultron.WithPrepareFunc(func() (*http.Request, error) {
+	attacker.Apply(ultron.WithPrepareFunc(func(context.Context) (*http.Request, error) {
 		return http.NewRequest(http.MethodGet, "https://www.google.com", nil)
 	}))
 	task.Add(attacker, 1)

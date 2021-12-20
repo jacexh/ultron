@@ -17,10 +17,10 @@ type (
 		Fire(context.Context) error
 	}
 	// HTTPPrepareFunc 构造http.Request函数，需要调用方定义，由HTTPAttacker来发送
-	HTTPPrepareFunc func() (*http.Request, error)
+	HTTPPrepareFunc func(context.Context) (*http.Request, error)
 
 	// HTTPCheckFunc http.Response校验函数，可由调用方自定义，如果返回error，则视为请求失败
-	HTTPCheckFunc func(*http.Response, []byte) error
+	HTTPCheckFunc func(context.Context, *http.Response, []byte) error
 
 	// HTTPAttacker 内置net/http库对Attacker的实现
 	HTTPAttacker struct {
@@ -81,7 +81,9 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
-	req, err := ha.prepareFunc()
+	defer ClearContext(ctx)
+
+	req, err := ha.prepareFunc(ctx)
 	if err != nil {
 		return err
 	}
@@ -108,7 +110,7 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 	res.Body.Close()
 
 	for _, check := range ha.checkFuncs {
-		if err = check(res, body); err != nil {
+		if err = check(ctx, res, body); err != nil {
 			return err
 		}
 	}
@@ -170,7 +172,7 @@ func WithProxy(proxy func(*http.Request) (*url.URL, error)) HTTPAttackerOption {
 }
 
 // CheckHTTPStatusCode 检查状态码是否>=400, 如果是则视为请求失败
-func CheckHTTPStatusCode(res *http.Response, body []byte) error {
+func CheckHTTPStatusCode(_ context.Context, res *http.Response, body []byte) error {
 	if res.StatusCode >= http.StatusBadRequest {
 		return fmt.Errorf("bad status code: %d", res.StatusCode)
 	}
