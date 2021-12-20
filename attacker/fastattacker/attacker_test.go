@@ -12,12 +12,12 @@ import (
 func TestFastHTTPAttacker_Fire(t *testing.T) {
 	attacker := NewFastHTTPAttacker("foobar")
 	attacker.Apply(
-		WithPrepareFunc(func(r *fasthttp.Request) error {
+		WithPrepareFunc(func(_ context.Context, r *fasthttp.Request) error {
 			r.SetRequestURI("https://httpbin.org/user-agent")
 			r.Header.SetMethod(fasthttp.MethodGet)
 			return nil
 		}),
-		WithCheckFunc(CheckHTTPStatusCode, func(r *fasthttp.Response) error {
+		WithCheckFunc(CheckHTTPStatusCode, func(_ context.Context, r *fasthttp.Response) error {
 			log.Println(string(r.Body()))
 			return nil
 		}),

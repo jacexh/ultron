@@ -34,7 +34,7 @@ func TestAttacker(t *testing.T) {
 	attacker := NewJSONRPCAttacker(
 		ts.URL,
 		"query",
-		WithPrepareFunc(func() interface{} {
+		WithPrepareFunc(func(context.Context) interface{} {
 			return []string{"w4414"}
 		}),
 		WithUnmarshalFunc(func(b []byte) (interface{}, error) {
@@ -42,7 +42,7 @@ func TestAttacker(t *testing.T) {
 			err := json.Unmarshal(b, ret)
 			return ret, err
 		}),
-		WithCheckFuncs(func(i interface{}) error {
+		WithCheckFuncs(func(_ context.Context, i interface{}) error {
 			if ret, ok := i.(*rpcResult); ok {
 				if ret.Amount != 2 {
 					return errors.New("bad amount")

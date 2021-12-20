@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/ultron/v2"
 )
 
 type (
@@ -18,9 +19,9 @@ type (
 	}
 
 	// FastHTTPPrepareFunc 构造fasthttp.Request的请求
-	FastHTTPPrepareFunc func(*fasthttp.Request) error
+	FastHTTPPrepareFunc func(context.Context, *fasthttp.Request) error
 	// FastHTTPCheckFunc fasthttp.Response检查函数
-	FastHTTPCheckFunc func(*fasthttp.Response) error
+	FastHTTPCheckFunc func(context.Context, *fasthttp.Response) error
 	// FastHTTPAttackerOption FastHTTPAttacker的配置项
 	FastHTTPAttackerOption func(*FastHTTPAttacker)
 )
@@ -35,6 +36,8 @@ var (
 		ReadTimeout:         30 * time.Second,
 		WriteTimeout:        30 * time.Second,
 	}
+
+	_ ultron.Attacker = (*FastHTTPAttacker)(nil)
 )
 
 func NewFastHTTPAttacker(name string) *FastHTTPAttacker {
@@ -54,12 +57,14 @@ func (fa *FastHTTPAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
+	defer ultron.ClearContext(ctx)
+
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
 	res := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(res)
 
-	err := fa.prepareFunc(req)
+	err := fa.prepareFunc(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -75,7 +80,7 @@ func (fa *FastHTTPAttacker) Fire(ctx context.Context) error {
 	}
 
 	for _, check := range fa.checkFuncs {
-		if err = check(res); err != nil {
+		if err = check(ctx, res); err != nil {
 			return err
 		}
 	}
@@ -121,7 +126,7 @@ func WithTimeout(t time.Duration) FastHTTPAttackerOption {
 	}
 }
 
-func CheckHTTPStatusCode(res *fasthttp.Response) error {
+func CheckHTTPStatusCode(_ context.Context, res *fasthttp.Response) error {
 	if code := res.StatusCode(); code >= fasthttp.StatusBadRequest {
 		return fmt.Errorf("bad status code: %d", code)
 	}
