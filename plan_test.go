@@ -2,18 +2,13 @@ package ultron
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wosai/ultron/v2/pkg/statistics"
-	"syreclabs.com/go/faker"
 )
 
-func TestFakePlanName(t *testing.T) {
-	fmt.Println(faker.App().Name())
-}
 func TestPlan_AddStages(t *testing.T) {
 	plan := NewPlan("")
 	plan.AddStages(

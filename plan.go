@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2/pkg/statistics"
-	"syreclabs.com/go/faker"
 )
 
 type (
@@ -54,7 +53,7 @@ var (
 
 func NewPlan(name string) *plan {
 	if name == "" {
-		name = faker.App().Name()
+		name = "unknown"
 	}
 	return &plan{
 		name:    name,
