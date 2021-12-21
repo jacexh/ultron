@@ -1,5 +1,8 @@
 # ChangeLog
 
+## v2.4.1
+
+- make `Influxdbv1Handler` as independent module, path: `github.com/wosai/ultron/handler/influxdbv1/v2`
 ## v2.4.0
 
 - add `executorSharedContext` to carry fire-scoped values
