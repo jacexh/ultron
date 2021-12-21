@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/stretchr/testify v1.7.0
-	github.com/wosai/ultron/v2 v2.4.0
+	github.com/wosai/ultron/v2 v2.4.1
 )
 
 require (
@@ -40,7 +40,6 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	syreclabs.com/go/faker v1.2.3 // indirect
 )
 
 replace github.com/wosai/ultron/v2 => ../../

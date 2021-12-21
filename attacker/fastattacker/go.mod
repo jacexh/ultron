@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/valyala/fasthttp v1.31.0
-	github.com/wosai/ultron/v2 v2.4.0
+	github.com/wosai/ultron/v2 v2.4.1
 )
 
 require (
@@ -40,7 +40,6 @@ require (
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
-	syreclabs.com/go/faker v1.2.3 // indirect
 )
 
 replace github.com/wosai/ultron/v2 => ../../
