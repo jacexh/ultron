@@ -3,8 +3,8 @@ module github.com/wosai/ultron/example/localrunner
 go 1.17
 
 require (
-	github.com/wosai/ultron/v2 v2.4.0
-	github.com/wosai/ultron/handler/influxdbv1/v2 v2.0.0-00010101000000-000000000000
+	github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.1
+	github.com/wosai/ultron/v2 v2.4.1
 )
 
 require (
@@ -41,6 +41,6 @@ require (
 )
 
 replace (
-	github.com/wosai/ultron/v2 => ../../
 	github.com/wosai/ultron/handler/influxdbv1/v2 => ../../handler/influxdbv1
+	github.com/wosai/ultron/v2 => ../../
 )
