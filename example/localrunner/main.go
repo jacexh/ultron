@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/wosai/ultron/handler/influxdbv1/v2"
 	"github.com/wosai/ultron/v2"
-	"github.com/wosai/ultron/v2/handler/influxdbv1"
 )
 
 func main() {
