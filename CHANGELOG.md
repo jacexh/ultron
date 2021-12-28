@@ -1,5 +1,8 @@
 # ChangeLog
 
+## v2.4.2
+
+- now you can change name, level, etc. of log file via an external config file: `./config.yml`
 ## v2.4.1
 
 - make `Influxdbv1Handler` as independent module, path: `github.com/wosai/ultron/handler/influxdbv1/v2`

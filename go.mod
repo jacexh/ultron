@@ -5,6 +5,7 @@ require (
 	github.com/golang/protobuf v1.5.0
 	github.com/google/uuid v1.3.0
 	github.com/jacexh/gopkg/chi-middleware v0.1.1
+	github.com/jacexh/gopkg/zaprotate v0.1.1
 	github.com/jacexh/multiconfig v0.1.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/prometheus/client_golang v1.11.0
@@ -35,6 +36,7 @@ require (
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
