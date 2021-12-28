@@ -47,3 +47,13 @@ gomod:
 		go mod download; \
 		cd - > /dev/null; \
 	done
+
+.PHOY: sync-module-version
+sync-module-version:
+	for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
+		head -n 1 $$dir/go.mod | grep github.com/wosai/ultron/v2$ && continue; \
+		cd $$dir; \
+		go get github.com/wosai/ultron/v2@${version}; \
+		go mod tidy; \
+		cd - > /dev/null; \
+	done
