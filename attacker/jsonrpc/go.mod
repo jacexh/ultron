@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/stretchr/testify v1.7.0
-	github.com/wosai/ultron/v2 v2.4.1
+	github.com/wosai/ultron/v2 v2.4.2
 )
 
 require (
@@ -18,6 +18,7 @@ require (
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jacexh/gopkg/chi-middleware v0.1.1 // indirect
+	github.com/jacexh/gopkg/zaprotate v0.1.1 // indirect
 	github.com/jacexh/multiconfig v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
@@ -38,6 +39,7 @@ require (
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

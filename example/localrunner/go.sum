@@ -79,6 +79,8 @@ github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab h1:HqW
 github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/jacexh/gopkg/chi-middleware v0.1.1 h1:Q/A+gN2b5kQVGPsEfGsyc11umXHuXEnYPonrc+M7BH8=
 github.com/jacexh/gopkg/chi-middleware v0.1.1/go.mod h1:1ndyu3GrZbrLJJYo/jmqFHi6X936Y2pxguTIj7HqM6c=
+github.com/jacexh/gopkg/zaprotate v0.1.1 h1:x0NG69xoA4JARtUFRqEFaRedezETiGizHrvUvPnU6CU=
+github.com/jacexh/gopkg/zaprotate v0.1.1/go.mod h1:eiwQ+eqU4mbk2aBJYLm0sqro8bNWdyjmC+SqxVozun8=
 github.com/jacexh/multiconfig v0.1.2 h1:M7aIsBr1xUgfAfDrI0mHAHSyLicfiiVkejVWI7PmW+M=
 github.com/jacexh/multiconfig v0.1.2/go.mod h1:7YehB4JsdDB+GdIU9Zv2lNEWamSLd0YtKezoJzB8W4Q=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
@@ -267,6 +269,8 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 h1:YR8cESwS4TdDjEe65xsg0ogRM/Nc3DYOhEAlW+xobZo=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/natefinch/lumberjack.v2 v2.0.0 h1:1Lc07Kr7qY4U2YPouBjpCLxpiyxIVoxqXgkXLknAOE8=
+gopkg.in/natefinch/lumberjack.v2 v2.0.0/go.mod h1:l0ndWWf7gzL7RNwBG7wST/UCcT4T24xpD6X8LsfU/+k=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.3/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
