@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jacexh/multiconfig"
 	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -39,12 +38,6 @@ type (
 		StopPlan()
 	}
 
-	RunnerConfig struct {
-		GRPCAddr string `json:"listern_addr,omitempty" default:":2021"` // 服务监听地址
-		RESTAddr string `json:"rest_addr,omitempty" default:":2017"`    // restful监听地址
-		RunOnce  bool   `json:"run_once"`                               // 作用于LocalRunner，如果true，则执行完后退出ultron
-	}
-
 	masterRunner struct {
 		scheduler  *scheduler
 		plan       Plan
@@ -60,13 +53,6 @@ type (
 		slave  *slaveRunner
 	}
 )
-
-func loadRunnerConfigrations() *RunnerConfig {
-	conf := new(RunnerConfig)
-	loader := multiconfig.NewWithPathAndEnvPrefix("", "ULTRON")
-	loader.MustLoad(conf)
-	return conf
-}
 
 func NewMasterRunner() MasterRunner {
 	runner := newMasterRunner()
@@ -111,8 +97,8 @@ func newMasterRunner() *masterRunner {
 
 // Launch 主线程，如果发生错误则关闭
 func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
-	conf := loadRunnerConfigrations()
-	Logger.Info("loaded configurations", zap.Any("configrations", conf))
+	Logger.Info("loaded configurations", zap.Any("configrations", loadedOption))
+	serverOption := loadedOption.Server
 
 	// eventbus初始化
 	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
@@ -123,24 +109,24 @@ func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
 	go func() { // http server
 		router := buildHTTPRouter(r)
 		r.rest = &http.Server{
-			Addr:    conf.RESTAddr,
+			Addr:    serverOption.HTTPAddr,
 			Handler: router,
 		}
-		Logger.Info("ultron http server is running", zap.String("address", conf.RESTAddr))
+		Logger.Info("ultron http server is running", zap.String("address", serverOption.HTTPAddr))
 		if err := r.rest.ListenAndServe(); err != nil {
 			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
 		}
 	}()
 
 	go func() { // grpc server
-		lis, err := net.Listen("tcp", conf.GRPCAddr)
+		lis, err := net.Listen("tcp", serverOption.GRPCAddr)
 		if err != nil {
 			Logger.Fatal("failed to launch grpc server", zap.Error(err))
 		}
 		r.rpc = grpc.NewServer(opts...)
 		r.supervisor = newSlaveSupervisor()
 		genproto.RegisterUltronAPIServer(r.rpc, r.supervisor)
-		Logger.Info("ultron grpc server is running", zap.String("connect_address", conf.GRPCAddr))
+		Logger.Info("ultron grpc server is running", zap.String("connect_address", serverOption.GRPCAddr))
 
 		start <- struct{}{}
 		if err := r.rpc.Serve(lis); err != nil {
