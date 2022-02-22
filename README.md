@@ -8,19 +8,20 @@
 
 a http load testing tool in go
 
-## Requirements
+## Usage 
+### Requirements
 
 Go 1.16+
 
-## Install
+### Install
 
 ```bash
 go get github.com/wosai/ultron/v2
 ```
 
-## Example
+### Example
 
-### LocalRunner
+#### LocalRunner
 
 ```go
 package main
@@ -68,7 +69,7 @@ func main() {
 }
 ```
 
-### SlaveRunner
+#### SlaveRunner
 
 ```go
 package main
@@ -105,7 +106,7 @@ func main() {
 }
 ```
 
-### MasterRunner
+#### MasterRunner
 
 ```bash
 ultron
@@ -113,19 +114,19 @@ ultron
 
 ![master](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111633.png)
 
-### Web Portal
+#### Web Portal
 
 ![plan](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211118094334.png)
 
 ![stats](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211118090312.png)
 
-## Report
+### Report
 
-### Terminal Table
+#### Terminal Table
 
 ![stats report](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211102111021.png)
 
-### JSON Format
+#### JSON Format
 ```json
 {
     "first_attack": "2021-11-02T03:09:08.419359417Z",
@@ -165,7 +166,7 @@ ultron
 }
 ```
 
-### Grafana Dashboard
+#### Grafana Dashboard
 
 ```bash
 scripts/grafana/dashboard.json
@@ -175,10 +176,17 @@ scripts/grafana/dashboard.json
 
 ![](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20211119120154.png)
 
-## Enhancements
+### Enhancements
 
 Module | Type | Description 
 :---: |  :----:  |  :---:
 `github.com/wosai/ultron/attacker/fastattacker/v2` | Attacker | Another http attacker implemented by [fasthttp](https://github.com/valyala/fasthttp)
 `github.com/wosai/ultron/attacker/jsonrpc/v2`  | Attacker | A attacker used for jsonrpc protocol
 `github.com/wosai/ultron/handler/influxdbv1/v2` | Handler |  A handler that save attack result and report in InfluxDB v1
+
+## Contributors
+<a href="https://github.com/wosai/ultron/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=wosai/ultron" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
