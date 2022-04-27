@@ -69,6 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     if:  startsWith(github.event.ref, 'refs/tags/v')
     steps:
+    - uses: actions/checkout@v2
+      name: Check out code into Go module directory
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
     - name: Sync Sub Packages
       run: |
         make sync-module-version version=${{github.ref_name}}
