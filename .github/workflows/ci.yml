@@ -64,3 +64,11 @@ jobs:
         git add web
         git commit -am 'Automated generate static files' && git push
         set -e
+
+  release:
+    runs-on: ubuntu-latest
+    if:  startsWith(github.event.ref, "refs/tags/v")
+    steps:
+    - name: Sync Sub Packages
+      run: |
+        make sync-module-version version=${{github.ref_name}}
