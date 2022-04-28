@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/stretchr/testify v1.7.0
-	github.com/wosai/ultron/v2 v2.4.2
+	github.com/wosai/ultron/v2 v2.4.4
 	go.uber.org/zap v1.19.1
 )
 
