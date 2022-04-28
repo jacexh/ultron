@@ -70,7 +70,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       name: Check out code into Go module directory
-      token: ${{ secrets.PAT_XH }}
+      with:
+        token: ${{ secrets.PAT_XH }}
     - name: Sync Sub Packages
       id: sync
       run: |
