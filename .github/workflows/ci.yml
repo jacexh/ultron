@@ -86,7 +86,6 @@ jobs:
         do 
           git tag $package/${{ github.ref_name }}
         done
-        git checkout master
-        git push origin
+        git push origin HEAD:master
         git push origin --tags
         set -e
