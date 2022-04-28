@@ -7,8 +7,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: Check out code into Go module directory
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
+      # with:
+      #   ref: ${{ github.event.pull_request.head.ref }}
     - uses: actions/setup-go@v2
       name: Set up Go 1.x
       with:
@@ -28,7 +28,7 @@ jobs:
         git config --global user.name 'Github Action'
         git config --global user.email 'jacexh@users.noreply.github.com'
         set +e
-        git commit -am 'Automated generate protobuf files' && git push
+        git commit -am 'Automated generate protobuf files' && git push origin
         set -e
     - name: Code Coverage Report
       uses: codecov/codecov-action@v2
@@ -43,8 +43,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: Check out code into Go module directory
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
+      # with:
+      #   ref: ${{ github.event.pull_request.head.ref }}
     - name: Use Node.js
       uses: actions/setup-node@v2
       with:
@@ -62,7 +62,7 @@ jobs:
         git config --global user.email 'jacexh@users.noreply.github.com'
         set +e
         git add web
-        git commit -am 'Automated generate static files' && git push
+        git commit -am 'Automated generate static files' && git push origin
         set -e
 
   release:
@@ -72,8 +72,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: Check out code into Go module directory
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
+      # with:
+      #   ref: ${{ github.event.pull_request.head.ref }}
     - name: Sync Sub Packages
       id: sync
       run: |
