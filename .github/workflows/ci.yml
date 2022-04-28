@@ -90,5 +90,5 @@ jobs:
         do 
           git tag $package/${{ github.ref_name }}
         done
-        git push --tags
+        git push origin --tags
         set -e
