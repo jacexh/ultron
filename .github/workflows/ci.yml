@@ -7,8 +7,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: Check out code into Go module directory
-      # with:
-      #   ref: ${{ github.event.pull_request.head.ref }}
     - uses: actions/setup-go@v2
       name: Set up Go 1.x
       with:
