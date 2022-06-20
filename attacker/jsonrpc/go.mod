@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/stretchr/testify v1.7.0
-	github.com/wosai/ultron/v2 v2.4.4
+	github.com/wosai/ultron/v2 v2.4.5
 )
 
 require (

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.1
-	github.com/wosai/ultron/v2 v2.4.4
+	github.com/wosai/ultron/v2 v2.4.5
 )
 
 require (
