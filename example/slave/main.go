@@ -21,6 +21,6 @@ func main() {
 	if err := slave.Connect("127.0.0.1:2021", grpc.WithInsecure()); err != nil {
 		panic(err)
 	}
-	block := make(chan struct{}, 1)
-	<-block
+
+	select {}
 }

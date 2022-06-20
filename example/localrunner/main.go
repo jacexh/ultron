@@ -37,6 +37,5 @@ func main() {
 	}
 
 	// open http://localhost:2017
-	block := make(chan struct{}, 1)
-	<-block
+	select {}
 }
