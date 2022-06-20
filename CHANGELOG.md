@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v2.4.5
+
+- Convert the type of `ultron_attacker_failures_total` and `ultron_attacker_requests_total` to [Counter](https://prometheus.io/docs/concepts/metric_types/#counter)
+
 ## v2.4.2
 
 - now you can change name, level, etc. of log file via an external config file: `./config.yml`

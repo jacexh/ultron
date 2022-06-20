@@ -69,8 +69,8 @@ func (m *metric) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, report := range report.Reports {
-		ch <- prometheus.MustNewConstMetric(descTotalRequests, prometheus.GaugeValue, float64(report.Requests), report.Name, plan)
-		ch <- prometheus.MustNewConstMetric(descTotalFailures, prometheus.GaugeValue, float64(report.Failures), report.Name, plan)
+		ch <- prometheus.MustNewConstMetric(descTotalRequests, prometheus.CounterValue, float64(report.Requests), report.Name, plan)
+		ch <- prometheus.MustNewConstMetric(descTotalFailures, prometheus.CounterValue, float64(report.Failures), report.Name, plan)
 		ch <- prometheus.MustNewConstMetric(descMinResponseTime, prometheus.GaugeValue, float64(report.Min.Milliseconds()), report.Name, plan)
 		ch <- prometheus.MustNewConstMetric(descMaxResponseTime, prometheus.GaugeValue, float64(report.Max.Milliseconds()), report.Name, plan)
 		ch <- prometheus.MustNewConstMetric(descAvgResponseTime, prometheus.GaugeValue, float64(report.Average.Milliseconds()), report.Name, plan)
