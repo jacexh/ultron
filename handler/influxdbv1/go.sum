@@ -153,6 +153,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/wosai/ultron/v2 v2.4.5 h1:1LGK2Egzphidz0CkImoKzDpj+DQawCEd0kd8X5SpP6o=
 github.com/wosai/ultron/v2 v2.4.5/go.mod h1:sYERQcrIic2VXCSU1HNTHaBzTO/wcpXmALfBsVBohJo=
+github.com/wosai/ultron/v2 v2.5.0 h1:uUPQni5kSAhUFjZydhTxBF+Um8wqxFGiVslrnVC+WJ0=
+github.com/wosai/ultron/v2 v2.5.0/go.mod h1:mi6O+rk5YLga405c1snubb3j0kHSi3SPr0Nj2q9P/0A=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
