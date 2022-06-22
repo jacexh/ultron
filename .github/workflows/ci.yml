@@ -3,10 +3,11 @@ on:
   push:
     tags:
     - v**
+    branches:
+    - release/**
   pull_request:
     types:
     - opened
-    - edited
     - reopened
     branches:
     - release/**
