@@ -1,0 +1,9 @@
+go 1.18
+
+use (
+    .
+	./attacker/fastattacker
+	./attacker/jsonrpc
+    ./example
+    ./handler/influxdbv1
+)
