@@ -1,5 +1,11 @@
 name: Ultron CI
-on: [pull_request]
+on: 
+  push:
+    tags:
+    - v**
+  pull_request:
+    branches:
+    - release/**
 
 jobs:
   backend:
