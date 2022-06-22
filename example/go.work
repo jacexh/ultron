@@ -1,0 +1,10 @@
+go 1.18
+
+use (
+    ../
+    ../handler/influxdbv1
+)
+
+replace (
+    github.com/wosai/ultron/v2 => ../
+)
