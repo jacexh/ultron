@@ -1,6 +1,6 @@
 module github.com/wosai/ultron/attacker/fastattacker/v2
 
-go 1.17
+go 1.18
 
 require (
 	github.com/valyala/fasthttp v1.34.0
@@ -43,5 +43,3 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
-
-replace github.com/wosai/ultron/v2 => ../../

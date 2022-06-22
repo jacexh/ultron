@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v2.5.0
+
+- Bump up Go version to 1.18
+
 ## v2.4.5
 
 - Convert the type of `ultron_attacker_failures_total` and `ultron_attacker_requests_total` to [Counter](https://prometheus.io/docs/concepts/metric_types/#counter)

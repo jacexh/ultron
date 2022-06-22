@@ -149,10 +149,10 @@ func WithCheckFuncs(checks ...HTTPCheckFunc) HTTPAttackerOption {
 	}
 }
 
-func WithDisableKeepAlives(disbale bool) HTTPAttackerOption {
+func WithDisableKeepAlives(disable bool) HTTPAttackerOption {
 	return func(h *HTTPAttacker) {
 		if tran, ok := h.client.Transport.(*http.Transport); ok {
-			tran.DisableKeepAlives = disbale
+			tran.DisableKeepAlives = disable
 		}
 	}
 }

@@ -31,7 +31,7 @@ func main() {
 	runner.SubscribeReport(handler.HandleReport())
 	runner.SubscribeResult(handler.HandleResult(0.1))
 
-	// start localrunner
+	// start local runner
 	if err := runner.Launch(); err != nil {
 		panic(err)
 	}

@@ -33,7 +33,7 @@ func TestSlaveRunner_Connect(t *testing.T) {
 	slave := newSlaveRunner()
 	err := slave.Connect("")
 	assert.NotNil(t, err)
-	assert.EqualValues(t, err.Error(), "you should assgin a task before connect")
+	assert.EqualValues(t, err.Error(), "you should assign a task before connect")
 
 	slave.Assign(NewTask())
 
