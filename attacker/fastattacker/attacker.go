@@ -57,7 +57,8 @@ func (fa *FastHTTPAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
-	defer ultron.ClearContext(ctx)
+	ctx = ultron.AllocateStorageInContext(ctx)
+	defer ultron.ClearStorageInContext(ctx)
 
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)

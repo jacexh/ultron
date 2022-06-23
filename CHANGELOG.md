@@ -1,5 +1,11 @@
 # ChangeLog
 
+## v2.5.1
+
+### Features
+
+- implement attacker for MQTT protocol v3.1.1
+
 ## v2.5.0
 
 - Bump up Go version to 1.18
