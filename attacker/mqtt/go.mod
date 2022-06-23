@@ -3,10 +3,14 @@ module github.com/wosai/ultron/attacker/mqtt/v2
 go 1.18
 
 require (
+	github.com/eclipse/paho.mqtt.golang v1.4.1
+	github.com/wosai/ultron/v2 v2.5.0
+)
+
+require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.4 // indirect
@@ -24,7 +28,6 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/prometheus/prom2json v1.3.0 // indirect
-	github.com/wosai/ultron/v2 v2.5.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect

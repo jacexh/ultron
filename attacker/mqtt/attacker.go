@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -113,7 +114,21 @@ func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
 	token := sub.client.Subscribe(sub.topic, sub.qos, sub.handler)
 	select {
 	case <-token.Done():
-		return token.Error()
+		if err := token.Error(); err != nil {
+			return err
+		}
+
+		// issue: https://github.com/eclipse/paho.mqtt.golang/issues/380
+		// return codes in SUBACK: https://www.emqx.com/en/blog/mqtt5-new-features-reason-code-and-ack
+		if t, ok := token.(*mqtt.SubscribeToken); ok {
+			for _, v := range t.Result() {
+				if v == 0x80 {
+					return errors.New("failed to subscribe topic")
+				}
+			}
+		}
+		return nil
+
 	case <-ctx.Done():
 		return ctx.Err()
 	}
