@@ -183,6 +183,7 @@ Module |  Description
 `github.com/wosai/ultron/attacker/fastattacker/v2` |  Another http attacker implemented by [fasthttp](https://github.com/valyala/fasthttp)
 `github.com/wosai/ultron/attacker/jsonrpc/v2`  |  A attacker used for jsonrpc protocol
 `github.com/wosai/ultron/handler/influxdbv1/v2` |   A handler that save attack result and report in InfluxDB v1
+`github.com/wosai/ultron/attacker/mqtt/v2` | A attacker used for MQTT protocol v3.3
 
 ## Contributors
 <a href="https://github.com/wosai/ultron/graphs/contributors">
