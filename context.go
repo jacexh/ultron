@@ -64,8 +64,11 @@ func ClearStorageInContext(ctx context.Context) {
 	}
 }
 
-func AllocateStorageInContext(ctx context.Context) {
+func AllocateStorageInContext(ctx context.Context) context.Context {
 	if entity, ok := ctx.(*executorSharedContext); ok {
 		entity.counter++
+	} else {
+		ctx = newExecutorSharedContext(ctx)
 	}
+	return ctx
 }

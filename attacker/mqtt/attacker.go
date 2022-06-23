@@ -59,7 +59,7 @@ func (pub *MQTTPublisher) Fire(ctx context.Context) error {
 	default:
 	}
 
-	ultron.AllocateStorageInContext(ctx)
+	ctx = ultron.AllocateStorageInContext(ctx)
 	defer ultron.ClearStorageInContext(ctx)
 
 	token := pub.client.Publish(pub.topic, pub.qos, pub.retained, pub.prepareFunc(ctx))
@@ -116,7 +116,7 @@ func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
 	default:
 	}
 
-	ultron.AllocateStorageInContext(ctx)
+	ctx = ultron.AllocateStorageInContext(ctx)
 	defer ultron.ClearStorageInContext(ctx)
 
 	token := sub.client.Subscribe(sub.topic, sub.qos, sub.handler)

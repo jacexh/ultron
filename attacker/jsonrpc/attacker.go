@@ -142,7 +142,7 @@ func (j *JSONRPCAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
-	ultron.AllocateStorageInContext(ctx)
+	ctx = ultron.AllocateStorageInContext(ctx)
 	defer ultron.ClearStorageInContext(ctx)
 
 	v := atomic.AddInt32(&j.id, 1)
