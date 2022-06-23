@@ -50,7 +50,6 @@ func FromContext(ctx context.Context, key string) (interface{}, bool) {
 func StoreInContext(ctx context.Context, key string, value interface{}) bool {
 	if entity, ok := ctx.(*executorSharedContext); ok {
 		if _, ok := entity.resources[entity.counter]; !ok {
-			entity.counter++
 			entity.resources[entity.counter] = make(map[string]interface{})
 		}
 		entity.resources[entity.counter][key] = value
@@ -59,8 +58,14 @@ func StoreInContext(ctx context.Context, key string, value interface{}) bool {
 	return false
 }
 
-func ClearContext(ctx context.Context) {
+func ClearStorageInContext(ctx context.Context) {
 	if entity, ok := ctx.(*executorSharedContext); ok {
 		delete(entity.resources, entity.counter)
+	}
+}
+
+func AllocateStorageInContext(ctx context.Context) {
+	if entity, ok := ctx.(*executorSharedContext); ok {
+		entity.counter++
 	}
 }

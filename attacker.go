@@ -81,7 +81,8 @@ func (ha *HTTPAttacker) Fire(ctx context.Context) error {
 		panic("call Apply(WithPrepareFunc()) first")
 	}
 
-	defer ClearContext(ctx)
+	AllocateStorageInContext(ctx)
+	defer ClearStorageInContext(ctx)
 
 	req, err := ha.prepareFunc(ctx)
 	if err != nil {
