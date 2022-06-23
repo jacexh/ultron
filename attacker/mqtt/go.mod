@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.1
-	github.com/wosai/ultron/v2 v2.5.0
+	github.com/wosai/ultron/v2 v2.5.1
 )
 
 require (
