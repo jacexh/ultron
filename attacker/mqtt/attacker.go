@@ -23,18 +23,23 @@ type (
 		client  mqtt.Client
 		handler mqtt.MessageHandler
 	}
+
+	MQTTAttacker interface {
+		Topic() string
+		ultron.Attacker
+	}
 )
 
 type (
-	MQTTPublisherOption func(*MQTTPublisher)
+	MQTTAttackerOption func(MQTTAttacker)
 )
 
 var (
-	_ ultron.Attacker = (*MQTTPublisher)(nil)
-	_ ultron.Attacker = (*MQTTSubscriber)(nil)
+	_ MQTTAttacker = (*MQTTPublisher)(nil)
+	_ MQTTAttacker = (*MQTTSubscriber)(nil)
 )
 
-func NewMQTTPublisher(clientOpts *mqtt.ClientOptions, opts ...MQTTPublisherOption) *MQTTPublisher {
+func NewMQTTPublisher(clientOpts *mqtt.ClientOptions, opts ...MQTTAttackerOption) *MQTTPublisher {
 	client := mqtt.NewClient(clientOpts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic("cannot connect to broker")
@@ -71,38 +76,24 @@ func (pub *MQTTPublisher) Fire(ctx context.Context) error {
 	}
 }
 
-func (pub *MQTTPublisher) Apply(opts ...MQTTPublisherOption) {
+func (pub *MQTTPublisher) Topic() string {
+	return pub.topic
+}
+
+func (pub *MQTTPublisher) Apply(opts ...MQTTAttackerOption) {
 	for _, opt := range opts {
 		opt(pub)
 	}
 }
 
-func WithQOS(qos byte) MQTTPublisherOption {
-	return func(pub *MQTTPublisher) {
-		pub.qos = qos
-	}
-}
-
-func WithPrepareFunc(fn func(context.Context) interface{}) MQTTPublisherOption {
-	return func(pub *MQTTPublisher) {
-		if fn != nil {
-			pub.prepareFunc = fn
-		}
-	}
-}
-
-func WithMQTTClient(client mqtt.Client) MQTTPublisherOption {
-	return func(m *MQTTPublisher) {
-		m.client = client
-	}
-}
-
-func NewMQTTSubscriber(clientOpts *mqtt.ClientOptions) *MQTTSubscriber {
+func NewMQTTSubscriber(clientOpts *mqtt.ClientOptions, opts ...MQTTAttackerOption) *MQTTSubscriber {
 	client := mqtt.NewClient(clientOpts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic("cannot connect to broker")
 	}
-	return &MQTTSubscriber{client: client}
+	sub := &MQTTSubscriber{client: client}
+	sub.Apply(opts...)
+	return sub
 }
 
 func (sub *MQTTSubscriber) Name() string {
@@ -125,6 +116,72 @@ func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
 		return token.Error()
 	case <-ctx.Done():
 		return ctx.Err()
+	}
+}
 
+func (sub *MQTTSubscriber) Topic() string {
+	return sub.topic
+}
+
+func (sub *MQTTSubscriber) Apply(opts ...MQTTAttackerOption) {
+	for _, opt := range opts {
+		opt(sub)
+	}
+}
+
+func WithQOS(qos byte) MQTTAttackerOption {
+	return func(i MQTTAttacker) {
+		switch attacker := i.(type) {
+		case *MQTTPublisher:
+			attacker.qos = qos
+		case *MQTTSubscriber:
+			attacker.qos = qos
+		}
+	}
+}
+
+func WithPrepareFunc(fn func(context.Context) interface{}) MQTTAttackerOption {
+	return func(i MQTTAttacker) {
+		if attacker, ok := i.(*MQTTPublisher); ok {
+			attacker.prepareFunc = fn
+		}
+	}
+}
+
+func WithMQTTClient(client mqtt.Client) MQTTAttackerOption {
+	return func(i MQTTAttacker) {
+		switch attacker := i.(type) {
+		case *MQTTPublisher:
+			attacker.client = client
+		case *MQTTSubscriber:
+			attacker.client = client
+		}
+	}
+}
+
+func WithTopic(topic string) MQTTAttackerOption {
+	return func(i MQTTAttacker) {
+		switch attacker := i.(type) {
+		case *MQTTPublisher:
+			attacker.topic = topic
+		case *MQTTSubscriber:
+			attacker.topic = topic
+		}
+	}
+}
+
+func WithMessageHandler(handler mqtt.MessageHandler) MQTTAttackerOption {
+	return func(m MQTTAttacker) {
+		if attacker, ok := m.(*MQTTSubscriber); ok {
+			attacker.handler = handler
+		}
+	}
+}
+
+func WithRetained(retained bool) MQTTAttackerOption {
+	return func(m MQTTAttacker) {
+		if attacker, ok := m.(*MQTTPublisher); ok {
+			attacker.retained = retained
+		}
 	}
 }
