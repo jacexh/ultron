@@ -155,6 +155,8 @@ github.com/wosai/ultron/v2 v2.5.0 h1:uUPQni5kSAhUFjZydhTxBF+Um8wqxFGiVslrnVC+WJ0
 github.com/wosai/ultron/v2 v2.5.0/go.mod h1:mi6O+rk5YLga405c1snubb3j0kHSi3SPr0Nj2q9P/0A=
 github.com/wosai/ultron/v2 v2.5.1 h1:U+FOWm4cPqLXFxRi7LVI3VvT167AQ3d80Dmh3of8Lyg=
 github.com/wosai/ultron/v2 v2.5.1/go.mod h1:mi6O+rk5YLga405c1snubb3j0kHSi3SPr0Nj2q9P/0A=
+github.com/wosai/ultron/v2 v2.5.2 h1:gfjAlK2IjlFh2ZvulCUGTeuwtQUZyyqvmTgJSs1OFyU=
+github.com/wosai/ultron/v2 v2.5.2/go.mod h1:mi6O+rk5YLga405c1snubb3j0kHSi3SPr0Nj2q9P/0A=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=

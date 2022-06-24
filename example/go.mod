@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.5
-	github.com/wosai/ultron/v2 v2.5.1
+	github.com/wosai/ultron/v2 v2.5.2
 	google.golang.org/grpc v1.47.0
 )
 
