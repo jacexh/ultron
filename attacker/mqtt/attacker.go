@@ -10,25 +10,36 @@ import (
 )
 
 type (
-	MQTTPublisher struct {
-		topic       string
-		qos         byte
-		retained    bool
-		prepareFunc func(context.Context) interface{}
-		client      mqtt.Client
+	MQTTPublishers struct {
+		name          string
+		topicSelector TopicSelector
+		qos           byte
+		retained      bool
+		generator     PayloadGenerator
+		pool          MQTTClientPool
 	}
 
-	MQTTSubscriber struct {
-		topic   string
-		qos     byte
-		client  mqtt.Client
-		handler mqtt.MessageHandler
+	MQTTSubscribers struct {
+		name          string
+		topicSelector TopicSelector
+		qos           byte
+		pool          MQTTClientPool
+		handler       mqtt.MessageHandler
 	}
 
 	MQTTAttacker interface {
-		Topic() string
+		Role() string
 		ultron.Attacker
 	}
+
+	MQTTClientPool interface {
+		Get() (mqtt.Client, error)
+		Put(mqtt.Client)
+	}
+
+	TopicSelector func(mqtt.Client) string
+
+	PayloadGenerator func(context.Context) interface{}
 )
 
 type (
@@ -36,27 +47,23 @@ type (
 )
 
 var (
-	_ MQTTAttacker = (*MQTTPublisher)(nil)
-	_ MQTTAttacker = (*MQTTSubscriber)(nil)
+	_ MQTTAttacker = (*MQTTPublishers)(nil)
+	_ MQTTAttacker = (*MQTTSubscribers)(nil)
 )
 
-func NewMQTTPublisher(clientOpts *mqtt.ClientOptions, opts ...MQTTAttackerOption) *MQTTPublisher {
-	client := mqtt.NewClient(clientOpts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic("cannot connect to broker")
-	}
-	pub := &MQTTPublisher{client: client}
+func NewMQTTPublishers(name string, opts ...MQTTAttackerOption) *MQTTPublishers {
+	pub := &MQTTPublishers{name: name}
 	pub.Apply(opts...)
 	return pub
 }
 
-func (pub *MQTTPublisher) Name() string {
-	return fmt.Sprintf("%s -> %s", "publisher", pub.topic)
+func (pub *MQTTPublishers) Name() string {
+	return fmt.Sprintf("%s: %s", "publisher", pub.name)
 }
 
-func (pub *MQTTPublisher) Fire(ctx context.Context) error {
-	if pub.prepareFunc == nil {
-		panic("no prepare function provided")
+func (pub *MQTTPublishers) Fire(ctx context.Context) error {
+	if pub.generator == nil || pub.topicSelector == nil || pub.pool == nil {
+		panic("no PayloadGenerator/topicSelector/ClientPool provided")
 	}
 
 	select {
@@ -68,7 +75,13 @@ func (pub *MQTTPublisher) Fire(ctx context.Context) error {
 	ctx = ultron.AllocateStorageInContext(ctx)
 	defer ultron.ClearStorageInContext(ctx)
 
-	token := pub.client.Publish(pub.topic, pub.qos, pub.retained, pub.prepareFunc(ctx))
+	client, err := pub.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer pub.pool.Put(client)
+
+	token := client.Publish(pub.topicSelector(client), pub.qos, pub.retained, pub.generator(ctx))
 	select {
 	case <-token.Done():
 		return token.Error()
@@ -77,31 +90,31 @@ func (pub *MQTTPublisher) Fire(ctx context.Context) error {
 	}
 }
 
-func (pub *MQTTPublisher) Topic() string {
-	return pub.topic
+func (pub *MQTTPublishers) Role() string {
+	return "publisher"
 }
 
-func (pub *MQTTPublisher) Apply(opts ...MQTTAttackerOption) {
+func (pub *MQTTPublishers) Apply(opts ...MQTTAttackerOption) {
 	for _, opt := range opts {
 		opt(pub)
 	}
 }
 
-func NewMQTTSubscriber(clientOpts *mqtt.ClientOptions, opts ...MQTTAttackerOption) *MQTTSubscriber {
-	client := mqtt.NewClient(clientOpts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic("cannot connect to broker")
-	}
-	sub := &MQTTSubscriber{client: client}
+func NewMQTTSubscribers(name string, opts ...MQTTAttackerOption) *MQTTSubscribers {
+	sub := &MQTTSubscribers{name: name}
 	sub.Apply(opts...)
 	return sub
 }
 
-func (sub *MQTTSubscriber) Name() string {
-	return fmt.Sprintf("%s <- %s", "subscriber", sub.topic)
+func (sub *MQTTSubscribers) Name() string {
+	return fmt.Sprintf("%s: %s", "subscriber", sub.name)
 }
 
-func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
+func (sub *MQTTSubscribers) Fire(ctx context.Context) error {
+	if sub.topicSelector == nil || sub.pool == nil {
+		panic("no TopicSelector/ClientPool provided")
+	}
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -111,7 +124,13 @@ func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
 	ctx = ultron.AllocateStorageInContext(ctx)
 	defer ultron.ClearStorageInContext(ctx)
 
-	token := sub.client.Subscribe(sub.topic, sub.qos, sub.handler)
+	client, err := sub.pool.Get()
+	if err != nil {
+		return err
+	}
+	defer sub.pool.Put(client)
+
+	token := client.Subscribe(sub.topicSelector(client), sub.qos, sub.handler)
 	select {
 	case <-token.Done():
 		if err := token.Error(); err != nil {
@@ -134,11 +153,11 @@ func (sub *MQTTSubscriber) Fire(ctx context.Context) error {
 	}
 }
 
-func (sub *MQTTSubscriber) Topic() string {
-	return sub.topic
+func (sub *MQTTSubscribers) Role() string {
+	return "subscriber"
 }
 
-func (sub *MQTTSubscriber) Apply(opts ...MQTTAttackerOption) {
+func (sub *MQTTSubscribers) Apply(opts ...MQTTAttackerOption) {
 	for _, opt := range opts {
 		opt(sub)
 	}
@@ -147,47 +166,50 @@ func (sub *MQTTSubscriber) Apply(opts ...MQTTAttackerOption) {
 func WithQOS(qos byte) MQTTAttackerOption {
 	return func(i MQTTAttacker) {
 		switch attacker := i.(type) {
-		case *MQTTPublisher:
+		case *MQTTPublishers:
 			attacker.qos = qos
-		case *MQTTSubscriber:
+		case *MQTTSubscribers:
 			attacker.qos = qos
 		}
 	}
 }
 
-func WithPrepareFunc(fn func(context.Context) interface{}) MQTTAttackerOption {
+func WithPayloadGenerator(fn func(context.Context) interface{}) MQTTAttackerOption {
 	return func(i MQTTAttacker) {
-		if attacker, ok := i.(*MQTTPublisher); ok {
-			attacker.prepareFunc = fn
+		if attacker, ok := i.(*MQTTPublishers); ok {
+			attacker.generator = fn
 		}
 	}
 }
 
-func WithMQTTClient(client mqtt.Client) MQTTAttackerOption {
+func WithMQTTClientPool(p MQTTClientPool) MQTTAttackerOption {
+	return func(i MQTTAttacker) {
+		if p == nil {
+			return
+		}
+		switch attacker := i.(type) {
+		case *MQTTPublishers:
+			attacker.pool = p
+		case *MQTTSubscribers:
+			attacker.pool = p
+		}
+	}
+}
+
+func WithTopicSelector(fn TopicSelector) MQTTAttackerOption {
 	return func(i MQTTAttacker) {
 		switch attacker := i.(type) {
-		case *MQTTPublisher:
-			attacker.client = client
-		case *MQTTSubscriber:
-			attacker.client = client
-		}
-	}
-}
-
-func WithTopic(topic string) MQTTAttackerOption {
-	return func(i MQTTAttacker) {
-		switch attacker := i.(type) {
-		case *MQTTPublisher:
-			attacker.topic = topic
-		case *MQTTSubscriber:
-			attacker.topic = topic
+		case *MQTTPublishers:
+			attacker.topicSelector = fn
+		case *MQTTSubscribers:
+			attacker.topicSelector = fn
 		}
 	}
 }
 
 func WithMessageHandler(handler mqtt.MessageHandler) MQTTAttackerOption {
 	return func(m MQTTAttacker) {
-		if attacker, ok := m.(*MQTTSubscriber); ok {
+		if attacker, ok := m.(*MQTTSubscribers); ok {
 			attacker.handler = handler
 		}
 	}
@@ -195,7 +217,7 @@ func WithMessageHandler(handler mqtt.MessageHandler) MQTTAttackerOption {
 
 func WithRetained(retained bool) MQTTAttackerOption {
 	return func(m MQTTAttacker) {
-		if attacker, ok := m.(*MQTTPublisher); ok {
+		if attacker, ok := m.(*MQTTPublishers); ok {
 			attacker.retained = retained
 		}
 	}
