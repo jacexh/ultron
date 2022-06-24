@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/wosai/ultron/v2"
 )
 
@@ -40,6 +43,20 @@ type (
 	TopicSelector func(mqtt.Client) string
 
 	PayloadGenerator func(context.Context) interface{}
+
+	singleClient struct {
+		client mqtt.Client
+	}
+
+	fixedNumberClientPool struct {
+		index   uint32
+		clients []mqtt.Client
+	}
+
+	dynamicClientPool struct {
+		opt  mqtt.ClientOptions
+		pool sync.Pool
+	}
 )
 
 type (
@@ -221,4 +238,99 @@ func WithRetained(retained bool) MQTTAttackerOption {
 			attacker.retained = retained
 		}
 	}
+}
+
+func SingleTopic(name string) TopicSelector {
+	return func(c mqtt.Client) string {
+		return name
+	}
+}
+
+func RoundTripTopics(topics ...string) TopicSelector {
+	var index uint32 = 0
+	length := len(topics)
+	topics = topics[:]
+
+	return func(c mqtt.Client) string {
+		v := atomic.AddUint32(&index, 1)
+		return topics[(v-1)%uint32(length)]
+	}
+}
+
+func NewSingleClientPool(opt *mqtt.ClientOptions) MQTTClientPool {
+	opt.SetClientID(uuid.NewString())
+	client := mqtt.NewClient(opt)
+	token := client.Connect()
+	if token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+	return &singleClient{client: client}
+}
+
+func (sc *singleClient) Get() (mqtt.Client, error) {
+	return sc.client, nil
+}
+
+func (sc *singleClient) Put(client mqtt.Client) {
+}
+
+func NewFixedNumberClientPool(num int, opts *mqtt.ClientOptions) MQTTClientPool {
+	p := &fixedNumberClientPool{
+		clients: make([]mqtt.Client, num),
+	}
+
+	for i := 0; i < num; i++ {
+		opts.SetClientID(uuid.NewString())
+		client := mqtt.NewClient(opts)
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+		p.clients[i] = client
+	}
+	return p
+}
+
+func (fc *fixedNumberClientPool) Get() (mqtt.Client, error) {
+	v := atomic.AddUint32(&fc.index, 1)
+	client := fc.clients[int(v-1)%len(fc.clients)]
+	return client, nil
+}
+
+func (fc *fixedNumberClientPool) Put(client mqtt.Client) {
+
+}
+
+func NewDynamicClientPool(opts *mqtt.ClientOptions) MQTTClientPool {
+	copy := *opts
+	return &dynamicClientPool{
+		opt: copy,
+		pool: sync.Pool{New: func() any {
+			opts := new(mqtt.ClientOptions)
+			*opts = copy
+			opts.SetClientID(uuid.NewString())
+
+			client := mqtt.NewClient(opts)
+			if token := client.Connect(); token.Wait() && token.Error() != nil {
+				return token.Error()
+			}
+			return client
+		}},
+	}
+
+}
+
+func (dc *dynamicClientPool) Get() (mqtt.Client, error) {
+	v := dc.pool.Get()
+
+	switch p := v.(type) {
+	case error:
+		return nil, p
+	case mqtt.Client:
+		return p, nil
+	}
+	return nil, errors.New("unreachable code")
+}
+
+func (dc *dynamicClientPool) Put(client mqtt.Client) {
+	dc.pool.Put(client)
 }
