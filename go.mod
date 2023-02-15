@@ -8,7 +8,7 @@ require (
 	github.com/jacexh/gopkg/zaprotate v0.1.1
 	github.com/jacexh/multiconfig v0.1.2
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/prom2json v1.3.0
 	github.com/stretchr/testify v1.7.0
