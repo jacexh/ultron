@@ -31,7 +31,7 @@ var (
 	descFailureRatio    = prometheus.NewDesc("ultron_attacker_failure_ratio", "the failure ratio of this attacker", metricTags, nil)
 	descCurrentTPS      = prometheus.NewDesc("ultron_attacker_tps_current", "current TPS of this attacker", metricTags, nil)
 	descTotalTPS        = prometheus.NewDesc("ultron_attacker_tps_total", "total TPS of this attacker", metricTags, nil)
-	descConcurrentUsers = prometheus.NewDesc("ultron_concurrent_users", "the number of concurrent users", []string{}, nil)
+	descConcurrentUsers = prometheus.NewDesc("ultron_concurrent_users", "the number of concurrent users", []string{KeyPlan}, nil)
 	descSlaves          = prometheus.NewDesc("ultron_slaves", "the number of subscribing salves", []string{}, nil)
 )
 
@@ -61,7 +61,7 @@ func (m *metric) Collect(ch chan<- prometheus.Metric) {
 
 	if supervisor := m.runner.supervisor; supervisor != nil {
 		ch <- prometheus.MustNewConstMetric(descSlaves, prometheus.GaugeValue, float64(len(supervisor.Slaves())))
-		ch <- prometheus.MustNewConstMetric(descConcurrentUsers, prometheus.GaugeValue, float64(supervisor.ConcurrentUsers()))
+		ch <- prometheus.MustNewConstMetric(descConcurrentUsers, prometheus.GaugeValue, float64(supervisor.ConcurrentUsers()), plan)
 	}
 
 	if report.FirstAttack.IsZero() { // 空的报告
