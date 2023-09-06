@@ -158,8 +158,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.5 h1:tkeRnezVBhLm0L8Trw+vep01npu6AYO/6i8VWEmG6Do=
 github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.5/go.mod h1:wRxUNTOj3w5Ow2aSPQBfJcpUs6FsT+NwQ3yhxfATPgI=
-github.com/wosai/ultron/v2 v2.5.6 h1:oUzvZXbqWcDZ5SwnQwji2/y/ZgWvh2zJviOrW7NkqtQ=
-github.com/wosai/ultron/v2 v2.5.6/go.mod h1:WvG3n3WUtpt8ovZOAtFsonBaW1PjbUUrGPbXgySjBoA=
+github.com/wosai/ultron/v2 v2.5.7 h1:uD/EkmIWc+FhF9yugs9YQENTldx+t4stKKb94obuIjY=
+github.com/wosai/ultron/v2 v2.5.7/go.mod h1:WvG3n3WUtpt8ovZOAtFsonBaW1PjbUUrGPbXgySjBoA=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=

@@ -163,8 +163,8 @@ github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyC
 github.com/valyala/fasthttp v1.34.0 h1:d3AAQJ2DRcxJYHm7OXNXtXt2as1vMDfxeIcFvhmGGm4=
 github.com/valyala/fasthttp v1.34.0/go.mod h1:epZA5N+7pY6ZaEKRmstzOuYJx9HI8DI1oaCGZpdH4h0=
 github.com/valyala/tcplisten v1.0.0/go.mod h1:T0xQ8SeCZGxckz9qRXTfG43PvQ/mcWh7FwZEA7Ioqkc=
-github.com/wosai/ultron/v2 v2.5.6 h1:oUzvZXbqWcDZ5SwnQwji2/y/ZgWvh2zJviOrW7NkqtQ=
-github.com/wosai/ultron/v2 v2.5.6/go.mod h1:WvG3n3WUtpt8ovZOAtFsonBaW1PjbUUrGPbXgySjBoA=
+github.com/wosai/ultron/v2 v2.5.7 h1:uD/EkmIWc+FhF9yugs9YQENTldx+t4stKKb94obuIjY=
+github.com/wosai/ultron/v2 v2.5.7/go.mod h1:WvG3n3WUtpt8ovZOAtFsonBaW1PjbUUrGPbXgySjBoA=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
