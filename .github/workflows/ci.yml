@@ -88,7 +88,7 @@ jobs:
         run: |
           make sync-module-version version=${{ github.ref_name }}
           git status
-          echo "package=`git status | grep go.mod | awk '{ split($2,a,"/go.mod"); printf a[1]" "}'`" >> $GITHUB_OUTPUT
+          echo "packages=`git status | grep go.mod | awk '{ split($2,a,"/go.mod"); printf a[1]" "}'`" >> $GITHUB_OUTPUT
       - name: Auto Commit
         run: |
           git config --global user.name 'Github Action'
