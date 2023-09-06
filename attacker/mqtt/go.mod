@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/google/uuid v1.3.0
-	github.com/wosai/ultron/v2 v2.5.2
+	github.com/wosai/ultron/v2 v2.5.6
 )
 
 require (
@@ -40,5 +40,4 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
 )

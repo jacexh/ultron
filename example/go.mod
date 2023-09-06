@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.5
-	github.com/wosai/ultron/v2 v2.5.2
+	github.com/wosai/ultron/v2 v2.5.6
 	google.golang.org/grpc v1.47.0
 )
 
@@ -40,5 +40,4 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
 )
