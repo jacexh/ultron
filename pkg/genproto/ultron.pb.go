@@ -264,6 +264,7 @@ type SubscribeResponse struct {
 
 	Type EventType `protobuf:"varint,1,opt,name=type,proto3,enum=wosai.ultron.EventType" json:"type,omitempty"`
 	// Types that are assignable to Data:
+	//
 	//	*SubscribeResponse_PlanName
 	//	*SubscribeResponse_AttackStrategy
 	//	*SubscribeResponse_BatchId
