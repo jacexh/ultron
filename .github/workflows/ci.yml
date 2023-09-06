@@ -71,7 +71,7 @@ jobs:
         git config --global user.email 'jacexh@users.noreply.github.com'
         set +e
         git add web
-        git commit -am 'Automated generate static files' && git push origin HEAD:master
+        git commit -am 'Automated generate static files' && git push origin
         set -e
 
   release:
