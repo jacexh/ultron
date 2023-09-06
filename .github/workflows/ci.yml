@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       name: Check out code into Go module directory
-    - uses: actions/setup-go@v2
+    - uses: actions/setup-go@v4
       name: Set up Go 1.x
       with:
         go-version: "^1.20"
@@ -40,7 +40,7 @@ jobs:
         git commit -am 'Automated generate protobuf files' && git push origin
         set -e
     - name: Code Coverage Report
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         files: coverage.txt
         verbose: true
@@ -55,7 +55,7 @@ jobs:
       # with:
       #   ref: ${{ github.event.pull_request.head.ref }}
     - name: Use Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: "12"
         cache: 'yarn'
@@ -86,7 +86,7 @@ jobs:
       run: |
         make sync-module-version version=${{ github.ref_name }}
         git status
-        echo "::set-output name=packages::`git status | grep go.mod | awk '{ split($2,a,"/go.mod"); printf a[1]" "}'`"
+        echo "package=`git status | grep go.mod | awk '{ split($2,a,"/go.mod"); printf a[1]" "}'`" >> $GITHUB_OUTPUT
     - name: Auto Commit
       run: |
         git config --global user.name 'Github Action'
