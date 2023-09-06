@@ -14,7 +14,6 @@
             "source.organizeImports": true
         }
     },
-    "go.autocompleteUnimportedPackages": true,
     "go.formatTool": "goimports",
     "go.testFlags": [
         "-v",
@@ -22,20 +21,6 @@
     ],
     "go.lintOnSave": "package",
     "editor.minimap.enabled": true,
-    "gopls": {
-        "build.experimentalWorkspaceModule": true
-    },
-    "cSpell.words": [
-        "fastattacker",
-        "fasthttp",
-        "FCUS",
-        "jacexh",
-        "olekukonko",
-        "stretchr",
-        "syreclabs",
-        "valyala",
-        "wosai"
-    ],
     "go.coverMode": "atomic",
     "go.coverOnSingleTestFile": true,
     "go.coverOnSingleTest": true,

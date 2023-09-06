@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"time"
+	"runtime"
 
 	"github.com/wosai/ultron/v2"
 )
@@ -21,6 +22,7 @@ func (b *benchmarkAttacker) Fire(_ context.Context) error {
 }
 
 func main() {
+	runtime.GOMAXPROCS(1)
 	runner := ultron.NewLocalRunner()
 	task := ultron.NewTask()
 	task.Add(&benchmarkAttacker{name: "benchmark"}, 1)
@@ -28,7 +30,7 @@ func main() {
 
 	plan := ultron.NewPlan("benchmark test")
 	plan.AddStages(
-		&ultron.V1StageConfig{ConcurrentUsers: 200, Duration: 30 * time.Second, RampUpPeriod: 10},
+		&ultron.V1StageConfig{ConcurrentUsers: 20000, Duration: 300 * time.Second, RampUpPeriod: 50},
 		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 500000, RampUpPeriod: 5},
 	)
 
