@@ -46,13 +46,6 @@ tools:
 ultron:
 	@go run cmd/ultron/main.go
 
-.PHONY: gomod
-gomod:
-	for dir in `find . -type f -name "go.mod" -exec dirname {} \;`; do \
-		cd $$dir; \
-		go mod download; \
-		cd - > /dev/null; \
-	done
 
 .PHOY: sync-module-version
 sync-module-version:

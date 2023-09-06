@@ -1,10 +1,10 @@
 go 1.18
 
 use (
-    .
-    ./attacker/fastattacker
-    ./attacker/jsonrpc
-    ./attacker/mqtt
-    ./example
-    ./handler/influxdbv1
+	.
+	./attacker/fastattacker
+	./attacker/jsonrpc
+	./attacker/mqtt
+	./example
+	./handler/influxdbv1
 )
