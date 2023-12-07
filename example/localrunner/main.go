@@ -6,6 +6,7 @@ import (
 
 	"github.com/wosai/ultron/handler/influxdbv1/v2"
 	"github.com/wosai/ultron/v2"
+	_ "go.uber.org/automaxprocs"
 )
 
 func main() {
