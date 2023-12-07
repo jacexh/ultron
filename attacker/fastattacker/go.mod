@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/valyala/fasthttp v1.34.0
-	github.com/wosai/ultron/v2 v2.5.7
+	github.com/wosai/ultron/v2 v2.5.8
 )
 
 require (

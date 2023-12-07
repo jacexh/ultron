@@ -4,7 +4,8 @@ go 1.18
 
 require (
 	github.com/wosai/ultron/handler/influxdbv1/v2 v2.4.5
-	github.com/wosai/ultron/v2 v2.5.7
+	github.com/wosai/ultron/v2 v2.5.8
+	go.uber.org/automaxprocs v1.5.3
 	google.golang.org/grpc v1.56.3
 )
 
