@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/wosai/ultron/v2"
+	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
