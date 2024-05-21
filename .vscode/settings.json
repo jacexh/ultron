@@ -1,0 +1,34 @@
+{
+    "go.useLanguageServer": true,
+    "go.alternateTools": {
+        "go-langserver": "gopls"
+    },
+    "go.addTags": {},
+    "go.toolsManagement.autoUpdate": true,
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.intergrated,defaultProfile.linux": "zsh",
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "golang.go",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "go.formatTool": "goimports",
+    "go.testFlags": [
+        "-v",
+        "-race"
+    ],
+    "go.lintOnSave": "package",
+    "editor.minimap.enabled": true,
+    "go.coverMode": "atomic",
+    "go.coverOnSingleTestFile": true,
+    "go.coverOnSingleTest": true,
+    "protoc": {
+        "options": [
+            "--proto_path=${workspaceRoot}/api/protobuf/",
+            "--proto_path=${workspaceRoot}/api/google/protobuf/",
+        ]
+    },
+    "terminal.integrated.scrollback": 10000,
+}

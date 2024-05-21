@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package wosai.ultron;
+
+option go_package = "github.com/wosai/ultron/v2/pkg/genproto";
+
+import "statistics.proto";
+import "google/protobuf/empty.proto";
+
+service UltronAPI {
+    rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse) {}
+    rpc Submit(SubmitRequest) returns (google.protobuf.Empty) {}
+    rpc SendStatus(SendStatusRequest) returns (google.protobuf.Empty) {}
+}
+
+message SubscribeRequest {
+    string slave_id = 1;
+    map<string, string> extras = 2;
+}
+
+enum EventType {
+    UNKNOWN = 0;
+    PING = 1;
+    CONNECTED = 2;  //已连接
+    DISCONNECT = 3; // 要求slave断开连接
+    PLAN_STARTED = 4; // 测试计划开始
+    PLAN_FINISHED = 5; // 测试计划结束
+    PLAN_INTERRUPTED = 6; // 测试计划中断执行
+    NEXT_STAGE_STARTED = 7; // 开始执行计划中的下一阶段
+    STATS_AGGREGATE = 8;  // 上报统计对象
+    STATUS_REPORT = 9; // 上报运行状态
+}
+
+message TimerDTO {
+    string type = 1;
+    bytes timer = 2;
+}
+
+message AttackStrategyDTO {
+    string type = 1;
+    bytes attack_strategy = 2;
+}
+
+message SubscribeResponse {
+    EventType type = 1;
+    oneof data {
+        string plan_name = 2;
+        AttackStrategyDTO attack_strategy = 3;
+        uint32 batch_id = 4;
+    };
+    TimerDTO timer =5;
+}
+
+message SubmitRequest {
+    string slave_id = 1;
+    uint32 batch_id = 2;
+    StatisticianGroupDTO stats =3;
+}
+
+message SendStatusRequest {
+    string slave_id = 1;
+    int32 concurrent_users = 2;
+}

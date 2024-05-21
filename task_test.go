@@ -1,37 +1,49 @@
 package ultron
 
 import (
-	"time"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
-
-
-type (
-	toTestAttacker struct {
-		name string
-	}
-)
-
-func newAttacker(n string) *toTestAttacker {
-	return &toTestAttacker{name: n}
-}
-
-func (t *toTestAttacker) Name() string {
-	return t.name
-}
-
-func (t *toTestAttacker) Fire() error {
-	time.Sleep(time.Millisecond)
-	return nil
-}
-
-func BenchmarkPickUp(b *testing.B) {
+func TestTask_PickUp(t *testing.T) {
 	task := NewTask()
-	task.Add(newAttacker("a"), 10)
-	task.Add(newAttacker("b"), 20)
-	task.Add(newAttacker("c"), 3)
-	for i := 0; i < b.N; i++ {
-		task.pickUp()
+	task.Add(NewHTTPAttacker("task-1"), 5)
+	task.Add(NewHTTPAttacker("task-2"), 12)
+	task.PickUp()
+
+	actual := make(map[string]int)
+	for _, attacker := range task.preempted {
+		actual[attacker.Name()]++
 	}
+	assert.EqualValues(t, actual["task-1"], 5)
+	assert.EqualValues(t, actual["task-2"], 12)
+}
+
+func TestTask_PickUp2(t *testing.T) {
+	task := NewTask()
+	task.Add(NewHTTPAttacker("task-1"), 5)
+	task.Add(NewHTTPAttacker("task-2"), 12)
+
+	counter := make(map[string]uint32)
+
+	for i := 0; i < 1000*1000; i++ {
+		attacker := task.PickUp()
+		counter[attacker.Name()] += 1
+	}
+	Logger.Info("attacker picked up", zap.Any("attackers", counter))
+}
+
+func BenchmarkTest_PickUp(b *testing.B) {
+	task := NewTask()
+	task.Add(NewHTTPAttacker("task-1"), 5)
+	task.Add(NewHTTPAttacker("task-2"), 10)
+	task.Add(NewHTTPAttacker("task-3"), 20)
+
+	b.RunParallel(func(p *testing.PB) {
+		for p.Next() {
+			task.PickUp()
+		}
+	})
 }

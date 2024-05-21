@@ -2,158 +2,213 @@ package ultron
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"sync"
+	"io"
 
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
+	"github.com/wosai/ultron/v2/pkg/genproto"
+	"github.com/wosai/ultron/v2/pkg/statistics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 type (
+	// slaveRunner ultron slave的实现
 	slaveRunner struct {
-		id      string
-		gClient UltronClient
-		once    sync.Once
-		sendCh  chan *Result
-		*baseRunner
+		id              string
+		ctx             context.Context
+		cancel          context.CancelFunc
+		client          genproto.UltronAPIClient
+		commander       AttackStrategyCommander
+		stats           *statistics.StatisticianGroup
+		task            Task
+		eventbus        *eventbus
+		subscribeStream genproto.UltronAPI_SubscribeClient
 	}
 )
 
-var (
-	slaveStart = make(chan struct{}, 1)
+var _ SlaveRunner = (*slaveRunner)(nil)
 
-	// ResultStreamBufferSize slave->master
-	ResultStreamBufferSize = 100
+const (
+	KeyPlan     = "plan"
+	KeyAttacker = "attacker"
 )
 
 func newSlaveRunner() *slaveRunner {
-	return &slaveRunner{id: uuid.NewV4().String(), baseRunner: newBaseRunner()}
+	return &slaveRunner{
+		id:       uuid.NewString(),
+		stats:    statistics.NewStatisticianGroup(),
+		eventbus: defaultEventBus,
+	}
 }
 
-func (sl *slaveRunner) Connect(addr string, opts ...grpc.DialOption) {
-	conn, err := grpc.Dial(addr, opts...)
-	if err != nil {
-		Logger.Error("connect to MasterRunner failed", zap.Error(err))
-		panic(err)
+func (sr *slaveRunner) Connect(addr string, opts ...grpc.DialOption) error {
+	if sr.task == nil {
+		Logger.Error("you should assign a task before call connect function")
+		return errors.New("you should assign a task before connect")
 	}
-	sl.gClient = NewUltronClient(conn)
+	sr.ctx, sr.cancel = context.WithCancel(context.Background())
+	conn, err := grpc.DialContext(sr.ctx, addr, opts...)
+	if err != nil {
+		Logger.Error("failed to connect ultron server", zap.Error(err))
+		return err
+	}
+	client := genproto.NewUltronAPIClient(conn)
+	streams, err := client.Subscribe(sr.ctx, &genproto.SubscribeRequest{SlaveId: sr.id})
+	if err != nil {
+		Logger.Error("failed to subscribe events from ultron server", zap.Error(err))
+		return err
+	}
+
+	// 第一条消息接受
+	resp, err := streams.Recv()
+	if err != nil {
+		Logger.Error("failed to receive event from ultron server", zap.Error(err))
+		return err
+	}
+	if resp.GetType() != genproto.EventType_CONNECTED {
+		err := fmt.Errorf("unexpected event type: %d", resp.Type)
+		Logger.Error("the first arrived event is not expected", zap.Error(err))
+		return err
+	}
+
+	sr.client = client
+	sr.subscribeStream = streams
+	go sr.working(streams)
+	sr.eventbus.start()
+	Logger.Info("salve is subscribing ultron server", zap.String("slave_id", sr.id))
+	return nil
 }
 
-func (sl *slaveRunner) handleMsg() {
-	c, err := sl.gClient.Subscribe(context.Background(), &ClientInfo{Id: sl.id})
-	if err != nil {
-		c.CloseSend()
-		sl.gClient.(*ultronClient).cc.Close()
-		os.Exit(1)
-	}
-	Logger.Info("subscribed")
+func (sr *slaveRunner) Assign(t Task) {
+	sr.task = t
+}
 
+func (sr *slaveRunner) SubscribeResult(fns ...ResultHandleFunc) {
+	for _, fn := range fns {
+		sr.eventbus.subscribeResult(fn)
+	}
+}
+
+func (sr *slaveRunner) working(streams genproto.UltronAPI_SubscribeClient) {
 	for {
-		msg, err := c.Recv()
+		event, err := streams.Recv()
 		if err != nil {
-			c.CloseSend()
-			Logger.Error("got error", zap.Error(err))
-			sl.gClient.(*ultronClient).cc.Close()
-			os.Exit(1)
+			if errors.Is(err, io.EOF) {
+				Logger.Warn("ultron server shutdown this connection", zap.Error(err))
+				return
+			}
+			Logger.Fatal("failed to receive events from ultron server", zap.Error(err))
+			return
 		}
 
-		switch msg.Type {
-		case Message_Disconnect:
-			Logger.Warn("received message to disconnect")
-			c.CloseSend()
-			sl.gClient.(*ultronClient).cc.Close()
-			os.Exit(0)
+		Logger.Info("received a new event", zap.Any("event", event))
 
-		case Message_RefreshConfig:
-			conf := new(RunnerConfig)
-			err = json.Unmarshal(msg.Data, conf)
-			if err != nil {
-				Logger.Error("unmarshal RunnerConfig failed", zap.Error(err))
-			} else {
-				Logger.Info("refreshed runner config", zap.Any("new RunnerConfig", conf))
-				sl.WithConfig(conf)
-			}
+		// 在实现上确保串行
+		switch event.GetType() {
+		case genproto.EventType_DISCONNECT:
+			Logger.Warn("ultron server ask me to shutdown connection")
+			return
 
-		case Message_StartAttack:
-			Logger.Info("received message to start attack")
-			if sl.GetStatus() == StatusBusy {
-				Logger.Warn("SlaveRunner is running, ignore this message")
-			} else {
-				slaveStart <- struct{}{}
-			}
+		case genproto.EventType_STATS_AGGREGATE:
+			sr.submit(event.GetBatchId())
 
-		case Message_StopAttack:
-			Logger.Info("reveived message to stop attack")
-			if sl.GetStatus() == StatusBusy {
-				sl.Done()
-			} else {
-				Logger.Warn("SlaveRunner is not running, ignore this message")
-			}
+		case genproto.EventType_PLAN_FINISHED, genproto.EventType_PLAN_INTERRUPTED:
+			sr.stopPlan()
 
-		case Message_Ping:
-			Logger.Info(fmt.Sprintf("i am alive, SlaveRunner Status: %d", sl.GetStatus()))
+		case genproto.EventType_PLAN_STARTED:
+			sr.startPlan(event.GetPlanName())
+
+		case genproto.EventType_NEXT_STAGE_STARTED:
+			sr.startNextStage(event.GetAttackStrategy(), event.GetTimer())
+
+		case genproto.EventType_STATUS_REPORT:
+			sr.sendStatus()
 
 		default:
-			Logger.Warn("unknown message", zap.Any("received", msg))
+			continue
 		}
 	}
 }
 
-func (sl *slaveRunner) handleResult() ResultHandleFunc {
-	return func(r *Result) {
-		sl.sendCh <- r
+func (sr *slaveRunner) startPlan(name string) {
+	if sr.commander != nil {
+		sr.stopPlan()
+		Logger.Warn("stop a exists plan before start new plan")
 	}
+
+	sr.stats.Reset()
+	sr.stats.Attach(statistics.Tag{Key: KeyPlan, Value: name})
+	Logger.Info("start a new plan", zap.String("plan_name", name))
 }
 
-func (sl *slaveRunner) sendStream(size int) {
-	if sl.sendCh == nil {
-		sl.sendCh = make(chan *Result, size)
-	}
-
-	stream, err := sl.gClient.Send(context.Background())
+func (sr *slaveRunner) submit(batch uint32) {
+	dto, err := statistics.ConvertStatisticianGroup(sr.stats)
 	if err != nil {
-		panic(err)
+		Logger.Error("failed to convert StatisticianGroup", zap.Uint32("batch", batch), zap.Error(err))
+		return
 	}
-
-	for r := range sl.sendCh {
-		err = stream.Send(r)
-		if err != nil {
-			Logger.Error("occur error on sending result to master", zap.Error(err))
-			os.Exit(1)
-			break
+	go func() {
+		if _, err := sr.client.Submit(sr.ctx, &genproto.SubmitRequest{SlaveId: sr.id, BatchId: batch, Stats: dto}); err != nil {
+			Logger.Error("failed to submit stats", zap.Error(err))
 		}
-	}
-	stream.CloseSend()
+	}()
 }
 
-func (sl *slaveRunner) Start() {
-	if sl.gClient == nil {
-		panic("you should invoke Connect(addr string) method first")
+func (sr *slaveRunner) startNextStage(s *genproto.AttackStrategyDTO, t *genproto.TimerDTO) {
+	strategy, err := defaultAttackStrategyConverter.convertDTO(s)
+	if err != nil {
+		Logger.Error("failed to start next stage", zap.Error(err))
+		return
+	}
+	timer, err := defaultTimerConverter.convertDTO(t)
+	if err != nil {
+		Logger.Error("failed to start next stage", zap.Error(err))
+		return
 	}
 
-	if sl.task == nil {
-		panic("no task provided")
+	if sr.commander == nil {
+		sr.commander = defaultCommanderFactory.build(strategy.Name())
+		output := sr.commander.Open(sr.ctx, sr.task)
+		go func(c <-chan statistics.AttackResult) {
+			for ret := range c {
+				if ret.IsFailure() {
+					if errors.Is(ret.Error, context.Canceled) { // 一般出现于降压阶段或者终止进程时
+						Logger.Warn("dropped the canceled attack result")
+						continue
+					}
+					Logger.Warn("received a failed attack result", zap.Error(ret.Error))
+				}
+				sr.stats.Record(ret)
+				sr.eventbus.publishResult(ret)
+			}
+		}(output)
 	}
 
-	sl.once.Do(func() {
-		go sl.handleMsg()
-		go sl.sendStream(ResultStreamBufferSize)
-		slaveResultPipeline = newResultPipeline(SlaveResultPipelineBufferSize)
-		SlaveEventHook.AddResultHandleFunc(sl.handleResult())
-		SlaveEventHook.listen(slaveResultPipeline, slaveReportPipeline)
-	})
+	go func(cmd AttackStrategyCommander) {
+		cmd.Command(strategy, timer)
+	}(sr.commander)
+}
 
-	for {
-		sl.status = StatusIdle
-		Logger.Info("slaver: " + sl.id + " is ready")
-		<-slaveStart
-		sl.status = StatusBusy
-		Logger.Info("attack !!!")
-
-		hatchWorkers(sl.baseRunner, slaveResultPipeline)
-		sl.wg.Wait()
-		Logger.Info("attack stopped")
+func (sr *slaveRunner) stopPlan() {
+	if commander := sr.commander; commander != nil {
+		sr.commander = nil
+		go func(cmd AttackStrategyCommander) {
+			cmd.Close()
+			Logger.Info("current plan is stopped")
+		}(commander)
 	}
+}
+
+func (sr *slaveRunner) sendStatus() {
+	req := &genproto.SendStatusRequest{SlaveId: sr.id, ConcurrentUsers: 0}
+	if sr.commander != nil {
+		req.ConcurrentUsers = int32(sr.commander.ConcurrentUsers())
+	}
+	go func() {
+		if _, err := sr.client.SendStatus(sr.ctx, req); err != nil {
+			Logger.Error("failed to send status to ultron master server", zap.Error(err))
+		}
+	}()
 }

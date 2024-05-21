@@ -1,36 +1,46 @@
 package main
 
 import (
+	"context"
 	"time"
+	"runtime"
 
-	"github.com/jacexh/ultron"
+	"github.com/wosai/ultron/v2"
 )
 
-type (
-	benchmark struct{}
-)
-
-func (b benchmark) Name() string {
-	return "benchmark"
+type benchmarkAttacker struct {
+	name string
 }
 
-func (b benchmark) Fire() error {
-	time.Sleep(time.Millisecond * 10)
+func (b *benchmarkAttacker) Name() string {
+	return b.name
+}
+
+func (b *benchmarkAttacker) Fire(_ context.Context) error {
+	time.Sleep(10 * time.Millisecond)
 	return nil
 }
 
 func main() {
+	runtime.GOMAXPROCS(1)
+	runner := ultron.NewLocalRunner()
 	task := ultron.NewTask()
-	t := benchmark{}
-	task.Add(t, 1)
+	task.Add(&benchmarkAttacker{name: "benchmark"}, 1)
+	runner.Assign(task)
 
-	ultron.LocalEventHook.Concurrency = 200
-	ultron.LocalRunner.WithTask(task)
-	ultron.LocalRunner.Config.Concurrence = 10000
-	ultron.LocalRunner.Config.HatchRate = 200
-	ultron.LocalRunner.Config.Duration = time.Minute * 3
-	ultron.LocalRunner.Config.MaxWait = ultron.ZeroDuration
-	ultron.LocalRunner.Config.MinWait = ultron.ZeroDuration
+	plan := ultron.NewPlan("benchmark test")
+	plan.AddStages(
+		&ultron.V1StageConfig{ConcurrentUsers: 20000, Duration: 300 * time.Second, RampUpPeriod: 50},
+		// &ultron.V1StageConfig{ConcurrentUsers: 100, Requests: 500000, RampUpPeriod: 5},
+	)
 
-	ultron.LocalRunner.Start()
+	if err := runner.Launch(); err != nil {
+		panic(err)
+	}
+
+	if err := runner.StartPlan(plan); err != nil {
+		panic(err)
+	}
+
+	select {}
 }

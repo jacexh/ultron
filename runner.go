@@ -2,247 +2,240 @@ package ultron
 
 import (
 	"errors"
-	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"sync"
-	"sync/atomic"
+	"syscall"
 	"time"
 
+	"github.com/wosai/ultron/v2/pkg/genproto"
 	"go.uber.org/zap"
-)
-
-const (
-	// StatusIdle 空闲状态
-	StatusIdle Status = iota
-	// StatusBusy 执行中状态
-	StatusBusy
-	// StatusStopped 已经停止状态
-	StatusStopped
-)
-
-var (
-	// LocalRunner 单机执行入口
-	LocalRunner *localRunner
-
-	// SlaveRunner 分布式执行，节点执行入口
-	SlaveRunner *slaveRunner
+	"google.golang.org/grpc"
 )
 
 type (
-	// Runner 定义执行器接口
-	Runner interface {
-		WithConfig(*RunnerConfig)
-		WithTask(*Task)
-		GetConfig() *RunnerConfig
-		GetStatus() Status
-		Start()
-		Done()
+	MasterRunner interface {
+		Launch(...grpc.ServerOption) error   // 服务启动
+		StartPlan(Plan) error                // 开始执行某个测试计划
+		StopPlan()                           // 停止当前计划
+		SubscribeReport(...ReportHandleFunc) // 订阅聚合报告
 	}
 
-	// Status Runner状态
-	Status int
+	SlaveRunner interface {
+		Connect(string, ...grpc.DialOption) error // 连接master
+		SubscribeResult(...ResultHandleFunc)      // 订阅Attacker的执行结果
+		Assign(Task)                              // 指派压测任务
+	}
 
-	baseRunner struct {
-		Config   *RunnerConfig
-		task     *Task
-		status   Status
-		counts   uint64
-		deadline time.Time
-		mu       sync.RWMutex
-		wg       sync.WaitGroup
+	LocalRunner interface {
+		Launch() error
+		Assign(Task)
+		SubscribeReport(...ReportHandleFunc)
+		SubscribeResult(...ResultHandleFunc)
+		StartPlan(Plan) error
+		StopPlan()
+	}
+
+	masterRunner struct {
+		scheduler  *scheduler
+		plan       Plan
+		eventbus   *eventbus
+		supervisor *slaveSupervisor
+		rpc        *grpc.Server
+		rest       *http.Server
+		mu         sync.RWMutex
 	}
 
 	localRunner struct {
-		stats *summaryStats
-		once  sync.Once
-		*baseRunner
+		master *masterRunner
+		slave  *slaveRunner
 	}
 )
 
-func newBaseRunner() *baseRunner {
-	return &baseRunner{status: StatusIdle, Config: DefaultRunnerConfig}
+func NewMasterRunner() MasterRunner {
+	runner := newMasterRunner()
+	go func(r *masterRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to shutdown ultron master server", zap.String("signal", sig.String()))
+
+		if r.scheduler != nil {
+			if err := r.scheduler.stop(false); err != nil {
+				Logger.Error("failed to interrupt current test plan", zap.Error(err))
+				os.Exit(1)
+			}
+			r.eventbus.close()
+		}
+		os.Exit(0)
+	}(runner)
+	return runner
 }
 
-func (br *baseRunner) WithConfig(rc *RunnerConfig) {
-	br.Config = rc
+func NewSlaveRunner() SlaveRunner {
+	runner := newSlaveRunner()
+
+	go func(r *slaveRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to disconnect to ultron server", zap.String("signal", sig.String()))
+
+		r.subscribeStream.CloseSend()
+		os.Exit(0)
+	}(runner)
+	return runner
 }
 
-func (br *baseRunner) WithTask(t *Task) {
-	br.task = t
-}
-
-func (br *baseRunner) GetConfig() *RunnerConfig {
-	return br.Config
-}
-
-func (br *baseRunner) Done() {
-	br.mu.Lock()
-	defer br.mu.Unlock()
-	br.status = StatusStopped
-}
-
-func isFinished(br *baseRunner) bool {
-	if br.GetStatus() == StatusStopped {
-		return true
+func newMasterRunner() *masterRunner {
+	return &masterRunner{
+		eventbus: defaultEventBus,
 	}
-
-	if br.Config.Requests > 0 && atomic.LoadUint64(&br.counts) >= br.Config.Requests {
-		br.Done()
-		return true
-	}
-
-	br.mu.RLock()
-	if br.Config.Duration > ZeroDuration && !br.deadline.IsZero() && time.Now().After(br.deadline) {
-		br.mu.RUnlock()
-		br.Done()
-		return true
-	}
-	br.mu.RUnlock()
-	return false
 }
 
-func (br *baseRunner) GetStatus() Status {
-	br.mu.RLock()
-	defer br.mu.RUnlock()
-	return br.status
-}
+// Launch 主线程，如果发生错误则关闭
+func (r *masterRunner) Launch(opts ...grpc.ServerOption) error {
+	Logger.Info("loaded configurations", zap.Any("configrations", loadedOption))
+	serverOption := loadedOption.Server
 
-func newLocalRunner(ss *summaryStats) *localRunner {
-	return &localRunner{stats: ss, baseRunner: newBaseRunner()}
-}
+	// eventbus初始化
+	r.eventbus.subscribeReport(printReportToConsole(os.Stdout))
+	r.eventbus.subscribeReport(printJsonReport(os.Stdout))
+	r.eventbus.start()
 
-func checkRunner(br *baseRunner) error {
-	if br.task == nil {
-		return errors.New("no Task provided")
-	}
+	start := make(chan struct{}, 1)
+	go func() { // http server
+		router := buildHTTPRouter(r)
+		r.rest = &http.Server{
+			Addr:    serverOption.HTTPAddr,
+			Handler: router,
+		}
+		Logger.Info("ultron http server is running", zap.String("address", serverOption.HTTPAddr))
+		if err := r.rest.ListenAndServe(); err != nil {
+			Logger.Fatal("a error has occurend inside http server", zap.Error(err))
+		}
+	}()
 
-	if br.Config == nil {
-		return errors.New("no RunnerConfig provided")
-	}
+	go func() { // grpc server
+		lis, err := net.Listen("tcp", serverOption.GRPCAddr)
+		if err != nil {
+			Logger.Fatal("failed to launch grpc server", zap.Error(err))
+		}
+		r.rpc = grpc.NewServer(opts...)
+		r.supervisor = newSlaveSupervisor()
+		genproto.RegisterUltronAPIServer(r.rpc, r.supervisor)
+		Logger.Info("ultron grpc server is running", zap.String("connect_address", serverOption.GRPCAddr))
 
-	if err := br.Config.check(); err != nil {
-		return err
-	}
+		start <- struct{}{}
+		if err := r.rpc.Serve(lis); err != nil {
+			Logger.Fatal("a error has occurend inside grpc server", zap.Error(err))
+		}
+	}()
+
+	<-start
 	return nil
 }
 
-func (lr *localRunner) log(r *Result) {
-	lr.stats.log(r)
-}
-
-func (lr *localRunner) Start() {
-	if err := checkRunner(lr.baseRunner); err != nil {
-		Logger.Panic("occur error", zap.Error(err))
-		panic(err)
+func (r *masterRunner) StartPlan(p Plan) error {
+	if p == nil {
+		err := errors.New("empty plan")
+		Logger.Error("cannot start with empty plan", zap.Error(err))
+		return err
 	}
+	r.mu.Lock()
+	if r.plan != nil && r.plan.Status() == StatusRunning {
+		r.mu.Unlock()
+		err := errors.New("cannot start a new plan before shutdown current running plan")
+		Logger.Error("failed to start a new plan", zap.Error(err))
+		return err
+	}
+	Logger.Info("start plan", zap.String("plan_name", p.Name()))
+	scheduler := newScheduler(r.supervisor)
+	r.scheduler = scheduler
+	r.plan = p
+	r.mu.Unlock()
 
-	Logger.Info("start to attack")
-	lr.status = StatusBusy
-
-	lr.once.Do(func() {
-		localReportPipeline = newReportPipeline(LocalReportPipelineBufferSize)
-		localResultPipeline = newResultPipeline(LocalResultPipelineBufferSize)
-		LocalEventHook.AddResultHandleFunc(lr.log)
-		LocalEventHook.listen(localResultPipeline, localReportPipeline)
-
-		signalCh := make(chan os.Signal, 1)
-		signal.Notify(signalCh, os.Interrupt)
-		go func() {
-			<-signalCh
-			Logger.Error("capatured interrupt signal")
-			printReportToConsole(lr.stats.report(true))
-			os.Exit(1)
-		}()
-
-	})
-
-	lr.stats.reset()
-
-	feedTicker := time.NewTicker(StatsReportInterval)
+	if err := scheduler.start(p.(*plan)); err != nil {
+		Logger.Error("failed to start a new plan", zap.Error(err))
+		return err
+	}
 	go func() {
-		for range feedTicker.C {
-			localReportPipeline <- lr.stats.report(false)
+		if err := scheduler.patrol(5 * time.Second); err != nil {
+			Logger.Warn("patrol mission is complete", zap.Error(err))
 		}
 	}()
+	return nil
+}
 
-	go func() {
-		t := time.NewTicker(200 * time.Millisecond)
-		for range t.C {
-			if isFinished(lr.baseRunner) {
-				t.Stop()
-				break
+func (r *masterRunner) StopPlan() {
+	r.mu.RLock()
+	if r.scheduler == nil {
+		r.mu.RUnlock()
+		return
+	}
+	r.mu.RUnlock()
+	if err := r.scheduler.stop(false); err != nil {
+		Logger.Error("failed to stop plan", zap.Error(err))
+	}
+}
+
+func (r *masterRunner) SubscribeReport(fns ...ReportHandleFunc) {
+	for _, fn := range fns {
+		r.eventbus.subscribeReport(fn)
+	}
+}
+
+var _ LocalRunner = (*localRunner)(nil)
+
+func NewLocalRunner() LocalRunner {
+	runner := &localRunner{
+		master: newMasterRunner(),
+		slave:  newSlaveRunner(),
+	}
+
+	go func(r *masterRunner) {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		sig := <-sigs
+		Logger.Warn("caught quit signal, try to shutdown ultron master server", zap.String("signal", sig.String()))
+
+		if r.scheduler != nil {
+			if err := r.scheduler.stop(false); err != nil {
+				Logger.Error("failed to interrupt current test plan", zap.Error(err))
+				os.Exit(1)
 			}
+			r.eventbus.close()
 		}
-	}()
-
-	hatchWorkers(lr.baseRunner, localResultPipeline)
-
-	if lr.Config.Duration > ZeroDuration {
-		lr.mu.Lock()
-		lr.deadline = time.Now().Add(lr.Config.Duration)
-		lr.mu.Unlock()
-		Logger.Info("set deadline", zap.Time("deadline", lr.deadline))
-	}
-	Logger.Info("hatched complete")
-
-	lr.wg.Wait()
-
-	feedTicker.Stop()
-	localReportPipeline <- lr.stats.report(true)
-
-	Logger.Info("task done")
-	time.Sleep(1 * time.Second)
-	os.Exit(0)
+		os.Exit(0)
+	}(runner.master)
+	return runner
 }
 
-func hatchWorkers(br *baseRunner, ch resultPipeline) {
-	var hatched int
-	for _, counts := range br.Config.hatchWorkerCounts() {
-		for i := 0; i < counts; i++ {
-			br.wg.Add(1)
-			go attack(br, ch)
-		}
-		hatched += counts
-		time.Sleep(time.Second)
-		Logger.Info(fmt.Sprintf("hatched %d workers", hatched))
+func (lr *localRunner) Launch() error {
+	if err := lr.master.Launch(); err != nil {
+		return err
 	}
+	return lr.slave.Connect(":2021", grpc.WithInsecure())
 }
 
-func attack(br *baseRunner, ch resultPipeline) {
-	defer br.wg.Done()
-	defer func() {
-		if rec := recover(); rec != nil {
-			// Todo:
-			debug.PrintStack()
-			Logger.Error("recovered")
-		}
-	}()
+func (lr *localRunner) Assign(t Task) {
+	lr.slave.Assign(t)
+}
 
-	if ch == nil {
-		panic("invalid resultPipeline")
-	}
+func (lr *localRunner) SubscribeResult(fns ...ResultHandleFunc) {
+	lr.slave.SubscribeResult(fns...)
+}
 
-	for {
-		q := br.task.pickUp()
-		start := time.Now()
-		if br.GetStatus() == StatusStopped {
-			return
-		}
-		err := q.Fire()
-		duration := time.Since(start)
-		atomic.AddUint64(&br.counts, 1)
-		ret := newResult(q.Name(), duration, err)
-		ch <- ret
+func (lr *localRunner) SubscribeReport(fns ...ReportHandleFunc) {
+	lr.master.SubscribeReport(fns...)
+}
 
-		if err != nil {
-			Logger.Warn("occur error: " + err.Error())
-		}
+func (lr *localRunner) StartPlan(p Plan) error {
+	return lr.master.StartPlan(p)
+}
 
-		if br.GetStatus() == StatusStopped {
-			return
-		}
-		br.Config.block()
-	}
+func (lr *localRunner) StopPlan() {
+	lr.master.StopPlan()
 }

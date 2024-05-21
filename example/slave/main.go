@@ -1,24 +1,26 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/jacexh/ultron"
+	"github.com/wosai/ultron/v2"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	slave := ultron.NewSlaveRunner()
 	task := ultron.NewTask()
-	baidu := ultron.NewHTTPAttacker("nginx", func() (*http.Request, error) {
-		req, err := http.NewRequest(http.MethodGet, "http://www.baidu.com/", nil)
-		if err != nil {
-			return nil, err
-		}
-		return req, nil
-	})
-	task.Add(baidu, 1)
+	attacker := ultron.NewHTTPAttacker("google")
+	attacker.Apply(ultron.WithPrepareFunc(func(context.Context) (*http.Request, error) {
+		return http.NewRequest(http.MethodGet, "https://www.google.com", nil)
+	}))
+	task.Add(attacker, 1)
+	slave.Assign(task)
 
-	ultron.SlaveRunner.Connect("127.0.0.1:9500", grpc.WithInsecure())
-	ultron.SlaveRunner.WithTask(task)
-	ultron.SlaveRunner.Start()
+	if err := slave.Connect("127.0.0.1:2021", grpc.WithInsecure()); err != nil {
+		panic(err)
+	}
+
+	select {}
 }

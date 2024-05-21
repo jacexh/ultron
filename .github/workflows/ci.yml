@@ -1,0 +1,104 @@
+name: Ultron CI
+on:
+  push:
+    tags:
+      - v**
+    branches:
+      - release/**
+  pull_request:
+    types:
+      - opened
+      - reopened
+    branches:
+      - release/**
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Check out code into Go module directory
+      - uses: actions/setup-go@v4
+        name: Set up Go 1.x
+        with:
+          go-version: "^1.20"
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: "3.18.1"
+      - name: Generate Protocol Buff Files
+        run: make proto
+      - name: Run Unittest Cases
+        run: make test
+      - name: Run Benchmark Cases
+        run: make benchmark
+      - name: Auto Commit
+        run: |
+          git config --global user.name 'Github Action'
+          git config --global user.email 'jacexh@users.noreply.github.com'
+          set +e
+          git commit -am 'Automated generate protobuf files' && git push origin
+          set -e
+      - name: Code Coverage Report
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.txt
+          verbose: true
+          flags: unittest
+          fail_ci_if_error: true
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Check out code into Go module directory
+        # with:
+        #   ref: ${{ github.event.pull_request.head.ref }}
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "12"
+          cache: "yarn"
+          cache-dependency-path: front/yarn.lock
+      - name: Build Frontend
+        run: |
+          git rm -rf web/
+          yarn --cwd front install
+          yarn --cwd front build
+      - name: Auto Commit
+        run: |
+          git config --global user.name 'Github Action'
+          git config --global user.email 'jacexh@users.noreply.github.com'
+          set +e
+          git add web
+          git commit -am 'Automated generate static files' && git push origin
+          set -e
+
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v3
+        name: Check out code into Go module directory
+        with:
+          token: ${{ secrets.PAT_XH }}
+      - name: Sync Sub Packages
+        id: sync
+        run: |
+          make sync-module-version version=${{ github.ref_name }}
+          git status
+          echo "packages=`git status | grep go.mod | awk '{ split($2,a,"/go.mod"); printf a[1]" "}'`" >> $GITHUB_OUTPUT
+      - name: Auto Commit
+        run: |
+          git config --global user.name 'Github Action'
+          git config --global user.email 'jacexh@users.noreply.github.com'
+          set +e
+          git commit -am 'Automated bump github.com/wosai/ultron/v2 to ${{ github.ref_name }} in sub packages'
+          for package in ${{ steps.sync.outputs.packages }}
+          do
+            git tag $package/${{ github.ref_name }}
+          done
+          git push origin HEAD:master
+          git push origin --tags
+          set -e

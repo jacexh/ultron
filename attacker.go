@@ -1,58 +1,48 @@
 package ultron
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
-
-	"github.com/valyala/fasthttp"
-
-	"go.uber.org/zap"
 )
 
 type (
-	// Attacker 定义一个事务、请求，需要确保该对象是Goroutine-safe
+	// Attacker 事务接口
 	Attacker interface {
 		Name() string
-		Fire() error
+		Fire(context.Context) error
 	}
-
 	// HTTPPrepareFunc 构造http.Request函数，需要调用方定义，由HTTPAttacker来发送
-	HTTPPrepareFunc func() (*http.Request, error)
-	// HTTPResponseCheck http.Response校验函数，可由调用方自定义，如果返回error，则视为请求失败
-	HTTPResponseCheck func(resp *http.Response, body []byte) error
+	HTTPPrepareFunc func(context.Context) (*http.Request, error)
 
-	// HTTPAttacker http协议的Attacker实现
+	// HTTPCheckFunc http.Response校验函数，可由调用方自定义，如果返回error，则视为请求失败
+	HTTPCheckFunc func(context.Context, *http.Response, []byte) error
+
+	// HTTPAttacker 内置net/http库对Attacker的实现
 	HTTPAttacker struct {
-		Client     *http.Client
-		Prepare    HTTPPrepareFunc
-		name       string
-		CheckChain []HTTPResponseCheck
+		client      *http.Client
+		name        string
+		prepareFunc HTTPPrepareFunc
+		checkFuncs  []HTTPCheckFunc
 	}
 
-	// FastHTTPAttacker a http attacker base on fasthttp: https://github.com/valyala/fasthttp
-	FastHTTPAttacker struct {
-		Client     *fasthttp.Client
-		Prepare    FastHTTPPrepareFunc
-		name       string
-		CheckChain []FastHTTPResponseCheck
-	}
+	// HTTPAttackerOption HTTPAttacker配置项
+	HTTPAttackerOption func(*HTTPAttacker)
+)
 
-	// FastHTTPPrepareFunc 构造fasthttp.Request请求参数
-	FastHTTPPrepareFunc func(*fasthttp.Request) error
-
-	// FastHTTPResponseCheck check fasthttp.Response
-	FastHTTPResponseCheck func(*fasthttp.Response) error
+const (
+	defaultUserAgent = "github.com/wosai/ultron"
 )
 
 var (
-	// DefaultHTTPClient 默认http.Client
+	// defaultHTTPClient 默认http.Client
 	// http://tleyden.github.io/blog/2016/11/21/tuning-the-go-http-client-library-for-load-testing/
-	DefaultHTTPClient = &http.Client{
-		Timeout: 90 * time.Second,
+	defaultHTTPClient = &http.Client{
+		Timeout: 45 * time.Second,
 		Transport: &http.Transport{
 			Proxy: nil,
 			DialContext: (&net.Dialer{
@@ -61,7 +51,7 @@ var (
 				DualStack: true,
 			}).DialContext,
 			DisableKeepAlives:     false,
-			MaxIdleConns:          2000,
+			MaxIdleConns:          1000,
 			MaxIdleConnsPerHost:   1000,
 			IdleConnTimeout:       30 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
@@ -69,133 +59,123 @@ var (
 		},
 	}
 
-	// DefaultFastHTTPClient define the default fasthttp client use in FastHTTPAttacker
-	DefaultFastHTTPClient = &fasthttp.Client{
-		Name:                "ultron",
-		MaxConnsPerHost:     2000,
-		MaxIdleConnDuration: 90 * time.Second,
-		ReadTimeout:         90 * time.Second,
-		WriteTimeout:        60 * time.Second,
-	}
+	_ Attacker = (*HTTPAttacker)(nil)
 )
 
-// NewHTTPAttacker 创建一个新的HTTPAttacker对象
-func NewHTTPAttacker(n string, p HTTPPrepareFunc, check ...HTTPResponseCheck) *HTTPAttacker {
-	return &HTTPAttacker{
-		Client:     DefaultHTTPClient,
-		Prepare:    p,
-		name:       n,
-		CheckChain: check,
+func NewHTTPAttacker(name string, opts ...HTTPAttackerOption) *HTTPAttacker {
+	attacker := &HTTPAttacker{
+		client:     defaultHTTPClient,
+		name:       name,
+		checkFuncs: make([]HTTPCheckFunc, 0),
 	}
+	attacker.Apply(opts...)
+	return attacker
 }
 
-// Name 返回HTTPAttacker的名称
 func (ha *HTTPAttacker) Name() string {
 	return ha.name
 }
 
-// Fire HTTPAttacker发起一次请求
-func (ha *HTTPAttacker) Fire() error {
-	if ha.Prepare == nil {
-		panic("please implement Prepare() first")
+func (ha *HTTPAttacker) Fire(ctx context.Context) error {
+	if ha.prepareFunc == nil {
+		panic("call Apply(WithPrepareFunc()) first")
 	}
 
-	req, err := ha.Prepare()
+	ctx = AllocateStorageInContext(ctx)
+	defer ClearStorageInContext(ctx)
+
+	req, err := ha.prepareFunc(ctx)
 	if err != nil {
-		Logger.Error("occur error on creating new http.Request object", zap.Error(err))
+		return err
+	}
+	req = req.WithContext(ctx)
+	// change user agent
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", defaultUserAgent)
+	}
+
+	res, err := ha.client.Do(req)
+	if err != nil {
 		return err
 	}
 
-	resp, err := ha.Client.Do(req)
+	if len(ha.checkFuncs) == 0 {
+		io.Copy(io.Discard, res.Body) // no checker defined, discard body
+		return res.Body.Close()
+	}
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		Logger.Error("occur error on sending http request", zap.Error(err))
 		return err
 	}
 
-	if ha.CheckChain == nil || len(ha.CheckChain) == 0 {
-		io.Copy(ioutil.Discard, resp.Body) // no checker defined, discard body
-		resp.Body.Close()
-		return nil
-	}
+	res.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		Logger.Error("occur error on receiving http response", zap.Error(err))
-		return err
-	}
-	resp.Body.Close()
-
-	for _, check := range ha.CheckChain {
-		if check == nil {
-			continue
-		}
-		if err = check(resp, body); err != nil {
+	for _, check := range ha.checkFuncs {
+		if err = check(ctx, res, body); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (ha *HTTPAttacker) Apply(opts ...HTTPAttackerOption) {
+	for _, opt := range opts {
+		opt(ha)
+	}
+}
+
+func WithClient(client *http.Client) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		h.client = client
+	}
+}
+
+func WithPrepareFunc(prepare HTTPPrepareFunc) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		if prepare == nil {
+			panic("invalid HTTPPrepareFunc")
+		}
+		h.prepareFunc = prepare
+	}
+}
+
+func WithCheckFuncs(checks ...HTTPCheckFunc) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		for _, check := range checks {
+			if check == nil {
+				panic("invalid HTTPCheckFunc")
+			}
+		}
+		h.checkFuncs = append(h.checkFuncs, checks...)
+	}
+}
+
+func WithDisableKeepAlives(disable bool) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		if tran, ok := h.client.Transport.(*http.Transport); ok {
+			tran.DisableKeepAlives = disable
+		}
+	}
+}
+
+func WithTimeout(t time.Duration) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		h.client.Timeout = t
+	}
+}
+
+func WithProxy(proxy func(*http.Request) (*url.URL, error)) HTTPAttackerOption {
+	return func(h *HTTPAttacker) {
+		if transport, ok := h.client.Transport.(*http.Transport); ok {
+			transport.Proxy = proxy
+		}
+	}
 }
 
 // CheckHTTPStatusCode 检查状态码是否>=400, 如果是则视为请求失败
-func CheckHTTPStatusCode(resp *http.Response, body []byte) error {
-	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("bad status code: %d", resp.StatusCode)
+func CheckHTTPStatusCode(_ context.Context, res *http.Response, body []byte) error {
+	if res.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("bad status code: %d", res.StatusCode)
 	}
 	return nil
-}
-
-// CheckFastHTTPStatusCode check if status code >= 400
-func CheckFastHTTPStatusCode(resp *fasthttp.Response) error {
-	if code := resp.StatusCode(); code >= http.StatusBadRequest {
-		return fmt.Errorf("bad status code: %d", code)
-	}
-	return nil
-}
-
-// NewFastHTTPAttacker return a new instance of FastHTTPAttacker
-func NewFastHTTPAttacker(n string, p FastHTTPPrepareFunc, check ...FastHTTPResponseCheck) *FastHTTPAttacker {
-	return &FastHTTPAttacker{
-		Client:     DefaultFastHTTPClient,
-		name:       n,
-		Prepare:    p,
-		CheckChain: check,
-	}
-}
-
-// Name return attacker's name
-func (fa *FastHTTPAttacker) Name() string {
-	return fa.name
-}
-
-// Fire send request and check response
-func (fa *FastHTTPAttacker) Fire() error {
-	if fa.Prepare == nil {
-		panic("please impl Prepare() first")
-	}
-
-	req := fasthttp.AcquireRequest()
-	resp := fasthttp.AcquireResponse()
-	defer fa.release(req, resp)
-
-	err := fa.Prepare(req)
-	if err != nil {
-		return err
-	}
-
-	if err := fa.Client.Do(req, resp); err != nil {
-		return err
-	}
-
-	for _, c := range fa.CheckChain {
-		if err := c(resp); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (fa *FastHTTPAttacker) release(req *fasthttp.Request, resp *fasthttp.Response) {
-	fasthttp.ReleaseRequest(req)
-	fasthttp.ReleaseResponse(resp)
 }
